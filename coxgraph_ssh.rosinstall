@@ -1,0 +1,8 @@
+- git:
+    local-name: voxgraph
+    uri: git@github.com:LXYYY/voxgraph.git
+    version: feature/multi_robots
+- git:
+    local-name: voxblox
+    uri: git@github.com:LXYYY/voxblox.git
+    version: feature/multi_robots
