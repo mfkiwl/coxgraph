@@ -3,6 +3,8 @@
 
 #include <ros/ros.h>
 
+#include <vector>
+
 #include "coxgraph/common.h"
 #include "coxgraph/server/client_handler.h"
 
@@ -27,16 +29,23 @@ class CoxgraphServer {
   };
 
   CoxgraphServer(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private)
-      : verbose_(false), config_(getConfigFromRosParam(nh_private)) {
+      : verbose_(false),
+        config_(getConfigFromRosParam(nh_private)),
+        client_handlers_(
+            std::vector<ClientHandler::Ptr>(config_.client_number, nullptr)) {
     nh_private.param<bool>("verbose", verbose_, verbose_);
     LOG(INFO) << "Verbose: " << verbose_;
     LOG(INFO) << config_;
+
+    initClientHandlers();
   }
   ~CoxgraphServer() = default;
 
   static Config getConfigFromRosParam(const ros::NodeHandle& nh_private);
 
  private:
+  void initClientHandlers();
+
   // Node handles
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
@@ -45,6 +54,8 @@ class CoxgraphServer {
   bool verbose_;
 
   Config config_;
+
+  std::vector<ClientHandler::Ptr> client_handlers_;
 };
 
 }  // namespace coxgraph

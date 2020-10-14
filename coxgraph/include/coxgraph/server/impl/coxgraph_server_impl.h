@@ -15,6 +15,13 @@ CoxgraphServer::Config CoxgraphServer::getConfigFromRosParam(
   return config;
 }
 
+void CoxgraphServer::initClientHandlers() {
+  CHECK_EQ(client_handlers_.size(), config_.client_number);
+  for (int i = 0; i < client_handlers_.size(); i++) {
+    client_handlers_.at(i).reset(new ClientHandler(i));
+  }
+}
+
 }  // namespace coxgraph
 
 #endif  // COXGRAPH_SERVER_IMPL_COXGRAPH_SERVER_IMPL_H_
