@@ -20,9 +20,9 @@
   <depend>cblox_ros</depend>
   <depend>ceres_catkin</depend>
   <depend>eigen_catkin</depend>
-
   <depend>voxblox_msgs</depend>
   <depend>cblox_msgs</depend>
   <depend>voxgraph_msgs</depend>
   <depend>voxgraph</depend>
+
 </package>

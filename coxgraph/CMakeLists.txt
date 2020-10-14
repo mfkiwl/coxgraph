@@ -7,7 +7,7 @@ find_package(catkin_simple REQUIRED)
 catkin_simple(ALL_DEPS_REQUIRED)
 
 cs_add_library(${PROJECT_NAME}
-    src/client/coxgraph_client_mapper.cpp)
+    src/client/coxgraph_client.cpp)
 
 cs_add_executable(coxgraph_client_node
     src/coxgraph_client_node.cpp)

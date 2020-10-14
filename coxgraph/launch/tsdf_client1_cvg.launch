@@ -7,6 +7,7 @@
   <arg name="scene_name" default="cvg_lab" />
   <arg name="sensor_name" default="realsense" />
   <arg name="visualize" default="false" />
+  <arg name="verbose" default="true"/>
 
   <node pkg="tf" type="static_transform_publisher" name="map_to_mission" args="0 0 0 0 0 0 1 map1 mission1 100"/>
   <!--tf borrowed from realsense-->
@@ -35,8 +36,7 @@
       <param name="enable_segment_map" value="false" />
       <param name="enable_local_segment_map" value="false" />
       <param name="point_cloud_frame_id" value="kinect2_rgb_optical_frame_1" />
-      <remap from="tsdf_map_out" to="tsdf_map_out_1"/>
-      <param name="verbose" value="true" />
+      <param name="verbose" value="$(arg verbose)" />
       <param name="world_frame" value="map1"/>
     </node>
 
