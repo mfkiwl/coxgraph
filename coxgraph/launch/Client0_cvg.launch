@@ -10,7 +10,7 @@
 
   <node pkg="tf" type="static_transform_publisher" name="map_to_mission" args="0 0 0 0 0 0 1 map0 mission0 100"/>
   <!--tf borrowed from realsense-->
-  <node pkg="tf" type="static_transform_publisher" name="base_to_kinect2_0" args="0 0 0 0.502 -0.499 0.503 -0.496 robot_base_0 kinect2_rgb_optical_frame 100"/>
+  <node pkg="tf" type="static_transform_publisher" name="base_to_kinect2_0" args="0 0 0 0.502 -0.499 0.503 -0.496 robot_base_0 kinect2_rgb_optical_frame_0 100"/>
 
   <node pkg="nodelet" type="nodelet" name="nodelet_manager0" args="manager" output="screen"/>
   <node pkg="nodelet" type="nodelet" name="cloudify0" args="load depth_image_proc/point_cloud_xyzrgb nodelet_manager0 --no-bond">
@@ -37,6 +37,7 @@
       <param name="verbose" value="true" />
       <param name="world_frame" value="map0"/>
       <remap from="tsdf_map_out" to="tsdf_map_out_0"/>
+      <param name="point_cloud_frame_id" value="kinect2_rgb_optical_frame_0" />
     </node>
 
   </group>
