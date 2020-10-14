@@ -13,4 +13,4 @@
 - git:
     local-name: maskgraph
     uri: git@github.com:LXYYY/maskgraph.git
-    version: develop
+    version: feature/multi_robots
