@@ -1,10 +1,17 @@
 #ifndef COXGRAPH_SERVER_COXGRAPH_SERVER_H_
 #define COXGRAPH_SERVER_COXGRAPH_SERVER_H_
 
+#include <ros/ros.h>
+
+#include "coxgraph/common.h"
+#include "coxgraph/server/client_handler.h"
+
 namespace coxgraph {
 
 class CoxgraphServer {
  public:
+  using ClientHandler = server::ClientHandler;
+
   struct Config {
     Config() : client_number(0) {}
     int32_t client_number;

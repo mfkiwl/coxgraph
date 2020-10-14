@@ -5,3 +5,4 @@ namespace coxgraph {
 class CoxgraphServer;
 
 }  // namespace coxgraph
+}  // namespace coxgraph
