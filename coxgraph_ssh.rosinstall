@@ -6,3 +6,11 @@
     local-name: voxblox
     uri: git@github.com:LXYYY/voxblox.git
     version: feature/multi_robots
+- git:
+    local-name: ccm_slam
+    uri: git@github.com:LXYYY/ccm_slam.git
+    version: feature/coxgraph
+- git:
+    local-name: maskgraph
+    uri: git@github.com:LXYYY/maskgraph.git
+    version: feature/multi_robots

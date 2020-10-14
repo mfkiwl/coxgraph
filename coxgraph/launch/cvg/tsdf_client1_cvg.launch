@@ -1,0 +1,48 @@
+<launch>
+  <param name="use_sim_time" value="true" />
+
+  <!-- User supplied arguments -->
+  <arg name="pointcloud_topic" default="/kinect2/qhd/points1" doc="ROS topic for pointcloud input" />
+  <arg name="show_rviz" default="false" doc="Automatically launch Rviz." />
+  <arg name="scene_name" default="cvg_lab" />
+  <arg name="sensor_name" default="kinect2" />
+  <arg name="visualize" default="false" />
+  <arg name="verbose" default="true"/>
+
+  <node pkg="tf" type="static_transform_publisher" name="map1_to_mission1" args="0 0 0 0 0 0 1 map1 mission1 100"/>
+  <!--tf borrowed from realsense-->
+  <!-- <node pkg="tf" type="static_transform_publisher" name="base_to_kinect2_1" args="0 0 0 0.502 -0.499 0.503 -0.496 robot_base_1 kinect2_rgb_optical_frame_1 100"/> -->
+
+  <node pkg="nodelet" type="nodelet" name="nodelet_manager1" args="manager" output="screen"/>
+  <node pkg="nodelet" type="nodelet" name="cloudify1" args="load depth_image_proc/point_cloud_xyzrgb nodelet_manager1 --no-bond">
+    <remap from="depth_registered/image_rect" to="/kinect2/qhd/image_depth_rect1"/>
+    <remap from="depth_registered/points" to="/kinect2/qhd/points1"/>
+    <remap from="rgb/image_rect_color" to="/kinect2/qhd/image_color_rect1"/>
+    <remap from="rgb/camera_info" to="/kinect2/qhd/camera_info"/>
+  </node>
+
+  <arg name="debug" default="false" />
+
+  <group>
+    <arg unless="$(arg debug)" name="launch_prefix" value=" " />
+    <arg if="$(arg debug)" name="launch_prefix" value="xterm -e gdb --args" />
+
+    <node name="label_tsdf_client_1" pkg="maskgraph" type="label_tsdf_server" output="screen" args="-alsologtostderr" clear_params="true" launch-prefix="$(arg launch_prefix)">
+      <remap from="pointcloud" to="$(arg pointcloud_topic)"/>
+      <rosparam file="$(find maskgraph)/config/label_tsdf_server.yaml"/>
+      <rosparam file="$(find maskgraph)/config/segment_map.yaml"/>
+      <rosparam file="$(find maskgraph)/config/$(arg scene_name).yaml"/>
+      <rosparam file="$(find coxgraph)/config/$(arg sensor_name).yaml"/>
+      <param name="meshing/visualize" value="$(arg visualize)" />
+      <param name="enable_segment_map" value="false" />
+      <param name="enable_local_segment_map" value="false" />
+      <!-- <param name="point_cloud_frame_id" value="kinect2_rgb_optical_frame_1" /> -->
+      <param name="point_cloud_frame_id" value="robot_base_1" />
+      <param name="verbose" value="$(arg verbose)" />
+      <param name="world_frame" value="map1"/>
+    </node>
+
+  </group>
+
+
+</launch>

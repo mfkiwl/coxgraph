@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="pointcloud_topic" doc="ROS topic for pointcloud input"/>
+  <arg name="debug_cg" default="false" doc="Run the coxgraph client in debug mode." />
+  <arg name="debug_tsdf" default="false" doc="Run the tsdf client in debug mode." />
+  <arg name="show_rviz" default="false" doc="Automatically launch Rviz." />
+  <arg name="verbose" default="false"/>
+
+  <group>
+    <arg unless="$(arg debug_cg)" name="launch_prefix" value="" />
+    <arg if="$(arg debug_cg)" name="launch_prefix" value="xterm -e gdb --args" />
+
+    <node name="coxgraph_client_1" pkg="coxgraph" type="coxgraph_client_node" output="screen" launch-prefix="$(arg launch_prefix)" args="-alsologtostderr">
+      <rosparam file="$(find voxgraph)/config/voxgraph_mapper.yaml" />
+      <param name="input_odom_frame" value="map1"/>
+      <param name="input_base_link_frame" value="robot_base_1"/>
+      <param name="output_mission_frame" value="mission1"/>
+      <param name="output_odom_frame" value="map1"/>
+      <param name="output_base_link_frame" value="robot_base_1"/>
+      <param name="output_sensor_frame" value="sensor_coxgraph_1"/>
+      <param name="tsdf_voxel_size" value="0.05"/>
+      <param name="tsdf_integrator/truncation_distance" value="0.15"/>
+      <param name="submap_topic" value="/label_tsdf_client_1/tsdf_map_out" />
+      <param name="client_id" value="1"/>
+    </node>
+  </group>
+
+  <group>
+    <include file="$(find coxgraph)/launch/cvg/tsdf_client1_cvg.launch">
+      <arg name="debug" default="$(arg debug_tsdf)"/>
+      <arg name="verbose" default="$(arg verbose)"/>
+    </include>
+  </group>
+
+</launch>
+
