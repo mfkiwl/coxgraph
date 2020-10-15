@@ -18,5 +18,8 @@
   <depend>std_msgs</depend>
   <depend>nav_msgs</depend>
   <depend>sensor_msgs</depend>
+  <depend>voxblox_msgs</depend>
+  <depend>cblox_msgs</depend>
+  <depend>voxgraph_msgs</depend>
 </package>
 

@@ -1,6 +1,7 @@
 #ifndef COXGRAPH_SERVER_IMPL_COXGRAPH_SERVER_IMPL_H_
 #define COXGRAPH_SERVER_IMPL_COXGRAPH_SERVER_IMPL_H_
 
+#include <memory>
 #include <string>
 
 namespace coxgraph {
@@ -25,9 +26,9 @@ CoxgraphServer::Config CoxgraphServer::getConfigFromRosParam(
 
 void CoxgraphServer::initClientHandlers(const ros::NodeHandle& nh,
                                         const ros::NodeHandle& nh_private) {
-  CHECK_EQ(client_handlers_.size(), config_.client_number);
-  for (int i = 0; i < client_handlers_.size(); i++) {
-    client_handlers_[i].reset(new ClientHandler(nh, nh_private, i));
+  for (int i = 0; i < config_.client_number; i++) {
+    client_handlers_.emplace_back(
+        new ClientHandler(nh, nh_private, i, submap_config_));
   }
 }
 
@@ -65,6 +66,15 @@ void CoxgraphServer::loopClosureCallback(
 void CoxgraphServer::mapFusionCallback(
     const coxgraph_msgs::MapFusion& map_fusion_msg) {
   CHECK_NE(map_fusion_msg.from_client_id, map_fusion_msg.to_client_id);
+
+  ClientSubmap::Ptr submap_a, submap_b;
+  ClientSubmapId submap_id_a, submap_id_b;
+  Transformation T_submap_t_a, T_submap_t_b;
+  bool ok_a, ok_b;
+  ok_a = client_handlers_[map_fusion_msg.from_client_id]->requestSubmapByTime(
+      map_fusion_msg.from_timestamp, &submap_id_a, &submap_a, &T_submap_t_a);
+  ok_b = client_handlers_[map_fusion_msg.to_client_id]->requestSubmapByTime(
+      map_fusion_msg.to_timestamp, &submap_id_b, &submap_b, &T_submap_t_b);
 }
 
 voxgraph_msgs::LoopClosure CoxgraphServer::fromMapFusionMsg(

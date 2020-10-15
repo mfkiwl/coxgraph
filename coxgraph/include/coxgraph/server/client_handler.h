@@ -1,6 +1,7 @@
 #ifndef COXGRAPH_SERVER_CLIENT_HANDLER_H_
 #define COXGRAPH_SERVER_CLIENT_HANDLER_H_
 
+#include <coxgraph_msgs/ClientSubmap.h>
 #include <ros/ros.h>
 #include <voxgraph_msgs/LoopClosure.h>
 #include <Eigen/Dense>
@@ -16,7 +17,10 @@ namespace server {
 class ClientHandler {
  public:
   struct Config {
-    Config() : client_name_prefix("coxgraph_client_"), pub_queue_length(1) {}
+    Config()
+        : client_name_prefix("coxgraph_client_"),
+          client_loop_closure_topic("loop_closure_in"),
+          pub_queue_length(1) {}
     std::string client_name_prefix;
     std::string client_loop_closure_topic;
     int32_t pub_queue_length;
@@ -38,15 +42,22 @@ class ClientHandler {
 
   ClientHandler() : client_id_(-1) {}
   ClientHandler(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private,
-                const ClientId& client_id)
+                const ClientId& client_id,
+                const ClientSubmapConfig& submap_config)
+      : ClientHandler(nh, nh_private, client_id, submap_config,
+                      getConfigFromRosParam(nh_private)) {}
+  ClientHandler(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private,
+                const ClientId& client_id,
+                const ClientSubmapConfig& submap_config, const Config& config)
       : client_id_(client_id),
         nh_(nh),
         nh_private_(nh_private),
-        config_(getConfigFromRosParam(nh_private)) {
-    loop_closure_pub_ = nh_.advertise<voxgraph_msgs::LoopClosure>(
-        config_.client_name_prefix + std::to_string(client_id_) + "/" +
-            config_.client_loop_closure_topic,
-        config_.pub_queue_length, true);
+        config_(config),
+        submap_config_(submap_config),
+        client_node_name_(config.client_name_prefix +
+                          std::to_string(client_id_)) {
+    publishTopics();
+    subscribeToServices();
   }
   virtual ~ClientHandler() = default;
 
@@ -57,19 +68,25 @@ class ClientHandler {
   bool sendLoopClosureMsg(const voxgraph_msgs::LoopClosure& loop_closure_msg);
 
   bool requestSubmapByTime(const ros::Time& timestamp,
-                           ClientSubmapId* submap_id,
-                           const ClientSubmap::Ptr& submap_ptr);
+                           ClientSubmapId* submap_id, ClientSubmap::Ptr* submap,
+                           Transformation* T_submap_t);
 
  private:
+  void publishTopics();
+  void subscribeToServices();
+
   const ClientId client_id_;
+  const std::string client_node_name_;
 
   Config config_;
+  ClientSubmapConfig submap_config_;
 
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
 
   ros::Publisher loop_closure_pub_;
-};
+  ros::ServiceClient pub_client_submap_client_;
+};  // namespace server
 
 }  // namespace server
 }  // namespace coxgraph

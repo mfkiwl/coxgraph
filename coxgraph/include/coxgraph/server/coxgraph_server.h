@@ -3,6 +3,8 @@
 
 #include <coxgraph_msgs/MapFusion.h>
 #include <ros/ros.h>
+#include <voxgraph/frontend/submap_collection/voxgraph_submap.h>
+#include <voxgraph/tools/ros_params.h>
 #include <voxgraph_msgs/LoopClosure.h>
 
 #include <string>
@@ -20,7 +22,7 @@ class CoxgraphServer {
   struct Config {
     Config()
         : client_number(0),
-          map_fusion_topic("loop_closure_in"),
+          map_fusion_topic("map_fusion_in"),
           map_fusion_queue_size(10) {}
     int32_t client_number;
     std::string map_fusion_topic;
@@ -43,12 +45,13 @@ class CoxgraphServer {
         nh_private_(nh_private),
         verbose_(false),
         config_(getConfigFromRosParam(nh_private)),
-        client_handlers_(
-            std::vector<ClientHandler::Ptr>(config_.client_number, nullptr)) {
+        submap_config_(
+            voxgraph::getVoxgraphSubmapConfigFromRosParams(nh_private)) {
     nh_private.param<bool>("verbose", verbose_, verbose_);
     LOG(INFO) << "Verbose: " << verbose_;
     LOG(INFO) << config_;
 
+    subscribeTopics();
     initClientHandlers(nh, nh_private);
     LOG(INFO) << client_handlers_[0]->getConfig();
   }
@@ -80,6 +83,7 @@ class CoxgraphServer {
   bool verbose_;
 
   Config config_;
+  ClientSubmapConfig submap_config_;
 
   std::vector<ClientHandler::Ptr> client_handlers_;
 };

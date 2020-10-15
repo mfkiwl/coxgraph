@@ -2,5 +2,6 @@
 <launch>
   <include file="$(find ccmslam)/launch/CVG/Client0_cvg.launch" />
   <include file="$(find ccmslam)/launch/CVG/Client1_cvg.launch" />
+  <include file="$(find ccmslam)/launch/Server.launch" />
   <!-- <include file="$(find ccmslam)/launch/CVG/play_bags.launch" /> -->
 </launch>

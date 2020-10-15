@@ -1,0 +1,8 @@
+#request
+time timestamp
+---
+#respoinse
+int32 submap_id
+cblox_msgs/MapLayer sdf_layers
+voxgraph_msgs/MapSurface registration_points
+geometry_msgs/Transform transform

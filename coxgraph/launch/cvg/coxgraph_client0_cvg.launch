@@ -6,7 +6,7 @@
   <arg name="show_rviz" default="false" doc="Automatically launch Rviz." />
   <arg name="verbose" default="false"/>
 
-  <group>
+  <group ns="coxgraph">
     <arg unless="$(arg debug_cg)" name="launch_prefix" value="" />
     <arg if="$(arg debug_cg)" name="launch_prefix" value="xterm -e gdb --args" />
 
@@ -20,12 +20,13 @@
       <param name="output_sensor_frame" value="sensor_coxgraph_0"/>
       <param name="tsdf_voxel_size" value="0.05"/>
       <param name="tsdf_integrator/truncation_distance" value="0.15"/>
-      <param name="submap_topic" value="/label_tsdf_client_0/tsdf_map_out" />
+      <param name="submap_topic" value="/tsdf_client/label_tsdf_client_0/tsdf_map_out" />
+      <param name="loop_closure_topic" value="/coxgraph/coxgraph_client_0/loop_closure_in" />
       <param name="client_id" value="0"/>
     </node>
   </group>
 
-  <group>
+  <group ns="tsdf_client">
     <include file="$(find coxgraph)/launch/cvg/tsdf_client0_cvg.launch">
       <arg name="debug" default="$(arg debug_tsdf)"/>
       <arg name="verbose" default="$(arg verbose)"/>
