@@ -2,6 +2,7 @@
 #define COXGRAPH_SERVER_CLIENT_HANDLER_H_
 
 #include <coxgraph_msgs/ClientSubmap.h>
+#include <coxgraph_msgs/TimeLine.h>
 #include <ros/ros.h>
 #include <voxgraph_msgs/LoopClosure.h>
 #include <Eigen/Dense>
@@ -16,6 +17,19 @@ namespace server {
 
 class ClientHandler {
  public:
+  struct TimeLine {
+    TimeLine() : start(0), end(0) {}
+    ros::Time start;
+    ros::Time end;
+    bool hasTime(const ros::Time& time) {
+      if (end.isZero()) return false;
+      if (time > start && time < end) {
+        return true;
+      }
+      return false;
+    }
+  };
+
   struct Config {
     Config()
         : client_name_prefix("coxgraph_client_"),
@@ -67,11 +81,20 @@ class ClientHandler {
 
   bool sendLoopClosureMsg(const voxgraph_msgs::LoopClosure& loop_closure_msg);
 
-  bool requestSubmapByTime(const ros::Time& timestamp,
-                           ClientSubmapId* submap_id, ClientSubmap::Ptr* submap,
-                           Transformation* T_submap_t);
+  enum ReqState { FAILED = 0, FUTURE, SUCCESS };
+  ReqState requestSubmapByTime(const ros::Time& timestamp,
+                               ClientSubmapId* submap_id,
+                               ClientSubmap::Ptr* submap,
+                               Transformation* T_submap_t);
+
+  inline bool hasTime(const ros::Time time) { return time_line_.hasTime(time); }
+  inline bool isTimeLineUpdated() const { return time_line_updated_; }
+  inline void resetTimeLineUpdated() { time_line_updated_ = false; }
+
+  void timeLineCallback(const coxgraph_msgs::TimeLine& time_line_msg);
 
  private:
+  void subscribeToTopics();
   void publishTopics();
   void subscribeToServices();
 
@@ -81,12 +104,16 @@ class ClientHandler {
   Config config_;
   ClientSubmapConfig submap_config_;
 
+  TimeLine time_line_;
+  bool time_line_updated_;
+
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
 
   ros::Publisher loop_closure_pub_;
+  ros::Subscriber time_line_sub_;
   ros::ServiceClient pub_client_submap_client_;
-};  // namespace server
+};
 
 }  // namespace server
 }  // namespace coxgraph

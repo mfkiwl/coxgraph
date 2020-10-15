@@ -7,7 +7,9 @@
 #include <voxgraph/tools/ros_params.h>
 #include <voxgraph_msgs/LoopClosure.h>
 
+#include <deque>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "coxgraph/common.h"
@@ -17,8 +19,6 @@ namespace coxgraph {
 
 class CoxgraphServer {
  public:
-  using ClientHandler = server::ClientHandler;
-
   struct Config {
     Config()
         : client_number(0),
@@ -53,6 +53,7 @@ class CoxgraphServer {
 
     subscribeTopics();
     initClientHandlers(nh, nh_private);
+
     LOG(INFO) << client_handlers_[0]->getConfig();
   }
   ~CoxgraphServer() = default;
@@ -60,6 +61,10 @@ class CoxgraphServer {
   static Config getConfigFromRosParam(const ros::NodeHandle& nh_private);
 
  private:
+  using ClientHandler = server::ClientHandler;
+  using ReqState = ClientHandler::ReqState;
+  typedef std::pair<ClientId, ClientId> CliIdPair;
+
   void initClientHandlers(const ros::NodeHandle& nh,
                           const ros::NodeHandle& nh_private);
 
@@ -68,7 +73,14 @@ class CoxgraphServer {
   void mapFusionMsgCallback(const coxgraph_msgs::MapFusion& map_fusion_msg);
   void loopClosureCallback(const ClientId& client_id,
                            const voxgraph_msgs::LoopClosure& loop_closure_msg);
-  void mapFusionCallback(const coxgraph_msgs::MapFusion& map_fusion_msg);
+  void mapFusionCallback(const coxgraph_msgs::MapFusion& map_fusion_msg,
+                         bool future = false);
+  void addToMFFuture(const coxgraph_msgs::MapFusion& map_fusion_msg);
+  void processMFFuture();
+  bool needFusion(const ClientId& client_id_a, const ros::Time& time_a,
+                  const ClientId& client_id_b, const ros::Time& time_b);
+
+  bool fuseMap() {}
 
   static voxgraph_msgs::LoopClosure fromMapFusionMsg(
       const coxgraph_msgs::MapFusion& map_fusion_msg);
@@ -86,6 +98,9 @@ class CoxgraphServer {
   ClientSubmapConfig submap_config_;
 
   std::vector<ClientHandler::Ptr> client_handlers_;
+  std::vector<bool> need_fusion_;
+
+  std::deque<coxgraph_msgs::MapFusion> map_fusion_msgs_future_;
 };
 
 }  // namespace coxgraph

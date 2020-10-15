@@ -1,10 +1,23 @@
 #ifndef COXGRAPH_CLIENT_IMPL_COXGRAPH_CLIENT_IMPL_H_
 #define COXGRAPH_CLIENT_IMPL_COXGRAPH_CLIENT_IMPL_H_
 
+#include <coxgraph_msgs/TimeLine.h>
+
 #include "coxgraph/common.h"
 #include "coxgraph/utils/msg_converter.h"
 
 namespace coxgraph {
+
+void CoxgraphClient::subscribeClientTopics() {
+  submap_subscriber_.shutdown();
+  submap_subscriber_ = nh_.subscribe(submap_topic_, submap_topic_queue_length_,
+                                     &CoxgraphClient::submapCallback, this);
+}
+
+void CoxgraphClient::advertiseClientTopics() {
+  time_line_pub_ =
+      nh_private_.advertise<coxgraph_msgs::TimeLine>("timeline", 1, true);
+}
 
 void CoxgraphClient::advertiseClientServices() {
   publish_client_submap_srv_ = nh_private_.advertiseService(
@@ -38,6 +51,25 @@ bool CoxgraphClient::publishClientSubmapCallback(
     return false;
   }
   return false;
+}
+
+void CoxgraphClient::submapCallback(
+    const voxblox_msgs::LayerWithTrajectory& submap_msg) {
+  VoxgraphMapper::submapCallback(submap_msg);
+  publishTimeLine();
+}
+
+void CoxgraphClient::publishTimeLine() {
+  coxgraph_msgs::TimeLine time_line_msg;
+  time_line_msg.start =
+      submap_collection_ptr_
+          ->getSubmapConstPtr(submap_collection_ptr_->getFirstSubmapId())
+          ->getStartTime();
+  time_line_msg.end =
+      submap_collection_ptr_
+          ->getSubmapConstPtr(submap_collection_ptr_->getLastSubmapId())
+          ->getEndTime();
+  time_line_pub_.publish(time_line_msg);
 }
 
 }  // namespace coxgraph

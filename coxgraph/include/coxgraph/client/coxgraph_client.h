@@ -2,8 +2,10 @@
 #define COXGRAPH_CLIENT_COXGRAPH_CLIENT_H_
 
 #include <coxgraph_msgs/ClientSubmap.h>
+#include <coxgraph_msgs/TimeLine.h>
 #include <voxgraph/frontend/frame_names.h>
 #include <voxgraph/frontend/voxgraph_mapper.h>
+#include <voxgraph_msgs/LoopClosure.h>
 
 #include "coxgraph/common.h"
 
@@ -17,6 +19,7 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
     int client_id;
     nh_private.param<int>("client_id", client_id, -1);
     client_id_ = static_cast<ClientId>(client_id);
+    advertiseClientTopics();
     advertiseClientServices();
     if (client_id_ < 0) {
       LOG(FATAL) << "Invalid Client Id " << client_id_;
@@ -28,20 +31,27 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
 
   inline const ClientId& getClientId() const { return client_id_; }
 
+  void subscribeClientTopics();
+  void advertiseClientTopics();
   void advertiseClientServices();
 
   bool publishClientSubmapCallback(
       coxgraph_msgs::ClientSubmap::Request& request,     // NOLINT
       coxgraph_msgs::ClientSubmap::Response& response);  // NOLINT
 
+  void submapCallback(const voxblox_msgs::LayerWithTrajectory& submap_msg);
+
  private:
   using VoxgraphMapper = voxgraph::VoxgraphMapper;
   using FrameNames = voxgraph::FrameNames;
+
+  void publishTimeLine();
 
   ClientId client_id_;
 
   FrameNames frame_names_;
 
+  ros::Publisher time_line_pub_;
   ros::ServiceServer publish_client_submap_srv_;
 };
 

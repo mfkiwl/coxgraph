@@ -1,9 +1,11 @@
 #ifndef COXGRAPH_SERVER_IMPL_CLIENT_HANDLER_IMPL_H_
 #define COXGRAPH_SERVER_IMPL_CLIENT_HANDLER_IMPL_H_
 
-#include <coxgraph/utils/msg_converter.h>
+#include <coxgraph_msgs/TimeLine.h>
 
 #include <string>
+
+#include "coxgraph/utils/msg_converter.h"
 
 namespace coxgraph {
 namespace server {
@@ -19,6 +21,21 @@ ClientHandler::Config ClientHandler::getConfigFromRosParam(
   nh_private.param<int>("ch_pub_queue_length", config.pub_queue_length,
                         config.pub_queue_length);
   return config;
+}
+
+void ClientHandler::subscribeToTopics() {
+  time_line_sub_ = nh_.subscribe(client_node_name_ + "/time_line", 10,
+                                 &ClientHandler::timeLineCallback, this);
+}
+
+void ClientHandler::timeLineCallback(
+    const coxgraph_msgs::TimeLine& time_line_msg) {
+  if (time_line_.start != time_line_msg.start ||
+      time_line_.end != time_line_msg.end) {
+    time_line_.start = time_line_msg.start;
+    time_line_.end = time_line_msg.end;
+    time_line_updated_ = true;
+  }
 }
 
 void ClientHandler::publishTopics() {
@@ -37,10 +54,10 @@ bool ClientHandler::sendLoopClosureMsg(
   loop_closure_pub_.publish(loop_closure_msg);
 }
 
-bool ClientHandler::requestSubmapByTime(const ros::Time& timestamp,
-                                        ClientSubmapId* submap_id,
-                                        ClientSubmap::Ptr* submap_ptr,
-                                        Transformation* T_submap_t) {
+ClientHandler::ReqState ClientHandler::requestSubmapByTime(
+    const ros::Time& timestamp, ClientSubmapId* submap_id,
+    ClientSubmap::Ptr* submap_ptr, Transformation* T_submap_t) {
+  if (!time_line_.hasTime(timestamp)) return ReqState::FUTURE;
   coxgraph_msgs::ClientSubmap client_submap_msg;
   client_submap_msg.request.timestamp = timestamp;
   if (pub_client_submap_client_.call(client_submap_msg)) {
@@ -49,9 +66,9 @@ bool ClientHandler::requestSubmapByTime(const ros::Time& timestamp,
         utils::cliSubmapFromMsg(submap_config_, client_submap_msg.response);
     tf::transformMsgToKindr<voxblox::FloatingPoint>(
         client_submap_msg.response.transform, T_submap_t);
-    return true;
+    return ReqState::SUCCESS;
   }
-  return false;
+  return ReqState::FAILED;
 }
 
 }  // namespace server
