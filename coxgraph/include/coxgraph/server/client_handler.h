@@ -17,19 +17,6 @@ namespace server {
 
 class ClientHandler {
  public:
-  struct TimeLine {
-    TimeLine() : start(0), end(0) {}
-    ros::Time start;
-    ros::Time end;
-    bool hasTime(const ros::Time& time) {
-      if (end.isZero()) return false;
-      if (time > start && time < end) {
-        return true;
-      }
-      return false;
-    }
-  };
-
   struct Config {
     Config()
         : client_name_prefix("coxgraph_client_"),
@@ -82,7 +69,8 @@ class ClientHandler {
   bool sendLoopClosureMsg(const voxgraph_msgs::LoopClosure& loop_closure_msg);
 
   enum ReqState { FAILED = 0, FUTURE, SUCCESS };
-  ReqState requestSubmapByTime(const ros::Time& timestamp, CliSmId* submap_id,
+  ReqState requestSubmapByTime(const ros::Time& timestamp,
+                               const SerSmId& ser_sm_id, CliSmId* cli_sm_id,
                                CliSm::Ptr* submap, Transformation* T_submap_t);
 
   inline bool hasTime(const ros::Time time) { return time_line_.hasTime(time); }

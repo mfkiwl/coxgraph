@@ -12,7 +12,7 @@ client_loop_closure_topic: "loop_closure_in"
 ch_pub_queue_length: 10
 
 fixed_map_client_id: 0
-refusion_interval: 2.0
+refuse_interval: 2.0
 
 output_mission_frame: "mission"
 

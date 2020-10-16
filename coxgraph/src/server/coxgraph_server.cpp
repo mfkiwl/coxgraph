@@ -23,10 +23,9 @@ CoxgraphServer::Config CoxgraphServer::getConfigFromRosParam(
                                 config.map_fusion_topic);
   nh_private.param<int>("map_fusion_queue_size", config.map_fusion_queue_size,
                         config.map_fusion_queue_size);
-  float refusion_interval;
-  nh_private.param<float>("refusion_interval", refusion_interval,
-                          refusion_interval);
-  config.refusion_interval.fromSec(refusion_interval);
+  float refuse_interval;
+  nh_private.param<float>("refus_interval", refuse_interval, refuse_interval);
+  config.refuse_interval.fromSec(refuse_interval);
   nh_private.param<int>("fixed_map_client_id", config.fixed_map_client_id,
                         config.fixed_map_client_id);
   nh_private.param<std::string>("output_mission_frame",
@@ -41,10 +40,10 @@ void CoxgraphServer::initClientHandlers(const ros::NodeHandle& nh,
   for (int i = 0; i < config_.client_number; i++) {
     client_handlers_.emplace_back(
         new ClientHandler(nh, nh_private, i, submap_config_));
-    need_fusion_.emplace_back(true);
-    last_fusion_time_.emplace_back(0);
+    force_fuse_.emplace_back(true);
+    fused_time_line_.emplace_back(TimeLine());
   }
-  need_fusion_[config_.fixed_map_client_id] = false;
+  force_fuse_[config_.fixed_map_client_id] = false;
 }
 
 void CoxgraphServer::subscribeTopics() {
@@ -91,16 +90,18 @@ void CoxgraphServer::mapFusionCallback(
   const ros::Time& time_a = map_fusion_msg.from_timestamp;
   const ros::Time& time_b = map_fusion_msg.to_timestamp;
 
-  if (!needFusion(cid_a, time_a, cid_b, time_b)) return;
+  if (!needRefuse(cid_a, time_a, cid_b, time_b)) return;
 
   ReqState ok_a, ok_b;
   bool has_time_a = client_handlers_[cid_a]->hasTime(time_b);
   bool has_time_b = client_handlers_[cid_b]->hasTime(time_b);
   if (has_time_a && has_time_b) {
     ok_a = client_handlers_[cid_a]->requestSubmapByTime(
-        time_a, &submap_id_a, &submap_a, &T_submap_t_a);
+        time_a, submap_collection_ptr_->getNextSubmapID(), &submap_id_a,
+        &submap_a, &T_submap_t_a);
     ok_b = client_handlers_[cid_b]->requestSubmapByTime(
-        time_b, &submap_id_b, &submap_b, &T_submap_t_b);
+        time_b, submap_collection_ptr_->getNextSubmapID() + 1, &submap_id_b,
+        &submap_b, &T_submap_t_b);
     CHECK_NE(ok_a, ReqState::FUTURE);
     CHECK_NE(ok_b, ReqState::FUTURE);
     if (verbose_) {
@@ -182,7 +183,7 @@ void CoxgraphServer::processMFFuture() {
     const ros::Time& time_b = map_fusion_msg.to_timestamp;
     if (client_handlers_[cid_a]->hasTime(time_a) &&
         client_handlers_[cid_b]->hasTime(time_b) &&
-        needFusion(cid_a, time_a, cid_b, time_b)) {
+        needRefuse(cid_a, time_a, cid_b, time_b)) {
       if (verbose_)
         LOG(INFO) << "  successfully processed a MF msg, clearing MF msg queue";
       mapFusionCallback(map_fusion_msg, true);
@@ -196,29 +197,26 @@ void CoxgraphServer::processMFFuture() {
   if (processed_any) map_fusion_msgs_future_.clear();
 }
 
-bool CoxgraphServer::needFusion(const CliId& cid_a, const ros::Time& time_a,
+bool CoxgraphServer::needRefuse(const CliId& cid_a, const ros::Time& time_a,
                                 const CliId& cid_b, const ros::Time& time_b) {
-  CHECK_EQ(need_fusion_[config_.fixed_map_client_id], false);
+  CHECK_EQ(force_fuse_[config_.fixed_map_client_id], false);
   // TODO(mikexyl): update need fusion flag based on time since last fusion
   if ((cid_a != config_.fixed_map_client_id &&
-       (need_fusion_[cid_a] ||
-        time_a - last_fusion_time_[cid_a] > config_.refusion_interval)) ||
+       (isTimeNeedRefuse(cid_a, time_a) || force_fuse_[cid_a])) ||
       (cid_b != config_.fixed_map_client_id &&
-       (need_fusion_[cid_b] ||
-        time_b - last_fusion_time_[cid_b] > config_.refusion_interval)))
+       (isTimeNeedRefuse(cid_b, time_b) || force_fuse_[cid_b])))
     return true;
   return false;
 }
 
-bool CoxgraphServer::resetNeedFusion(const CliId& cid_a,
+bool CoxgraphServer::resetNeedRefuse(const CliId& cid_a,
                                      const ros::Time& time_a,
                                      const CliId& cid_b,
                                      const ros::Time& time_b) {
-  CHECK_EQ(need_fusion_[config_.fixed_map_client_id], false);
-  need_fusion_[cid_a] = false;
-  last_fusion_time_[cid_a] = time_a;
-  need_fusion_[cid_b] = false;
-  last_fusion_time_[cid_b] = time_b;
+  CHECK_EQ(force_fuse_[config_.fixed_map_client_id], false);
+  force_fuse_[cid_a] = false;
+  force_fuse_[cid_b] = false;
+
   return true;
 }
 
@@ -235,6 +233,9 @@ bool CoxgraphServer::fuseMap(const CliId& cid_a, const CliSmId& submap_id_a,
             << " -> Submap: " << static_cast<int>(submap_id_b);
   LOG_IF(INFO, verbose_) << " T_submap_t_a: " << std::endl << T_submap_t_a;
   LOG_IF(INFO, verbose_) << " T_submap_t_b: " << std::endl << T_submap_t_b;
+
+  submap_collection_ptr_->addSubmap(submap_a);
+  submap_collection_ptr_->addSubmap(submap_b);
 }
 
 }  // namespace coxgraph

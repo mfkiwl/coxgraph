@@ -30,10 +30,9 @@ inline cblox_msgs::MapLayer tsdfMsgfromClientSubmap(
 }
 
 inline CliSm::Ptr cliSubmapFromMsg(
-    const CliSmConfig& submap_config,
+    const SerSmId& ser_sm_id, const CliSmConfig& submap_config,
     const coxgraph_msgs::ClientSubmapResponse& submap_response) {
-  CliSm::Ptr submap_ptr(
-      new CliSm(Transformation(), submap_response.submap_id, submap_config));
+  CliSm::Ptr submap_ptr(new CliSm(Transformation(), ser_sm_id, submap_config));
   // Deserialize the submap TSDF
   if (!voxblox::deserializeMsgToLayer(
           submap_response.sdf_layers.tsdf_layer,
