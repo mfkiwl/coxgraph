@@ -70,6 +70,7 @@ class ClientHandler {
         submap_config_(submap_config),
         client_node_name_(config.client_name_prefix +
                           std::to_string(client_id_)) {
+    subscribeToTopics();
     publishTopics();
     subscribeToServices();
   }

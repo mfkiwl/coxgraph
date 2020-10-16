@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
       <arg name="client_number" default="2"/>
-      <arg name="sim_server" default="true" doc="Publish a static unit transform between client maps, without running the server"/>
+      <arg name="sim_server" default="false" doc="Publish a static unit transform between client maps, without running the server"/>
       <arg name="debug" default="false"/>
 
       <node pkg="tf" type="static_transform_publisher" name="map_to_mission" args="0 0 0 0 0 0 1 map mission 100"/>

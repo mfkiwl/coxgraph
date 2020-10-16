@@ -12,7 +12,8 @@ CoxgraphServer::Config CoxgraphServer::getConfigFromRosParam(
 
   nh_private.param<int>("client_number", config.client_number,
                         config.client_number);
-  LOG_IF(FATAL, !(config.client_number > 0 && config.client_number <= 2))
+  LOG_IF(FATAL,
+         !(config.client_number > 0 && config.client_number <= kMaxClientNum))
       << "Invalid client number, must > 0, and only max 2 clients supported "
          "now. Given: "
       << config.client_number;
@@ -21,16 +22,25 @@ CoxgraphServer::Config CoxgraphServer::getConfigFromRosParam(
                                 config.map_fusion_topic);
   nh_private.param<int>("map_fusion_queue_size", config.map_fusion_queue_size,
                         config.map_fusion_queue_size);
+  float refusion_interval;
+  nh_private.param<float>("refusion_interval", refusion_interval,
+                          refusion_interval);
+  config.refusion_interval.fromSec(refusion_interval);
+  nh_private.param<int>("fixed_map_client_id", config.fixed_map_client_id,
+                        config.fixed_map_client_id);
   return config;
 }
 
 void CoxgraphServer::initClientHandlers(const ros::NodeHandle& nh,
                                         const ros::NodeHandle& nh_private) {
+  CHECK_LT(config_.fixed_map_client_id, kMaxClientNum);
   for (int i = 0; i < config_.client_number; i++) {
     client_handlers_.emplace_back(
         new ClientHandler(nh, nh_private, i, submap_config_));
     need_fusion_.emplace_back(true);
+    last_fusion_time_.emplace_back(0);
   }
+  need_fusion_[config_.fixed_map_client_id] = false;
 }
 
 void CoxgraphServer::subscribeTopics() {
@@ -79,40 +89,60 @@ void CoxgraphServer::mapFusionCallback(
   if (!needFusion(cid_a, time_a, cid_b, time_b)) return;
 
   ReqState ok_a, ok_b;
-  ok_a = client_handlers_[cid_a]->requestSubmapByTime(time_a, &submap_id_a,
-                                                      &submap_a, &T_submap_t_a);
-  ok_b = client_handlers_[cid_b]->requestSubmapByTime(time_b, &submap_id_b,
-                                                      &submap_b, &T_submap_t_b);
-  if (future) {
-    fuseMap();
-  } else {
-    LOG_IF(INFO, ok_a == ReqState::FAILED)
-        << "Requesting submap from Client " << map_fusion_msg.from_client_id
-        << " failed!";
+  bool has_time_a = client_handlers_[cid_a]->hasTime(time_b);
+  bool has_time_b = client_handlers_[cid_b]->hasTime(time_b);
+  if (has_time_a && has_time_b) {
+    ok_a = client_handlers_[cid_a]->requestSubmapByTime(
+        time_a, &submap_id_a, &submap_a, &T_submap_t_a);
+    ok_b = client_handlers_[cid_b]->requestSubmapByTime(
+        time_b, &submap_id_b, &submap_b, &T_submap_t_b);
+    CHECK_NE(ok_a, ReqState::FUTURE);
+    CHECK_NE(ok_b, ReqState::FUTURE);
+    if (verbose_) {
+      LOG_IF(INFO, ok_a == ReqState::FAILED)
+          << "Requesting submap from Client " << map_fusion_msg.from_client_id
+          << " failed!";
+
+      LOG_IF(INFO, ok_a == ReqState::FUTURE)
+          << "Requested timestamp from Client " << map_fusion_msg.from_client_id
+          << " is ahead of client timeline, map fusion msg saved for later";
+      LOG_IF(INFO, ok_b == ReqState::FAILED)
+          << "Requesting submap from Client " << map_fusion_msg.to_client_id
+          << " failed!";
+      LOG_IF(INFO, ok_b == ReqState::FUTURE)
+          << "Requested timestamp from Client " << map_fusion_msg.to_client_id
+          << " is ahead of client timeline, map fusion msg saved for later";
+    }
     LOG_IF(INFO, ok_a == ReqState::SUCCESS)
         << "Received submap from Client " << map_fusion_msg.from_client_id
         << " with layer memory "
         << submap_a->getTsdfMapPtr()->getTsdfLayerPtr()->getMemorySize();
-    LOG_IF(INFO, ok_a == ReqState::FUTURE)
-        << "Requested timestamp from Client " << map_fusion_msg.from_client_id
-        << " is ahead of client timeline, map fusion msg saved for later";
-    LOG_IF(INFO, ok_b == ReqState::FAILED)
-        << "Requesting submap from Client " << map_fusion_msg.to_client_id
-        << " failed!";
     LOG_IF(INFO, ok_b == ReqState::SUCCESS)
         << "Received submap from Client " << map_fusion_msg.to_client_id
         << " with layer memory "
         << submap_b->getTsdfMapPtr()->getTsdfLayerPtr()->getMemorySize();
-    LOG_IF(INFO, ok_b == ReqState::FUTURE)
-        << "Requested timestamp from Client " << map_fusion_msg.to_client_id
-        << " is ahead of client timeline, map fusion msg saved for later";
-    if ((ok_a == ReqState::SUCCESS && ok_b == ReqState::FUTURE) ||
-        (ok_b == ReqState::SUCCESS && ok_a == ReqState::FUTURE)) {
-      addToMFFuture(map_fusion_msg);
-    }
-    if (ok_a == ReqState::SUCCESS && ok_b == ReqState::SUCCESS) {
-      fuseMap();
+  }
+
+  if (future) {
+    fuseMap();
+  } else {
+    if (has_time_a && has_time_b) {
+      if ((ok_a == ReqState::SUCCESS && ok_b == ReqState::FUTURE) ||
+          (ok_b == ReqState::SUCCESS && ok_a == ReqState::FUTURE)) {
+        addToMFFuture(map_fusion_msg);
+      }
+      if (ok_a == ReqState::SUCCESS && ok_b == ReqState::SUCCESS) {
+        fuseMap();
+      }
     } else {
+      LOG_IF(INFO, !has_time_a)
+          << "Map Fusion timestamp from Client "
+          << map_fusion_msg.from_client_id
+          << " is ahead of client timeline, map fusion msg saved for later";
+      LOG_IF(INFO, !has_time_b)
+          << "Map Fusion timestamp from Client " << map_fusion_msg.to_client_id
+          << " is ahead of client timeline, map fusion msg saved for later";
+      addToMFFuture(map_fusion_msg);
       processMFFuture();
     }
   }
@@ -135,16 +165,17 @@ void CoxgraphServer::processMFFuture() {
   bool processed_any = false;
   for (auto it = map_fusion_msgs_future_.begin();
        it != map_fusion_msgs_future_.end(); it++) {
+    if (verbose_) LOG(INFO) << "Processing saved future MF msgs";
     coxgraph_msgs::MapFusion map_fusion_msg = *it;
     const ClientId& cid_a = map_fusion_msg.from_client_id;
     const ClientId& cid_b = map_fusion_msg.to_client_id;
     const ros::Time& time_a = map_fusion_msg.from_timestamp;
     const ros::Time& time_b = map_fusion_msg.to_timestamp;
-    if (client_handlers_[cid_a]->isTimeLineUpdated() &&
-        client_handlers_[cid_b]->isTimeLineUpdated() &&
-        client_handlers_[cid_a]->hasTime(time_a) &&
+    if (client_handlers_[cid_a]->hasTime(time_a) &&
         client_handlers_[cid_b]->hasTime(time_b) &&
         needFusion(cid_a, time_a, cid_b, time_b)) {
+      if (verbose_)
+        LOG(INFO) << "  successfully processed a MF msg, clearing MF msg queue";
       mapFusionCallback(map_fusion_msg, true);
       processed_any = true;
       client_handlers_[cid_a]->resetTimeLineUpdated();
@@ -156,14 +187,31 @@ void CoxgraphServer::processMFFuture() {
   if (processed_any) map_fusion_msgs_future_.clear();
 }
 
-bool CoxgraphServer::needFusion(const ClientId& client_id_a,
-                                const ros::Time& time_a,
-                                const ClientId& client_id_b,
+bool CoxgraphServer::needFusion(const ClientId& cid_a, const ros::Time& time_a,
+                                const ClientId& cid_b,
                                 const ros::Time& time_b) {
-  if ((client_id_a != 0 && need_fusion_[client_id_a]) ||
-      (client_id_b != 0 && need_fusion_[client_id_b]))
+  CHECK_EQ(need_fusion_[config_.fixed_map_client_id], false);
+  // TODO(mikexyl): update need fusion flag based on time since last fusion
+  if ((cid_a != config_.fixed_map_client_id &&
+       (need_fusion_[cid_a] ||
+        time_a - last_fusion_time_[cid_a] > config_.refusion_interval)) ||
+      (cid_b != config_.fixed_map_client_id &&
+       (need_fusion_[cid_b] ||
+        time_b - last_fusion_time_[cid_b] > config_.refusion_interval)))
     return true;
   return false;
+}
+
+bool CoxgraphServer::resetNeedFusion(const ClientId& cid_a,
+                                     const ros::Time& time_a,
+                                     const ClientId& cid_b,
+                                     const ros::Time& time_b) {
+  CHECK_EQ(need_fusion_[config_.fixed_map_client_id], false);
+  need_fusion_[cid_a] = false;
+  last_fusion_time_[cid_a] = time_a;
+  need_fusion_[cid_b] = false;
+  last_fusion_time_[cid_b] = time_b;
+  return true;
 }
 
 voxgraph_msgs::LoopClosure CoxgraphServer::fromMapFusionMsg(

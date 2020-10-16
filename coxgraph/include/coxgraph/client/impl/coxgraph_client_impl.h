@@ -16,7 +16,7 @@ void CoxgraphClient::subscribeClientTopics() {
 
 void CoxgraphClient::advertiseClientTopics() {
   time_line_pub_ =
-      nh_private_.advertise<coxgraph_msgs::TimeLine>("timeline", 1, true);
+      nh_private_.advertise<coxgraph_msgs::TimeLine>("time_line", 1, true);
 }
 
 void CoxgraphClient::advertiseClientServices() {
@@ -56,7 +56,7 @@ bool CoxgraphClient::publishClientSubmapCallback(
 void CoxgraphClient::submapCallback(
     const voxblox_msgs::LayerWithTrajectory& submap_msg) {
   VoxgraphMapper::submapCallback(submap_msg);
-  publishTimeLine();
+  if (!submap_collection_ptr_->empty()) publishTimeLine();
 }
 
 void CoxgraphClient::publishTimeLine() {
@@ -69,6 +69,8 @@ void CoxgraphClient::publishTimeLine() {
       submap_collection_ptr_
           ->getSubmapConstPtr(submap_collection_ptr_->getLastSubmapId())
           ->getEndTime();
+  LOG(INFO) << "Updating client time Line from " << time_line_msg.start
+            << " to " << time_line_msg.end;
   time_line_pub_.publish(time_line_msg);
 }
 

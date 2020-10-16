@@ -23,18 +23,25 @@ class CoxgraphServer {
     Config()
         : client_number(0),
           map_fusion_topic("map_fusion_in"),
-          map_fusion_queue_size(10) {}
+          map_fusion_queue_size(10),
+          refusion_interval(ros::Duration(2)),
+          fixed_map_client_id(0) {}
     int32_t client_number;
     std::string map_fusion_topic;
     int32_t map_fusion_queue_size;
+    ros::Duration refusion_interval;
+    int32_t fixed_map_client_id;
 
     friend inline std::ostream& operator<<(std::ostream& s,
                                            const CoxgraphServer::Config& v) {
       s << std::endl
         << "Coxgraph Server using Config:" << std::endl
         << "  Client Number: " << v.client_number << std::endl
-        << "  Loop Closure Topic: " << v.map_fusion_topic << std::endl
-        << "  Loop Closure Queue Size: " << v.map_fusion_queue_size << std::endl
+        << "  Map Fusion Topic: " << v.map_fusion_topic << std::endl
+        << "  Map Fusion Queue Size: " << v.map_fusion_queue_size << std::endl
+        << "  Client Map Refusion Interval: " << v.refusion_interval << " s"
+        << std::endl
+        << "  Map Fixed for Client Id: " << v.fixed_map_client_id << std::endl
         << "-------------------------------------------" << std::endl;
       return (s);
     }
@@ -77,8 +84,10 @@ class CoxgraphServer {
                          bool future = false);
   void addToMFFuture(const coxgraph_msgs::MapFusion& map_fusion_msg);
   void processMFFuture();
-  bool needFusion(const ClientId& client_id_a, const ros::Time& time_a,
-                  const ClientId& client_id_b, const ros::Time& time_b);
+  bool needFusion(const ClientId& cid_a, const ros::Time& time_a,
+                  const ClientId& cid_b, const ros::Time& time_b);
+  bool resetNeedFusion(const ClientId& cid_a, const ros::Time& time_a,
+                       const ClientId& cid_b, const ros::Time& time_b);
 
   bool fuseMap() {}
 
@@ -94,13 +103,16 @@ class CoxgraphServer {
   // Verbosity and debug mode
   bool verbose_;
 
-  Config config_;
-  ClientSubmapConfig submap_config_;
+  const Config config_;
+  const ClientSubmapConfig submap_config_;
 
   std::vector<ClientHandler::Ptr> client_handlers_;
   std::vector<bool> need_fusion_;
+  std::vector<ros::Time> last_fusion_time_;
 
   std::deque<coxgraph_msgs::MapFusion> map_fusion_msgs_future_;
+
+  constexpr static uint8_t kMaxClientNum = 2;
 };
 
 }  // namespace coxgraph
