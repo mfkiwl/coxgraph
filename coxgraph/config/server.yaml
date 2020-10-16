@@ -15,3 +15,5 @@ fixed_map_client_id: 0
 refusion_interval: 2.0
 
 output_mission_frame: "mission"
+
+mesh_min_weight: 2.0
