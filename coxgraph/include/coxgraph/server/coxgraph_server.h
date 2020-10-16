@@ -111,8 +111,8 @@ class CoxgraphServer {
   void processMFFuture();
   bool needRefuse(const CliId& cid_a, const ros::Time& time_a,
                   const CliId& cid_b, const ros::Time& time_b);
-  bool resetNeedRefuse(const CliId& cid_a, const ros::Time& time_a,
-                       const CliId& cid_b, const ros::Time& time_b);
+  bool updateNeedRefuse(const CliId& cid_a, const ros::Time& time_a,
+                        const CliId& cid_b, const ros::Time& time_b);
 
   // TODO(mikexyl): make a pack struct for these vars
   bool fuseMap(const CliId& cid_a, const ros::Time& time_a,
@@ -123,13 +123,13 @@ class CoxgraphServer {
 
   bool optimizePoseGraph();
 
+  void pubSmGlobalTf();
+
   inline bool isTimeFused(const CliId& cid, const ros::Time& time) {
     return fused_time_line_[cid].hasTime(time);
   }
-  inline ros::Time getLastTimeFused(const CliId& cid) const {
-    return fused_time_line_[cid].end;
-  }
   inline bool isTimeNeedRefuse(const CliId& cid, const ros::Time& time) {
+    if (config_.refuse_interval == ros::Duration(0)) return false;
     if (isTimeFused(cid, time)) return false;
     if (time < fused_time_line_[cid].start) {
       return (fused_time_line_[cid].start - time) > config_.refuse_interval;
@@ -138,6 +138,14 @@ class CoxgraphServer {
     }
     return false;
   }
+
+  inline CliIdSmIdPair getCliSmId(const SerSmId& ser_sm_id) {
+    CHECK(sm_cli_id_map_.count(ser_sm_id));
+    return sm_cli_id_map_[ser_sm_id];
+  }
+
+  Transformation getTfCliGlobal(const CliId& cid) {}
+  void pubTfCliMissionGlobal() {}
 
   // Node handles
   ros::NodeHandle nh_;

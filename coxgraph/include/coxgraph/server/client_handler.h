@@ -3,6 +3,7 @@
 
 #include <coxgraph_msgs/ClientSubmap.h>
 #include <coxgraph_msgs/ClientSubmapSrv.h>
+#include <coxgraph_msgs/MapPoseUpdate.h>
 #include <coxgraph_msgs/TimeLine.h>
 #include <ros/ros.h>
 #include <voxgraph_msgs/LoopClosure.h>
@@ -21,10 +22,12 @@ class ClientHandler {
   struct Config {
     Config()
         : client_name_prefix("coxgraph_client_"),
-          client_loop_closure_topic("loop_closure_in"),
+          client_loop_closure_topic_suffix("loop_closure_in"),
+          client_map_pose_update_topic_suffix("map_pose_update_in"),
           pub_queue_length(1) {}
     std::string client_name_prefix;
-    std::string client_loop_closure_topic;
+    std::string client_loop_closure_topic_suffix;
+    std::string client_map_pose_update_topic_suffix;
     int32_t pub_queue_length;
 
     friend inline std::ostream& operator<<(std::ostream& s,
@@ -32,8 +35,10 @@ class ClientHandler {
       s << std::endl
         << "Client Handler using Config:" << std::endl
         << "  Client Name Prefix: " << v.client_name_prefix << std::endl
-        << "  Client Loop Closure Topic: " << v.client_loop_closure_topic
-        << std::endl
+        << "  Client Loop Closure Topic Suffix: "
+        << v.client_loop_closure_topic_suffix << std::endl
+        << "  Client Map Pose Update Topic Suffix: "
+        << v.client_map_pose_update_topic_suffix << std::endl
         << "  Publisher Queue Length: " << v.pub_queue_length << std::endl
         << "-------------------------------------------" << std::endl;
       return (s);
@@ -59,7 +64,7 @@ class ClientHandler {
                           std::to_string(client_id_)),
         log_prefix_("CH " + std::to_string(static_cast<int>(client_id_))) {
     subscribeToTopics();
-    publishTopics();
+    advertiseTopics();
     subscribeToServices();
   }
   virtual ~ClientHandler() = default;
@@ -67,8 +72,6 @@ class ClientHandler {
   inline const Config& getConfig() const { return config_; }
 
   static Config getConfigFromRosParam(const ros::NodeHandle& nh_private);
-
-  bool sendLoopClosureMsg(const voxgraph_msgs::LoopClosure& loop_closure_msg);
 
   enum ReqState { FAILED = 0, FUTURE, SUCCESS };
   ReqState requestSubmapByTime(const ros::Time& timestamp,
@@ -78,6 +81,16 @@ class ClientHandler {
   inline bool hasTime(const ros::Time time) { return time_line_.hasTime(time); }
   inline bool isTimeLineUpdated() const { return time_line_updated_; }
   inline void resetTimeLineUpdated() { time_line_updated_ = false; }
+
+  inline void pubLoopClosureMsg(
+      const voxgraph_msgs::LoopClosure& loop_closure_msg) {
+    loop_closure_pub_.publish(loop_closure_msg);
+  }
+
+  inline void pubMapPoseUpdateMsg(
+      const coxgraph_msgs::MapPoseUpdate& map_pose_update_msg) {
+    sm_pose_update_pub_.publish(map_pose_update_msg);
+  }
 
  private:
   void timeLineCallback(const coxgraph_msgs::TimeLine& time_line_msg);
@@ -90,12 +103,14 @@ class ClientHandler {
   }
 
   void subscribeToTopics();
-  void publishTopics();
+  void advertiseTopics();
   void subscribeToServices();
 
   const CliId client_id_;
   const std::string client_node_name_;
   const std::string log_prefix_;
+
+  std::string mission_frame_id_;
 
   Config config_;
   CliSmConfig submap_config_;
@@ -107,6 +122,7 @@ class ClientHandler {
   ros::NodeHandle nh_private_;
 
   ros::Publisher loop_closure_pub_;
+  ros::Publisher sm_pose_update_pub_;
   ros::Subscriber time_line_sub_;
   ros::ServiceClient pub_client_submap_client_;
 };

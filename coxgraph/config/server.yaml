@@ -8,7 +8,8 @@ map_fusion_topic: "/ccmslam/map_fusion_out"
 map_fusion_queue_size: 1
 
 client_name_prefix: "coxgraph_client_"
-client_loop_closure_topic: "loop_closure_in"
+client_loop_closure_topic_suffix: "loop_closure_in"
+client_map_pose_update_topic_suffix: "map_pose_update_in"
 ch_pub_queue_length: 10
 
 fixed_map_client_id: 0

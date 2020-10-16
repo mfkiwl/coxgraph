@@ -14,9 +14,12 @@ ClientHandler::Config ClientHandler::getConfigFromRosParam(
   ClientHandler::Config config;
   nh_private.param<std::string>("client_name_prefix", config.client_name_prefix,
                                 config.client_name_prefix);
-  nh_private.param<std::string>("client_loop_closure_topic",
-                                config.client_loop_closure_topic,
-                                config.client_loop_closure_topic);
+  nh_private.param<std::string>("client_loop_closure_topic_suffix",
+                                config.client_loop_closure_topic_suffix,
+                                config.client_loop_closure_topic_suffix);
+  nh_private.param<std::string>("client_map_pose_update_topic_suffix",
+                                config.client_map_pose_update_topic_suffix,
+                                config.client_map_pose_update_topic_suffix);
   nh_private.param<int>("ch_pub_queue_length", config.pub_queue_length,
                         config.pub_queue_length);
   return config;
@@ -32,20 +35,18 @@ void ClientHandler::timeLineCallback(
   updateTimeLine(time_line_msg.start, time_line_msg.end);
 }
 
-void ClientHandler::publishTopics() {
+void ClientHandler::advertiseTopics() {
   loop_closure_pub_ = nh_.advertise<voxgraph_msgs::LoopClosure>(
-      client_node_name_ + "/" + config_.client_loop_closure_topic,
+      client_node_name_ + "/" + config_.client_loop_closure_topic_suffix,
+      config_.pub_queue_length, true);
+  sm_pose_update_pub_ = nh_.advertise<coxgraph_msgs::MapPoseUpdate>(
+      client_node_name_ + "/" + config_.client_map_pose_update_topic_suffix,
       config_.pub_queue_length, true);
 }
 
 void ClientHandler::subscribeToServices() {
   pub_client_submap_client_ = nh_.serviceClient<coxgraph_msgs::ClientSubmapSrv>(
       client_node_name_ + "/publish_client_submap");
-}
-
-bool ClientHandler::sendLoopClosureMsg(
-    const voxgraph_msgs::LoopClosure& loop_closure_msg) {
-  loop_closure_pub_.publish(loop_closure_msg);
 }
 
 ClientHandler::ReqState ClientHandler::requestSubmapByTime(
@@ -57,8 +58,8 @@ ClientHandler::ReqState ClientHandler::requestSubmapByTime(
   cli_submap_srv.request.timestamp = timestamp;
   if (pub_client_submap_client_.call(cli_submap_srv)) {
     *cli_sm_id = cli_submap_srv.response.submap.map_header.id;
-    *submap = utils::cliSubmapFromMsg(ser_sm_id, submap_config_,
-                                      cli_submap_srv.response);
+    *submap = utils::cliSubmapFromMsg(
+        ser_sm_id, submap_config_, cli_submap_srv.response, &mission_frame_id_);
     tf::transformMsgToKindr<voxblox::FloatingPoint>(
         cli_submap_srv.response.transform, T_submap_t);
     return ReqState::SUCCESS;

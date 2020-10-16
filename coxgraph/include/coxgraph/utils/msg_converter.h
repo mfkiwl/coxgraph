@@ -33,7 +33,8 @@ inline cblox_msgs::MapLayer tsdfMsgfromClientSubmap(
   return submap_tsdf_msg;
 }
 
-inline coxgraph_msgs::ClientSubmap msgFromClientSubmap(const CliSm& submap) {
+inline coxgraph_msgs::ClientSubmap msgFromClientSubmap(
+    const CliSm& submap, const std::string& frame_id) {
   voxblox_msgs::Layer layer_msg;
   voxblox::serializeLayerAsMsg<voxblox::TsdfVoxel>(
       submap.getTsdfMap().getTsdfLayer(), false, &layer_msg);
@@ -53,12 +54,16 @@ inline coxgraph_msgs::ClientSubmap msgFromClientSubmap(const CliSm& submap) {
   cli_submap_msg.map_header.start = submap.getStartTime();
   cli_submap_msg.map_header.end = submap.getEndTime();
   cli_submap_msg.map_header.header.stamp = ros::Time::now();
+  tf::poseKindrToMsg(submap.getPose().cast<double>(),
+                     &cli_submap_msg.map_header.pose.map_pose);
+  cli_submap_msg.map_header.pose.frame_id = frame_id;
   return cli_submap_msg;
 }
 
 inline CliSm::Ptr cliSubmapFromMsg(
     const SerSmId& ser_sm_id, const CliSmConfig& submap_config,
-    const coxgraph_msgs::ClientSubmapSrvResponse& submap_response) {
+    const coxgraph_msgs::ClientSubmapSrvResponse& submap_response,
+    std::string* frame_id) {
   CHECK_EQ(submap_response.submap.layer_with_traj.trajectory.poses.size(), 2);
 
   CliSm::Ptr submap_ptr(new CliSm(Transformation(), ser_sm_id, submap_config));
@@ -69,6 +74,11 @@ inline CliSm::Ptr cliSubmapFromMsg(
     LOG(FATAL)
         << "Received a submap msg with an invalid TSDF. Skipping submap.";
   }
+  TransformationD submap_pose;
+  tf::poseMsgToKindr(submap_response.submap.map_header.pose.map_pose,
+                     &submap_pose);
+  submap_ptr->setPose(submap_pose.cast<voxblox::FloatingPoint>());
+  *frame_id = submap_response.submap.map_header.pose.frame_id;
   submap_ptr->finishSubmap();
   return submap_ptr;
 }

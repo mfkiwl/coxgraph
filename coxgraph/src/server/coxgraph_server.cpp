@@ -74,7 +74,7 @@ void CoxgraphServer::mapFusionMsgCallback(
 void CoxgraphServer::loopClosureCallback(
     const CliId& client_id,
     const voxgraph_msgs::LoopClosure& loop_closure_msg) {
-  client_handlers_[client_id]->sendLoopClosureMsg(loop_closure_msg);
+  client_handlers_[client_id]->pubLoopClosureMsg(loop_closure_msg);
 }
 
 void CoxgraphServer::mapFusionCallback(
@@ -209,14 +209,15 @@ bool CoxgraphServer::needRefuse(const CliId& cid_a, const ros::Time& time_a,
   return false;
 }
 
-bool CoxgraphServer::resetNeedRefuse(const CliId& cid_a,
-                                     const ros::Time& time_a,
-                                     const CliId& cid_b,
-                                     const ros::Time& time_b) {
+bool CoxgraphServer::updateNeedRefuse(const CliId& cid_a,
+                                      const ros::Time& time_a,
+                                      const CliId& cid_b,
+                                      const ros::Time& time_b) {
   CHECK_EQ(force_fuse_[config_.fixed_map_client_id], false);
   force_fuse_[cid_a] = false;
   force_fuse_[cid_b] = false;
-
+  CHECK(fused_time_line_[cid_a].update(time_a));
+  CHECK(fused_time_line_[cid_b].update(time_b));
   return true;
 }
 
@@ -245,10 +246,16 @@ bool CoxgraphServer::optimizePoseGraph() {
   // Update the submap poses
   pose_graph_interface_.updateSubmapCollectionPoses();
 
-  // Publish updated poses
+  // Publish fused tfs between client mission frames and global mission frame
+  pubTfCliMissionGlobal();
 
   // Report successful completion
   return true;
+}
+
+void CoxgraphServer::pubSmGlobalTf() {
+  for (const SerSmId& submap_id : submap_collection_ptr_->getIDs()) {
+  }
 }
 
 }  // namespace coxgraph

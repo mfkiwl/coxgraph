@@ -37,7 +37,7 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
   void advertiseClientTopics();
   void advertiseClientServices();
 
-  bool publishClientSubmapCallback(
+  bool pubClientSubmapCallback(
       coxgraph_msgs::ClientSubmapSrv::Request& request,     // NOLINT
       coxgraph_msgs::ClientSubmapSrv::Response& response);  // NOLINT
 

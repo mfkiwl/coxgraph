@@ -16,6 +16,7 @@ using CliSmId = voxgraph::SubmapID;
 using CliSmConfig = voxgraph::VoxgraphSubmap::Config;
 
 using Transformation = voxgraph::Transformation;
+using TransformationD = voxgraph::TransformationD;
 
 using FrameNames = voxgraph::FrameNames;
 
@@ -25,7 +26,7 @@ struct TimeLine {
   ros::Time end;
   bool hasTime(const ros::Time& time) {
     if (end.isZero()) return false;
-    if (time > start && time < end) {
+    if (time >= start && time <= end) {
       return true;
     }
     return false;
@@ -37,6 +38,21 @@ struct TimeLine {
       return true;
     }
     return false;
+  }
+  bool update(const ros::Time& new_time) {
+    if (new_time < start) {
+      start = new_time;
+      return true;
+    } else if (new_time > end) {
+      end = new_time;
+      return true;
+    }
+    return false;
+  }
+  bool setEnd(const ros::Time& new_end) {
+    if (end == new_end) return false;
+    end = new_end;
+    return true;
   }
 };
 }  // namespace coxgraph
