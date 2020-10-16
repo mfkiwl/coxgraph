@@ -3,7 +3,6 @@
 
 #include <coxgraph_msgs/ClientSubmap.h>
 #include <coxgraph_msgs/TimeLine.h>
-#include <voxgraph/frontend/frame_names.h>
 #include <voxgraph/frontend/voxgraph_mapper.h>
 #include <voxgraph_msgs/LoopClosure.h>
 
@@ -45,7 +44,6 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
 
  private:
   using VoxgraphMapper = voxgraph::VoxgraphMapper;
-  using FrameNames = voxgraph::FrameNames;
 
   void publishTimeLine();
 

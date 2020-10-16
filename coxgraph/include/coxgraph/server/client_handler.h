@@ -44,7 +44,7 @@ class ClientHandler {
       s << std::endl
         << "Client Handler using Config:" << std::endl
         << "  Client Name Prefix: " << v.client_name_prefix << std::endl
-        << "  Client Loop Closure Topic:" << v.client_loop_closure_topic
+        << "  Client Loop Closure Topic: " << v.client_loop_closure_topic
         << std::endl
         << "  Publisher Queue Length: " << v.pub_queue_length << std::endl
         << "-------------------------------------------" << std::endl;

@@ -29,6 +29,9 @@ CoxgraphServer::Config CoxgraphServer::getConfigFromRosParam(
   config.refusion_interval.fromSec(refusion_interval);
   nh_private.param<int>("fixed_map_client_id", config.fixed_map_client_id,
                         config.fixed_map_client_id);
+  nh_private.param<std::string>("output_mission_frame",
+                                config.output_mission_frame,
+                                config.output_mission_frame);
   return config;
 }
 

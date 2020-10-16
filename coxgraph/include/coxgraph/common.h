@@ -3,6 +3,7 @@
 
 #include <voxblox/core/common.h>
 #include <voxgraph/common.h>
+#include <voxgraph/frontend/frame_names.h>
 #include <voxgraph/frontend/submap_collection/voxgraph_submap.h>
 
 namespace coxgraph {
@@ -15,6 +16,7 @@ using CliSmConfig = voxgraph::VoxgraphSubmap::Config;
 
 using Transformation = voxgraph::Transformation;
 
+using FrameNames = voxgraph::FrameNames;
 }  // namespace coxgraph
 
 #endif  // COXGRAPH_COMMON_H_
