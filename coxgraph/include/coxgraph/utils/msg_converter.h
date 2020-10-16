@@ -45,7 +45,7 @@ inline CliSm::Ptr cliSubmapFromMsg(
   return submap_ptr;
 }
 
-voxgraph_msgs::LoopClosure fromMapFusionMsg(
+inline voxgraph_msgs::LoopClosure fromMapFusionMsg(
     const coxgraph_msgs::MapFusion& map_fusion_msg) {
   CHECK_EQ(map_fusion_msg.from_client_id, map_fusion_msg.to_client_id);
   voxgraph_msgs::LoopClosure loop_closure_msg;

@@ -117,6 +117,4 @@ class CoxgraphServer {
 
 }  // namespace coxgraph
 
-#include "coxgraph/server/impl/coxgraph_server_impl.h"
-
 #endif  // COXGRAPH_SERVER_COXGRAPH_SERVER_H_

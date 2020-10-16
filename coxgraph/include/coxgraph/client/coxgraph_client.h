@@ -8,6 +8,7 @@
 #include <voxgraph_msgs/LoopClosure.h>
 
 #include "coxgraph/common.h"
+#include "coxgraph/utils/msg_converter.h"
 
 namespace coxgraph {
 
@@ -57,7 +58,5 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
 };
 
 }  // namespace coxgraph
-
-#include "coxgraph/client/impl/coxgraph_client_impl.h"
 
 #endif  // COXGRAPH_CLIENT_COXGRAPH_CLIENT_H_

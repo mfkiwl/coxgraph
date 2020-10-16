@@ -116,6 +116,4 @@ class ClientHandler {
 }  // namespace server
 }  // namespace coxgraph
 
-#include "coxgraph/server/impl/client_handler_impl.h"
-
 #endif  // COXGRAPH_SERVER_CLIENT_HANDLER_H_
