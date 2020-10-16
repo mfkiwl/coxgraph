@@ -55,7 +55,8 @@ class ClientHandler {
         config_(config),
         submap_config_(submap_config),
         client_node_name_(config.client_name_prefix +
-                          std::to_string(client_id_)) {
+                          std::to_string(client_id_)),
+        log_prefix_("CH " + std::to_string(static_cast<int>(client_id_))) {
     subscribeToTopics();
     publishTopics();
     subscribeToServices();
@@ -84,9 +85,8 @@ class ClientHandler {
                              const ros::Time& new_end) {
     time_line_updated_ = time_line_.update(new_start, new_end);
     // TODO(mikexyl): make CH id a log prefix string
-    LOG(INFO) << "CH " << static_cast<int>(client_id_)
-              << ": Updated new client time line from " << time_line_.start
-              << " to " << time_line_.end << std::endl;
+    LOG(INFO) << log_prefix_ << ": Updated new client time line from "
+              << time_line_.start << " to " << time_line_.end << std::endl;
   }
 
   void subscribeToTopics();
@@ -95,6 +95,7 @@ class ClientHandler {
 
   const CliId client_id_;
   const std::string client_node_name_;
+  const std::string log_prefix_;
 
   Config config_;
   CliSmConfig submap_config_;
