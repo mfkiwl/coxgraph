@@ -2,6 +2,5 @@
 time timestamp
 ---
 #respoinse
-int32 submap_id
-voxblox_msgs/LayerWithTrajectory layer_with_traj
+coxgraph_msgs/ClientSubmap submap
 geometry_msgs/Transform transform

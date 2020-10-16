@@ -24,17 +24,17 @@ void CoxgraphClient::advertiseClientServices() {
 }
 
 bool CoxgraphClient::publishClientSubmapCallback(
-    coxgraph_msgs::ClientSubmap::Request& request,
-    coxgraph_msgs::ClientSubmap::Response& response) {
+    coxgraph_msgs::ClientSubmapSrv::Request& request,
+    coxgraph_msgs::ClientSubmapSrv::Response& response) {
   CliSmId submap_id;
   if (submap_collection_ptr_->lookupActiveSubmapByTime(request.timestamp,
                                                        &submap_id)) {
     const CliSm& submap = submap_collection_ptr_->getSubmap(submap_id);
     Transformation T_submap_t;
     if (submap.lookupPoseByTime(request.timestamp, &T_submap_t)) {
-      response.submap_id = submap_id;
+      response.submap.map_header.id = submap_id;
       tf::transformKindrToMsg(T_submap_t.cast<double>(), &response.transform);
-      response.layer_with_traj = utils::submapMsgfromClientSubmap(submap);
+      response.submap = utils::msgFromClientSubmap(submap);
       return true;
     } else {
       LOG(WARNING) << "Client " << client_id_ << ": Requested time "

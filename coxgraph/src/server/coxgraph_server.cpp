@@ -132,8 +132,8 @@ void CoxgraphServer::mapFusionCallback(
   if (future) {
     CHECK_EQ(ok_a, ReqState::SUCCESS);
     CHECK_EQ(ok_b, ReqState::SUCCESS);
-    fuseMap(cid_a, submap_id_a, submap_a, T_submap_t_a,  // NOLINT
-            cid_b, submap_id_b, submap_b, T_submap_t_b);
+    fuseMap(cid_a, time_a, submap_id_a, submap_a, T_submap_t_a,  // NOLINT
+            cid_b, time_b, submap_id_b, submap_b, T_submap_t_b);
   } else {
     if (has_time_a && has_time_b) {
       if ((ok_a == ReqState::SUCCESS && ok_b == ReqState::FUTURE) ||
@@ -141,8 +141,8 @@ void CoxgraphServer::mapFusionCallback(
         addToMFFuture(map_fusion_msg);
       }
       if (ok_a == ReqState::SUCCESS && ok_b == ReqState::SUCCESS) {
-        fuseMap(cid_a, submap_id_a, submap_a, T_submap_t_a,  // NOLINT
-                cid_b, submap_id_b, submap_b, T_submap_t_b);
+        fuseMap(cid_a, time_a, submap_id_a, submap_a, T_submap_t_a,  // NOLINT
+                cid_b, time_b, submap_id_b, submap_b, T_submap_t_b);
       }
     } else {
       LOG_IF(INFO, !has_time_a)
@@ -220,12 +220,11 @@ bool CoxgraphServer::resetNeedRefuse(const CliId& cid_a,
   return true;
 }
 
-bool CoxgraphServer::fuseMap(const CliId& cid_a, const CliSmId& submap_id_a,
-                             const CliSm::Ptr& submap_a,
-                             const Transformation& T_submap_t_a,
-                             const CliId& cid_b, const CliSmId& submap_id_b,
-                             const CliSm::Ptr& submap_b,
-                             const Transformation& T_submap_t_b) {
+bool CoxgraphServer::fuseMap(
+    const CliId& cid_a, const ros::Time& time_a, const CliSmId& submap_id_a,
+    const CliSm::Ptr& submap_a, const Transformation& T_submap_t_a,
+    const CliId& cid_b, const ros::Time& time_b, const CliSmId& submap_id_b,
+    const CliSm::Ptr& submap_b, const Transformation& T_submap_t_b) {
   LOG(INFO) << "Fusing: " << std::endl
             << "  Client: " << static_cast<int>(cid_a)
             << " -> Submap: " << static_cast<int>(submap_id_a) << std::endl
@@ -236,6 +235,20 @@ bool CoxgraphServer::fuseMap(const CliId& cid_a, const CliSmId& submap_id_a,
 
   submap_collection_ptr_->addSubmap(submap_a);
   submap_collection_ptr_->addSubmap(submap_b);
+}
+
+bool CoxgraphServer::optimizePoseGraph() {
+  // Optimize the pose graph
+  ROS_INFO("Optimizing the pose graph");
+  pose_graph_interface_.optimize();
+
+  // Update the submap poses
+  pose_graph_interface_.updateSubmapCollectionPoses();
+
+  // Publish updated poses
+
+  // Report successful completion
+  return true;
 }
 
 }  // namespace coxgraph

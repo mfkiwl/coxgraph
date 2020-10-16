@@ -2,6 +2,7 @@
 #define COXGRAPH_SERVER_CLIENT_HANDLER_H_
 
 #include <coxgraph_msgs/ClientSubmap.h>
+#include <coxgraph_msgs/ClientSubmapSrv.h>
 #include <coxgraph_msgs/TimeLine.h>
 #include <ros/ros.h>
 #include <voxgraph_msgs/LoopClosure.h>
@@ -84,7 +85,6 @@ class ClientHandler {
   inline bool updateTimeLine(const ros::Time& new_start,
                              const ros::Time& new_end) {
     time_line_updated_ = time_line_.update(new_start, new_end);
-    // TODO(mikexyl): make CH id a log prefix string
     LOG(INFO) << log_prefix_ << ": Updated new client time line from "
               << time_line_.start << " to " << time_line_.end << std::endl;
   }

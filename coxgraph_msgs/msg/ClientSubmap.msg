@@ -1,0 +1,2 @@
+coxgraph_msgs/MapHeader map_header
+voxblox_msgs/LayerWithTrajectory layer_with_traj

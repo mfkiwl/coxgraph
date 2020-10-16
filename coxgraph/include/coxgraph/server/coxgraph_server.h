@@ -12,6 +12,7 @@
 #include <voxgraph_msgs/LoopClosure.h>
 
 #include <deque>
+#include <future>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -113,10 +114,14 @@ class CoxgraphServer {
   bool resetNeedRefuse(const CliId& cid_a, const ros::Time& time_a,
                        const CliId& cid_b, const ros::Time& time_b);
 
-  bool fuseMap(const CliId& cid_a, const CliSmId& submap_id_a,
-               const CliSm::Ptr& submap_a, const Transformation& T_submap_t_a,
-               const CliId& cid_b, const CliSmId& submap_id_b,
+  // TODO(mikexyl): make a pack struct for these vars
+  bool fuseMap(const CliId& cid_a, const ros::Time& time_a,
+               const CliSmId& submap_id_a, const CliSm::Ptr& submap_a,
+               const Transformation& T_submap_t_a, const CliId& cid_b,
+               const ros::Time& time_b, const CliSmId& submap_id_b,
                const CliSm::Ptr& submap_b, const Transformation& T_submap_t_b);
+
+  bool optimizePoseGraph();
 
   inline bool isTimeFused(const CliId& cid, const ros::Time& time) {
     return fused_time_line_[cid].hasTime(time);
@@ -155,6 +160,9 @@ class CoxgraphServer {
   std::vector<TimeLine> fused_time_line_;
 
   std::deque<coxgraph_msgs::MapFusion> map_fusion_msgs_future_;
+
+  // Asynchronous handle for the pose graph optimization thread
+  std::future<bool> optimization_async_handle_;
 
   constexpr static uint8_t kMaxClientNum = 2;
 };

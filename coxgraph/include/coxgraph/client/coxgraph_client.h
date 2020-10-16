@@ -2,6 +2,7 @@
 #define COXGRAPH_CLIENT_COXGRAPH_CLIENT_H_
 
 #include <coxgraph_msgs/ClientSubmap.h>
+#include <coxgraph_msgs/ClientSubmapSrv.h>
 #include <coxgraph_msgs/TimeLine.h>
 #include <voxgraph/frontend/voxgraph_mapper.h>
 #include <voxgraph_msgs/LoopClosure.h>
@@ -37,8 +38,8 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
   void advertiseClientServices();
 
   bool publishClientSubmapCallback(
-      coxgraph_msgs::ClientSubmap::Request& request,     // NOLINT
-      coxgraph_msgs::ClientSubmap::Response& response);  // NOLINT
+      coxgraph_msgs::ClientSubmapSrv::Request& request,     // NOLINT
+      coxgraph_msgs::ClientSubmapSrv::Response& response);  // NOLINT
 
   void submapCallback(const voxblox_msgs::LayerWithTrajectory& submap_msg);
 

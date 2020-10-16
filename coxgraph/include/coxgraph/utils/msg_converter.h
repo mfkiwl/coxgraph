@@ -3,7 +3,8 @@
 
 #include <cblox_msgs/MapLayer.h>
 #include <cblox_ros/submap_conversions.h>
-#include <coxgraph_msgs/ClientSubmapResponse.h>
+#include <coxgraph_msgs/ClientSubmap.h>
+#include <coxgraph_msgs/ClientSubmapSrvResponse.h>
 #include <coxgraph_msgs/MapFusion.h>
 #include <voxblox_msgs/Layer.h>
 #include <voxblox_msgs/LayerWithTrajectory.h>
@@ -32,8 +33,7 @@ inline cblox_msgs::MapLayer tsdfMsgfromClientSubmap(
   return submap_tsdf_msg;
 }
 
-inline voxblox_msgs::LayerWithTrajectory submapMsgfromClientSubmap(
-    const CliSm& submap) {
+inline coxgraph_msgs::ClientSubmap msgFromClientSubmap(const CliSm& submap) {
   voxblox_msgs::Layer layer_msg;
   voxblox::serializeLayerAsMsg<voxblox::TsdfVoxel>(
       submap.getTsdfMap().getTsdfLayer(), false, &layer_msg);
@@ -47,18 +47,24 @@ inline voxblox_msgs::LayerWithTrajectory submapMsgfromClientSubmap(
   pose_msg.header.stamp = submap.getEndTime();
   layer_with_trajectory_msg.trajectory.poses.emplace_back(pose_msg);
 
-  return layer_with_trajectory_msg;
+  coxgraph_msgs::ClientSubmap cli_submap_msg;
+  cli_submap_msg.layer_with_traj = layer_with_trajectory_msg;
+  cli_submap_msg.map_header.id = submap.getID();
+  cli_submap_msg.map_header.start = submap.getStartTime();
+  cli_submap_msg.map_header.end = submap.getEndTime();
+  cli_submap_msg.map_header.header.stamp = ros::Time::now();
+  return cli_submap_msg;
 }
 
 inline CliSm::Ptr cliSubmapFromMsg(
     const SerSmId& ser_sm_id, const CliSmConfig& submap_config,
-    const coxgraph_msgs::ClientSubmapResponse& submap_response) {
-  CHECK_EQ(submap_response.layer_with_traj.trajectory.poses.size(), 2);
+    const coxgraph_msgs::ClientSubmapSrvResponse& submap_response) {
+  CHECK_EQ(submap_response.submap.layer_with_traj.trajectory.poses.size(), 2);
 
   CliSm::Ptr submap_ptr(new CliSm(Transformation(), ser_sm_id, submap_config));
   // Deserialize the submap TSDF
   if (!voxblox::deserializeMsgToLayer(
-          submap_response.layer_with_traj.layer,
+          submap_response.submap.layer_with_traj.layer,
           submap_ptr->getTsdfMapPtr()->getTsdfLayerPtr())) {
     LOG(FATAL)
         << "Received a submap msg with an invalid TSDF. Skipping submap.";

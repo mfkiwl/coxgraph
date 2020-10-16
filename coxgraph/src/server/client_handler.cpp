@@ -39,7 +39,7 @@ void ClientHandler::publishTopics() {
 }
 
 void ClientHandler::subscribeToServices() {
-  pub_client_submap_client_ = nh_.serviceClient<coxgraph_msgs::ClientSubmap>(
+  pub_client_submap_client_ = nh_.serviceClient<coxgraph_msgs::ClientSubmapSrv>(
       client_node_name_ + "/publish_client_submap");
 }
 
@@ -53,14 +53,14 @@ ClientHandler::ReqState ClientHandler::requestSubmapByTime(
     CliSm::Ptr* submap, Transformation* T_submap_t) {
   if (!time_line_.hasTime(timestamp)) return ReqState::FUTURE;
 
-  coxgraph_msgs::ClientSubmap client_submap_msg;
-  client_submap_msg.request.timestamp = timestamp;
-  if (pub_client_submap_client_.call(client_submap_msg)) {
-    *cli_sm_id = client_submap_msg.response.submap_id;
+  coxgraph_msgs::ClientSubmapSrv cli_submap_srv;
+  cli_submap_srv.request.timestamp = timestamp;
+  if (pub_client_submap_client_.call(cli_submap_srv)) {
+    *cli_sm_id = cli_submap_srv.response.submap.map_header.id;
     *submap = utils::cliSubmapFromMsg(ser_sm_id, submap_config_,
-                                      client_submap_msg.response);
+                                      cli_submap_srv.response);
     tf::transformMsgToKindr<voxblox::FloatingPoint>(
-        client_submap_msg.response.transform, T_submap_t);
+        cli_submap_srv.response.transform, T_submap_t);
     return ReqState::SUCCESS;
   }
   return ReqState::FAILED;
