@@ -93,7 +93,7 @@ void CoxgraphServer::mapFusionCallback(
   if (!needRefuse(cid_a, time_a, cid_b, time_b)) return;
 
   ReqState ok_a, ok_b;
-  bool has_time_a = client_handlers_[cid_a]->hasTime(time_b);
+  bool has_time_a = client_handlers_[cid_a]->hasTime(time_a);
   bool has_time_b = client_handlers_[cid_b]->hasTime(time_b);
   if (has_time_a && has_time_b) {
     ok_a = client_handlers_[cid_a]->requestSubmapByTime(

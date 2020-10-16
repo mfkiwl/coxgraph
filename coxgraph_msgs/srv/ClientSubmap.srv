@@ -3,6 +3,5 @@ time timestamp
 ---
 #respoinse
 int32 submap_id
-cblox_msgs/MapLayer sdf_layers
-voxgraph_msgs/MapSurface registration_points
+voxblox_msgs/LayerWithTrajectory layer_with_traj
 geometry_msgs/Transform transform

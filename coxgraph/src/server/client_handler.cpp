@@ -29,16 +29,7 @@ void ClientHandler::subscribeToTopics() {
 
 void ClientHandler::timeLineCallback(
     const coxgraph_msgs::TimeLine& time_line_msg) {
-  if (time_line_.start != time_line_msg.start ||
-      time_line_.end != time_line_msg.end) {
-    time_line_.start = time_line_msg.start;
-    time_line_.end = time_line_msg.end;
-    time_line_updated_ = true;
-  }
-  // TODO(mikexyl): make CH id a log prefix string
-  LOG(INFO) << "CH " << static_cast<int>(client_id_)
-            << ": Received Updated client time Line from "
-            << time_line_msg.start << " to " << time_line_msg.end << std::endl;
+  updateTimeLine(time_line_msg.start, time_line_msg.end);
 }
 
 void ClientHandler::publishTopics() {

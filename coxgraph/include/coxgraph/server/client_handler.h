@@ -77,9 +77,18 @@ class ClientHandler {
   inline bool isTimeLineUpdated() const { return time_line_updated_; }
   inline void resetTimeLineUpdated() { time_line_updated_ = false; }
 
+ private:
   void timeLineCallback(const coxgraph_msgs::TimeLine& time_line_msg);
 
- private:
+  inline bool updateTimeLine(const ros::Time& new_start,
+                             const ros::Time& new_end) {
+    time_line_updated_ = time_line_.update(new_start, new_end);
+    // TODO(mikexyl): make CH id a log prefix string
+    LOG(INFO) << "CH " << static_cast<int>(client_id_)
+              << ": Updated new client time line from " << time_line_.start
+              << " to " << time_line_.end << std::endl;
+  }
+
   void subscribeToTopics();
   void publishTopics();
   void subscribeToServices();

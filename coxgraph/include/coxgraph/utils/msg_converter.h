@@ -5,6 +5,9 @@
 #include <cblox_ros/submap_conversions.h>
 #include <coxgraph_msgs/ClientSubmapResponse.h>
 #include <coxgraph_msgs/MapFusion.h>
+#include <voxblox_msgs/Layer.h>
+#include <voxblox_msgs/LayerWithTrajectory.h>
+#include <voxblox_ros/conversions.h>
 
 #include <string>
 
@@ -29,13 +32,33 @@ inline cblox_msgs::MapLayer tsdfMsgfromClientSubmap(
   return submap_tsdf_msg;
 }
 
+inline voxblox_msgs::LayerWithTrajectory submapMsgfromClientSubmap(
+    const CliSm& submap) {
+  voxblox_msgs::Layer layer_msg;
+  voxblox::serializeLayerAsMsg<voxblox::TsdfVoxel>(
+      submap.getTsdfMap().getTsdfLayer(), false, &layer_msg);
+  voxblox_msgs::LayerWithTrajectory layer_with_trajectory_msg;
+  layer_with_trajectory_msg.layer = layer_msg;
+
+  // Give it two dummy poses with submap timeline stamped to sync timeline
+  geometry_msgs::PoseStamped pose_msg;
+  pose_msg.header.stamp = submap.getStartTime();
+  layer_with_trajectory_msg.trajectory.poses.emplace_back(pose_msg);
+  pose_msg.header.stamp = submap.getEndTime();
+  layer_with_trajectory_msg.trajectory.poses.emplace_back(pose_msg);
+
+  return layer_with_trajectory_msg;
+}
+
 inline CliSm::Ptr cliSubmapFromMsg(
     const SerSmId& ser_sm_id, const CliSmConfig& submap_config,
     const coxgraph_msgs::ClientSubmapResponse& submap_response) {
+  CHECK_EQ(submap_response.layer_with_traj.trajectory.poses.size(), 2);
+
   CliSm::Ptr submap_ptr(new CliSm(Transformation(), ser_sm_id, submap_config));
   // Deserialize the submap TSDF
   if (!voxblox::deserializeMsgToLayer(
-          submap_response.sdf_layers.tsdf_layer,
+          submap_response.layer_with_traj.layer,
           submap_ptr->getTsdfMapPtr()->getTsdfLayerPtr())) {
     LOG(FATAL)
         << "Received a submap msg with an invalid TSDF. Skipping submap.";

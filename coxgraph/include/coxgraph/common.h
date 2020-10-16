@@ -30,6 +30,14 @@ struct TimeLine {
     }
     return false;
   }
+  bool update(const ros::Time& new_start, const ros::Time& new_end) {
+    if (start != new_start || end != new_end) {
+      start = new_start;
+      end = new_end;
+      return true;
+    }
+    return false;
+  }
 };
 }  // namespace coxgraph
 

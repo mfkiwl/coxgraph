@@ -34,8 +34,7 @@ bool CoxgraphClient::publishClientSubmapCallback(
     if (submap.lookupPoseByTime(request.timestamp, &T_submap_t)) {
       response.submap_id = submap_id;
       tf::transformKindrToMsg(T_submap_t.cast<double>(), &response.transform);
-      response.sdf_layers = utils::tsdfMsgfromClientSubmap(
-          submap, frame_names_.output_mission_frame);
+      response.layer_with_traj = utils::submapMsgfromClientSubmap(submap);
       return true;
     } else {
       LOG(WARNING) << "Client " << client_id_ << ": Requested time "
