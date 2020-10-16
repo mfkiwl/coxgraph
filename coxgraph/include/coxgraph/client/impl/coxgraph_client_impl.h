@@ -28,10 +28,10 @@ void CoxgraphClient::advertiseClientServices() {
 bool CoxgraphClient::publishClientSubmapCallback(
     coxgraph_msgs::ClientSubmap::Request& request,
     coxgraph_msgs::ClientSubmap::Response& response) {
-  ClientSubmapId submap_id;
+  CliSmId submap_id;
   if (submap_collection_ptr_->lookupActiveSubmapByTime(request.timestamp,
                                                        &submap_id)) {
-    const ClientSubmap& submap = submap_collection_ptr_->getSubmap(submap_id);
+    const CliSm& submap = submap_collection_ptr_->getSubmap(submap_id);
     Transformation T_submap_t;
     if (submap.lookupPoseByTime(request.timestamp, &T_submap_t)) {
       response.submap_id = submap_id;

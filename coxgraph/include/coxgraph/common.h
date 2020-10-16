@@ -7,11 +7,11 @@
 
 namespace coxgraph {
 
-typedef int8_t ClientId;
+typedef int8_t CliId;
 
-using ClientSubmapId = voxgraph::SubmapID;
-using ClientSubmapConfig = voxgraph::VoxgraphSubmap::Config;
-using ClientSubmap = voxgraph::VoxgraphSubmap;
+using CliSm = voxgraph::VoxgraphSubmap;
+using CliSmId = voxgraph::SubmapID;
+using CliSmConfig = voxgraph::VoxgraphSubmap::Config;
 
 using Transformation = voxgraph::Transformation;
 

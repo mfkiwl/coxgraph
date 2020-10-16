@@ -18,7 +18,7 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
         frame_names_(FrameNames::fromRosParams(nh_private)) {
     int client_id;
     nh_private.param<int>("client_id", client_id, -1);
-    client_id_ = static_cast<ClientId>(client_id);
+    client_id_ = static_cast<CliId>(client_id);
     subscribeClientTopics();
     advertiseClientTopics();
     advertiseClientServices();
@@ -30,7 +30,7 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
   }
   ~CoxgraphClient() = default;
 
-  inline const ClientId& getClientId() const { return client_id_; }
+  inline const CliId& getClientId() const { return client_id_; }
 
   void subscribeClientTopics();
   void advertiseClientTopics();
@@ -48,7 +48,7 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
 
   void publishTimeLine();
 
-  ClientId client_id_;
+  CliId client_id_;
 
   FrameNames frame_names_;
 

@@ -36,6 +36,7 @@ void ClientHandler::timeLineCallback(
     time_line_.end = time_line_msg.end;
     time_line_updated_ = true;
   }
+  // TODO(mikexyl): make CH id a log prefix string
   LOG(INFO) << "CH " << static_cast<int>(client_id_)
             << ": Received Updated client time Line from "
             << time_line_msg.start << " to " << time_line_msg.end << std::endl;
@@ -58,8 +59,8 @@ bool ClientHandler::sendLoopClosureMsg(
 }
 
 ClientHandler::ReqState ClientHandler::requestSubmapByTime(
-    const ros::Time& timestamp, ClientSubmapId* submap_id,
-    ClientSubmap::Ptr* submap_ptr, Transformation* T_submap_t) {
+    const ros::Time& timestamp, CliSmId* submap_id, CliSm::Ptr* submap_ptr,
+    Transformation* T_submap_t) {
   if (!time_line_.hasTime(timestamp)) return ReqState::FUTURE;
 
   coxgraph_msgs::ClientSubmap client_submap_msg;

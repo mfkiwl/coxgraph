@@ -70,7 +70,7 @@ class CoxgraphServer {
  private:
   using ClientHandler = server::ClientHandler;
   using ReqState = ClientHandler::ReqState;
-  typedef std::pair<ClientId, ClientId> CliIdPair;
+  typedef std::pair<CliId, CliId> CliIdPair;
 
   void initClientHandlers(const ros::NodeHandle& nh,
                           const ros::NodeHandle& nh_private);
@@ -78,21 +78,21 @@ class CoxgraphServer {
   void subscribeTopics();
 
   void mapFusionMsgCallback(const coxgraph_msgs::MapFusion& map_fusion_msg);
-  void loopClosureCallback(const ClientId& client_id,
+  void loopClosureCallback(const CliId& client_id,
                            const voxgraph_msgs::LoopClosure& loop_closure_msg);
   void mapFusionCallback(const coxgraph_msgs::MapFusion& map_fusion_msg,
                          bool future = false);
   void addToMFFuture(const coxgraph_msgs::MapFusion& map_fusion_msg);
   void processMFFuture();
-  bool needFusion(const ClientId& cid_a, const ros::Time& time_a,
-                  const ClientId& cid_b, const ros::Time& time_b);
-  bool resetNeedFusion(const ClientId& cid_a, const ros::Time& time_a,
-                       const ClientId& cid_b, const ros::Time& time_b);
+  bool needFusion(const CliId& cid_a, const ros::Time& time_a,
+                  const CliId& cid_b, const ros::Time& time_b);
+  bool resetNeedFusion(const CliId& cid_a, const ros::Time& time_a,
+                       const CliId& cid_b, const ros::Time& time_b);
 
-  bool fuseMap() {}
-
-  static voxgraph_msgs::LoopClosure fromMapFusionMsg(
-      const coxgraph_msgs::MapFusion& map_fusion_msg);
+  bool fuseMap(const CliId& cid_a, const CliSmId& submap_id_a,
+               const CliSm::Ptr& submap_a, const Transformation& T_submap_t_a,
+               const CliId& cid_b, const CliSmId& submap_id_b,
+               const CliSm::Ptr& submap_b, const Transformation& T_submap_t_b);
 
   // Node handles
   ros::NodeHandle nh_;
@@ -104,7 +104,7 @@ class CoxgraphServer {
   bool verbose_;
 
   const Config config_;
-  const ClientSubmapConfig submap_config_;
+  const CliSmConfig submap_config_;
 
   std::vector<ClientHandler::Ptr> client_handlers_;
   std::vector<bool> need_fusion_;

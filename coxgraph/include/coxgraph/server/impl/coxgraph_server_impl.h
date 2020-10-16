@@ -4,6 +4,8 @@
 #include <memory>
 #include <string>
 
+#include "coxgraph/utils/msg_converter.h"
+
 namespace coxgraph {
 
 CoxgraphServer::Config CoxgraphServer::getConfigFromRosParam(
@@ -57,7 +59,7 @@ void CoxgraphServer::mapFusionMsgCallback(
               << map_fusion_msg.from_timestamp << " to "
               << map_fusion_msg.to_timestamp;
     loopClosureCallback(map_fusion_msg.from_client_id,
-                        fromMapFusionMsg(map_fusion_msg));
+                        utils::fromMapFusionMsg(map_fusion_msg));
   } else {
     LOG(INFO) << "Received map fusion msg from client "
               << map_fusion_msg.from_client_id << " at "
@@ -69,7 +71,7 @@ void CoxgraphServer::mapFusionMsgCallback(
 }
 
 void CoxgraphServer::loopClosureCallback(
-    const ClientId& client_id,
+    const CliId& client_id,
     const voxgraph_msgs::LoopClosure& loop_closure_msg) {
   client_handlers_[client_id]->sendLoopClosureMsg(loop_closure_msg);
 }
@@ -78,11 +80,12 @@ void CoxgraphServer::mapFusionCallback(
     const coxgraph_msgs::MapFusion& map_fusion_msg, bool future) {
   CHECK_NE(map_fusion_msg.from_client_id, map_fusion_msg.to_client_id);
 
-  ClientSubmap::Ptr submap_a, submap_b;
-  ClientSubmapId submap_id_a, submap_id_b;
+  // TODO(mikexyl): make ifs cleaner
+  CliSm::Ptr submap_a, submap_b;
+  CliSmId submap_id_a, submap_id_b;
   Transformation T_submap_t_a, T_submap_t_b;
-  const ClientId& cid_a = map_fusion_msg.from_client_id;
-  const ClientId& cid_b = map_fusion_msg.to_client_id;
+  const CliId& cid_a = map_fusion_msg.from_client_id;
+  const CliId& cid_b = map_fusion_msg.to_client_id;
   const ros::Time& time_a = map_fusion_msg.from_timestamp;
   const ros::Time& time_b = map_fusion_msg.to_timestamp;
 
@@ -124,7 +127,10 @@ void CoxgraphServer::mapFusionCallback(
   }
 
   if (future) {
-    fuseMap();
+    CHECK_EQ(ok_a, ReqState::SUCCESS);
+    CHECK_EQ(ok_b, ReqState::SUCCESS);
+    fuseMap(cid_a, submap_id_a, submap_a, T_submap_t_a,  // NOLINT
+            cid_b, submap_id_b, submap_b, T_submap_t_b);
   } else {
     if (has_time_a && has_time_b) {
       if ((ok_a == ReqState::SUCCESS && ok_b == ReqState::FUTURE) ||
@@ -132,7 +138,8 @@ void CoxgraphServer::mapFusionCallback(
         addToMFFuture(map_fusion_msg);
       }
       if (ok_a == ReqState::SUCCESS && ok_b == ReqState::SUCCESS) {
-        fuseMap();
+        fuseMap(cid_a, submap_id_a, submap_a, T_submap_t_a,  // NOLINT
+                cid_b, submap_id_b, submap_b, T_submap_t_b);
       }
     } else {
       LOG_IF(INFO, !has_time_a)
@@ -167,8 +174,8 @@ void CoxgraphServer::processMFFuture() {
        it != map_fusion_msgs_future_.end(); it++) {
     if (verbose_) LOG(INFO) << "Processing saved future MF msgs";
     coxgraph_msgs::MapFusion map_fusion_msg = *it;
-    const ClientId& cid_a = map_fusion_msg.from_client_id;
-    const ClientId& cid_b = map_fusion_msg.to_client_id;
+    const CliId& cid_a = map_fusion_msg.from_client_id;
+    const CliId& cid_b = map_fusion_msg.to_client_id;
     const ros::Time& time_a = map_fusion_msg.from_timestamp;
     const ros::Time& time_b = map_fusion_msg.to_timestamp;
     if (client_handlers_[cid_a]->hasTime(time_a) &&
@@ -187,9 +194,8 @@ void CoxgraphServer::processMFFuture() {
   if (processed_any) map_fusion_msgs_future_.clear();
 }
 
-bool CoxgraphServer::needFusion(const ClientId& cid_a, const ros::Time& time_a,
-                                const ClientId& cid_b,
-                                const ros::Time& time_b) {
+bool CoxgraphServer::needFusion(const CliId& cid_a, const ros::Time& time_a,
+                                const CliId& cid_b, const ros::Time& time_b) {
   CHECK_EQ(need_fusion_[config_.fixed_map_client_id], false);
   // TODO(mikexyl): update need fusion flag based on time since last fusion
   if ((cid_a != config_.fixed_map_client_id &&
@@ -202,9 +208,9 @@ bool CoxgraphServer::needFusion(const ClientId& cid_a, const ros::Time& time_a,
   return false;
 }
 
-bool CoxgraphServer::resetNeedFusion(const ClientId& cid_a,
+bool CoxgraphServer::resetNeedFusion(const CliId& cid_a,
                                      const ros::Time& time_a,
-                                     const ClientId& cid_b,
+                                     const CliId& cid_b,
                                      const ros::Time& time_b) {
   CHECK_EQ(need_fusion_[config_.fixed_map_client_id], false);
   need_fusion_[cid_a] = false;
@@ -214,14 +220,19 @@ bool CoxgraphServer::resetNeedFusion(const ClientId& cid_a,
   return true;
 }
 
-voxgraph_msgs::LoopClosure CoxgraphServer::fromMapFusionMsg(
-    const coxgraph_msgs::MapFusion& map_fusion_msg) {
-  CHECK_EQ(map_fusion_msg.from_client_id, map_fusion_msg.to_client_id);
-  voxgraph_msgs::LoopClosure loop_closure_msg;
-  loop_closure_msg.from_timestamp = map_fusion_msg.from_timestamp;
-  loop_closure_msg.to_timestamp = map_fusion_msg.to_timestamp;
-  loop_closure_msg.transform = map_fusion_msg.transform;
-  return loop_closure_msg;
+bool CoxgraphServer::fuseMap(const CliId& cid_a, const CliSmId& submap_id_a,
+                             const CliSm::Ptr& submap_a,
+                             const Transformation& T_submap_t_a,
+                             const CliId& cid_b, const CliSmId& submap_id_b,
+                             const CliSm::Ptr& submap_b,
+                             const Transformation& T_submap_t_b) {
+  LOG(INFO) << "Fusing: " << std::endl
+            << "  Client: " << static_cast<int>(cid_a)
+            << " -> Submap: " << static_cast<int>(submap_id_a) << std::endl
+            << "  Client: " << static_cast<int>(cid_b)
+            << " -> Submap: " << static_cast<int>(submap_id_b);
+  LOG_IF(INFO, verbose_) << " T_submap_t_a: " << std::endl << T_submap_t_a;
+  LOG_IF(INFO, verbose_) << " T_submap_t_b: " << std::endl << T_submap_t_b;
 }
 
 }  // namespace coxgraph

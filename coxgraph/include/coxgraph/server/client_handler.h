@@ -56,13 +56,12 @@ class ClientHandler {
 
   ClientHandler() : client_id_(-1) {}
   ClientHandler(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private,
-                const ClientId& client_id,
-                const ClientSubmapConfig& submap_config)
+                const CliId& client_id, const CliSmConfig& submap_config)
       : ClientHandler(nh, nh_private, client_id, submap_config,
                       getConfigFromRosParam(nh_private)) {}
   ClientHandler(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private,
-                const ClientId& client_id,
-                const ClientSubmapConfig& submap_config, const Config& config)
+                const CliId& client_id, const CliSmConfig& submap_config,
+                const Config& config)
       : client_id_(client_id),
         nh_(nh),
         nh_private_(nh_private),
@@ -83,10 +82,8 @@ class ClientHandler {
   bool sendLoopClosureMsg(const voxgraph_msgs::LoopClosure& loop_closure_msg);
 
   enum ReqState { FAILED = 0, FUTURE, SUCCESS };
-  ReqState requestSubmapByTime(const ros::Time& timestamp,
-                               ClientSubmapId* submap_id,
-                               ClientSubmap::Ptr* submap,
-                               Transformation* T_submap_t);
+  ReqState requestSubmapByTime(const ros::Time& timestamp, CliSmId* submap_id,
+                               CliSm::Ptr* submap, Transformation* T_submap_t);
 
   inline bool hasTime(const ros::Time time) { return time_line_.hasTime(time); }
   inline bool isTimeLineUpdated() const { return time_line_updated_; }
@@ -99,11 +96,11 @@ class ClientHandler {
   void publishTopics();
   void subscribeToServices();
 
-  const ClientId client_id_;
+  const CliId client_id_;
   const std::string client_node_name_;
 
   Config config_;
-  ClientSubmapConfig submap_config_;
+  CliSmConfig submap_config_;
 
   TimeLine time_line_;
   bool time_line_updated_;
