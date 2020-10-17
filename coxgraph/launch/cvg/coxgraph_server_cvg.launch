@@ -5,6 +5,7 @@
       <arg name="debug" default="false"/>
 
       <node pkg="tf" type="static_transform_publisher" name="map_to_mission" args="0 0 0 0 0 0 1 map mission 100"/>
+      <node pkg="tf" type="static_transform_publisher" name="map_to_mission_g" args="0 0 0 0 0 0 1 map map_g 100"/>
 
       <group if="$(arg sim_server)">
             <node pkg="tf" type="static_transform_publisher" name="sim_map0_to_map" args="0 0 0 0 0 0 1 map map0 100"/>

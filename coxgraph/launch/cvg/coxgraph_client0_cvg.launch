@@ -12,10 +12,10 @@
 
     <node name="coxgraph_client_0" pkg="coxgraph" type="coxgraph_client_node" output="screen" launch-prefix="$(arg launch_prefix)" args="-alsologtostderr">
       <rosparam file="$(find voxgraph)/config/voxgraph_mapper.yaml" />
-      <param name="input_odom_frame" value="map0"/>
+      <param name="input_odom_frame" value="map_0"/>
       <param name="input_base_link_frame" value="robot_base_0"/>
-      <param name="output_mission_frame" value="mission0"/>
-      <param name="output_odom_frame" value="map0"/>
+      <param name="output_mission_frame" value="mission_0"/>
+      <param name="output_odom_frame" value="map_0"/>
       <param name="output_base_link_frame" value="robot_base_0"/>
       <param name="output_sensor_frame" value="sensor_coxgraph_0"/>
       <param name="tsdf_voxel_size" value="0.05"/>

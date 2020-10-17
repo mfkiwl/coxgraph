@@ -7,10 +7,11 @@ tsdf_voxels_per_size: 16
 map_fusion_topic: "/ccmslam/map_fusion_out"
 map_fusion_queue_size: 1
 
-client_name_prefix: "coxgraph_client_"
-client_loop_closure_topic_suffix: "loop_closure_in"
-client_map_pose_update_topic_suffix: "map_pose_update_in"
-ch_pub_queue_length: 10
+client_handler:
+  client_name_prefix: "coxgraph_client"
+  client_loop_closure_topic_suffix: "loop_closure_in"
+  client_map_pose_update_topic_suffix: "map_pose_update_in"
+  pub_queue_length: 10
 
 fixed_map_client_id: 0
 refuse_interval: 2.0
@@ -18,3 +19,7 @@ refuse_interval: 2.0
 output_mission_frame: "mission"
 
 mesh_min_weight: 2.0
+
+global_tf_controller:
+  init_cli_map_dist: 10
+  map_frame_prefix: "map"

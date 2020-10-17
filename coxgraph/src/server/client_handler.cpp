@@ -12,16 +12,19 @@ namespace server {
 ClientHandler::Config ClientHandler::getConfigFromRosParam(
     const ros::NodeHandle& nh_private) {
   ClientHandler::Config config;
-  nh_private.param<std::string>("client_name_prefix", config.client_name_prefix,
+  nh_private.param<std::string>("client_handler/client_name_prefix",
+                                config.client_name_prefix,
                                 config.client_name_prefix);
-  nh_private.param<std::string>("client_loop_closure_topic_suffix",
-                                config.client_loop_closure_topic_suffix,
-                                config.client_loop_closure_topic_suffix);
-  nh_private.param<std::string>("client_map_pose_update_topic_suffix",
-                                config.client_map_pose_update_topic_suffix,
-                                config.client_map_pose_update_topic_suffix);
-  nh_private.param<int>("ch_pub_queue_length", config.pub_queue_length,
-                        config.pub_queue_length);
+  nh_private.param<std::string>(
+      "client_handler/client_loop_closure_topic_suffix",
+      config.client_loop_closure_topic_suffix,
+      config.client_loop_closure_topic_suffix);
+  nh_private.param<std::string>(
+      "client_handler/client_map_pose_update_topic_suffix",
+      config.client_map_pose_update_topic_suffix,
+      config.client_map_pose_update_topic_suffix);
+  nh_private.param<int>("client_handler/pub_queue_length",
+                        config.pub_queue_length, config.pub_queue_length);
   return config;
 }
 

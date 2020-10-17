@@ -10,7 +10,8 @@ cs_add_library(${PROJECT_NAME}
     src/client/coxgraph_client.cpp
     src/server/coxgraph_server.cpp
     src/server/client_handler.cpp
-    src/server/pose_graph_interface.cpp)
+    src/server/pose_graph_interface.cpp
+    src/server/global_tf_controller.cpp)
 
 cs_add_executable(coxgraph_client_node
     src/coxgraph_client_node.cpp)

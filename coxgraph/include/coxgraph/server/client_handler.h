@@ -30,8 +30,7 @@ class ClientHandler {
     std::string client_map_pose_update_topic_suffix;
     int32_t pub_queue_length;
 
-    friend inline std::ostream& operator<<(std::ostream& s,
-                                           const ClientHandler::Config& v) {
+    friend inline std::ostream& operator<<(std::ostream& s, const Config& v) {
       s << std::endl
         << "Client Handler using Config:" << std::endl
         << "  Client Name Prefix: " << v.client_name_prefix << std::endl
@@ -60,7 +59,7 @@ class ClientHandler {
         nh_private_(nh_private),
         config_(config),
         submap_config_(submap_config),
-        client_node_name_(config.client_name_prefix +
+        client_node_name_(config.client_name_prefix + "_" +
                           std::to_string(client_id_)),
         log_prefix_("CH " + std::to_string(static_cast<int>(client_id_))) {
     subscribeToTopics();

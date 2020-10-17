@@ -9,7 +9,7 @@
   <arg name="visualize" default="false" />
   <arg name="verbose" default="true"/>
 
-  <node pkg="tf" type="static_transform_publisher" name="map1_to_mission1" args="0 0 0 0 0 0 1 map1 mission1 100"/>
+  <node pkg="tf" type="static_transform_publisher" name="map1_to_mission1" args="0 0 0 0 0 0 1 map_1 mission_1 100"/>
   <!--tf borrowed from realsense-->
   <!-- <node pkg="tf" type="static_transform_publisher" name="base_to_kinect2_1" args="0 0 0 0.502 -0.499 0.503 -0.496 robot_base_1 kinect2_rgb_optical_frame_1 100"/> -->
 
@@ -39,7 +39,7 @@
       <!-- <param name="point_cloud_frame_id" value="kinect2_rgb_optical_frame_1" /> -->
       <param name="point_cloud_frame_id" value="robot_base_1" />
       <param name="verbose" value="$(arg verbose)" />
-      <param name="world_frame" value="map1"/>
+      <param name="world_frame" value="map_1"/>
     </node>
 
   </group>

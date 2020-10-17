@@ -21,6 +21,7 @@
 
 #include "coxgraph/common.h"
 #include "coxgraph/server/client_handler.h"
+#include "coxgraph/server/global_tf_controller.h"
 
 namespace coxgraph {
 
@@ -41,8 +42,7 @@ class CoxgraphServer {
     int32_t fixed_map_client_id;
     std::string output_mission_frame;
 
-    friend inline std::ostream& operator<<(std::ostream& s,
-                                           const CoxgraphServer::Config& v) {
+    friend inline std::ostream& operator<<(std::ostream& s, const Config& v) {
       s << std::endl
         << "Coxgraph Server using Config:" << std::endl
         << "  Client Number: " << v.client_number << std::endl
@@ -74,7 +74,8 @@ class CoxgraphServer {
         submap_collection_ptr_(
             std::make_shared<SubmapCollection>(submap_config_)),
         pose_graph_interface_(nh_private, submap_collection_ptr_, mesh_config,
-                              config.output_mission_frame) {
+                              config.output_mission_frame),
+        tf_controller_(TfController(nh, nh_private, config.client_number)) {
     nh_private.param<bool>("verbose", verbose_, verbose_);
     LOG(INFO) << "Verbose: " << verbose_;
     LOG(INFO) << config_;
@@ -90,6 +91,7 @@ class CoxgraphServer {
 
  private:
   using ClientHandler = server::ClientHandler;
+  using TfController = server::GlobalTfController;
   using ReqState = ClientHandler::ReqState;
   using SubmapCollection = voxgraph::VoxgraphSubmapCollection;
   using PoseGraphInterface = voxgraph::PoseGraphInterface;
@@ -171,6 +173,8 @@ class CoxgraphServer {
 
   // Asynchronous handle for the pose graph optimization thread
   std::future<bool> optimization_async_handle_;
+
+  TfController tf_controller_;
 
   constexpr static uint8_t kMaxClientNum = 2;
 };
