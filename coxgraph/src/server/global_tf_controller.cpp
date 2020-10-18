@@ -41,6 +41,7 @@ void GlobalTfController::pubCliTfCallback(const ros::TimerEvent& event) {
   tf_boardcaster_.sendTransform(T_g_cli_);
 }
 
+// TODO(mikexyl): add locks below
 void GlobalTfController::updateCliTf(
     const std::vector<tf::StampedTransform>& new_T_g_cli,
     const ros::Time& time) {

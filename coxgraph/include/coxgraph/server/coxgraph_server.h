@@ -15,13 +15,13 @@
 #include <future>
 #include <memory>
 #include <string>
-#include <unordered_map>
-#include <utility>
 #include <vector>
 
 #include "coxgraph/common.h"
 #include "coxgraph/server/client_handler.h"
 #include "coxgraph/server/global_tf_controller.h"
+#include "coxgraph/server/pose_graph_interface.h"
+#include "coxgraph/server/submap_collection.h"
 
 namespace coxgraph {
 
@@ -34,13 +34,15 @@ class CoxgraphServer {
           map_fusion_queue_size(10),
           refuse_interval(ros::Duration(2)),
           fixed_map_client_id(0),
-          output_mission_frame("mission") {}
+          output_mission_frame("mission"),
+          enable_registration_constraints(true) {}
     int32_t client_number;
     std::string map_fusion_topic;
     int32_t map_fusion_queue_size;
     ros::Duration refuse_interval;
     int32_t fixed_map_client_id;
     std::string output_mission_frame;
+    bool enable_registration_constraints;
 
     friend inline std::ostream& operator<<(std::ostream& s, const Config& v) {
       s << std::endl
@@ -52,10 +54,16 @@ class CoxgraphServer {
         << std::endl
         << "  Map Fixed for Client Id: " << v.fixed_map_client_id << std::endl
         << "  Output Mission Frame: " << v.output_mission_frame << std::endl
+        << "  Registration Constraint: "
+        << static_cast<std::string>(
+               v.enable_registration_constraints ? "enabled" : "disabled")
+        << std::endl
         << "-------------------------------------------" << std::endl;
       return (s);
     }
   };
+
+  static Config getConfigFromRosParam(const ros::NodeHandle& nh_private);
 
   CoxgraphServer(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private)
       : CoxgraphServer(
@@ -71,14 +79,17 @@ class CoxgraphServer {
         verbose_(false),
         config_(config),
         submap_config_(submap_config),
-        submap_collection_ptr_(
-            std::make_shared<SubmapCollection>(submap_config_)),
-        pose_graph_interface_(nh_private, submap_collection_ptr_, mesh_config,
+        cli_map_collection_ptr_(std::make_shared<CliMapCollection>(
+            submap_config_, config.client_number)),
+        pose_graph_interface_(nh_private, cli_map_collection_ptr_, mesh_config,
                               config.output_mission_frame),
         tf_controller_(TfController(nh, nh_private, config.client_number)) {
     nh_private.param<bool>("verbose", verbose_, verbose_);
     LOG(INFO) << "Verbose: " << verbose_;
     LOG(INFO) << config_;
+
+    pose_graph_interface_.setVerbosity(verbose_);
+    pose_graph_interface_.setMeasurementConfigFromRosParams(nh_private_);
 
     subscribeTopics();
     initClientHandlers(nh, nh_private);
@@ -87,17 +98,12 @@ class CoxgraphServer {
   }
   ~CoxgraphServer() = default;
 
-  static Config getConfigFromRosParam(const ros::NodeHandle& nh_private);
-
  private:
   using ClientHandler = server::ClientHandler;
   using TfController = server::GlobalTfController;
   using ReqState = ClientHandler::ReqState;
-  using SubmapCollection = voxgraph::VoxgraphSubmapCollection;
-  using PoseGraphInterface = voxgraph::PoseGraphInterface;
-  typedef std::pair<CliId, CliId> CliIdPair;
-  typedef std::pair<CliId, CliSmId> CliIdSmIdPair;
-  typedef std::unordered_map<SerSmId, CliIdSmIdPair> SmCliIdMap;
+  using CliMapCollection = server::CliMapCollection;
+  using PoseGraphInterface = server::PoseGraphInterface;
 
   void initClientHandlers(const ros::NodeHandle& nh,
                           const ros::NodeHandle& nh_private);
@@ -121,9 +127,12 @@ class CoxgraphServer {
                const CliSmId& submap_id_a, const CliSm::Ptr& submap_a,
                const Transformation& T_submap_t_a, const CliId& cid_b,
                const ros::Time& time_b, const CliSmId& submap_id_b,
-               const CliSm::Ptr& submap_b, const Transformation& T_submap_t_b);
+               const CliSm::Ptr& submap_b, const Transformation& T_submap_t_b,
+               const Transformation& T_t1_t2);
 
-  bool optimizePoseGraph();
+  int8_t optimizePoseGraph(bool enable_registration);
+
+  void updateTfGlobalCli();
 
   void pubSmGlobalTf();
 
@@ -141,11 +150,6 @@ class CoxgraphServer {
     return false;
   }
 
-  inline CliIdSmIdPair getCliSmId(const SerSmId& ser_sm_id) {
-    CHECK(sm_cli_id_map_.count(ser_sm_id));
-    return sm_cli_id_map_[ser_sm_id];
-  }
-
   Transformation getTfCliGlobal(const CliId& cid) {}
   void pubTfCliMissionGlobal() {}
 
@@ -161,8 +165,7 @@ class CoxgraphServer {
   const Config config_;
 
   const CliSmConfig submap_config_;
-  SubmapCollection::Ptr submap_collection_ptr_;
-  SmCliIdMap sm_cli_id_map_;
+  CliMapCollection::Ptr cli_map_collection_ptr_;
   PoseGraphInterface pose_graph_interface_;
 
   std::vector<ClientHandler::Ptr> client_handlers_;
@@ -172,7 +175,7 @@ class CoxgraphServer {
   std::deque<coxgraph_msgs::MapFusion> map_fusion_msgs_future_;
 
   // Asynchronous handle for the pose graph optimization thread
-  std::future<bool> optimization_async_handle_;
+  std::future<int8_t> optimization_async_handle_;
 
   TfController tf_controller_;
 

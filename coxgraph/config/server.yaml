@@ -23,3 +23,20 @@ mesh_min_weight: 2.0
 global_tf_controller:
   init_cli_map_dist: 10
   map_frame_prefix: "map"
+
+submap_registration:
+  enabled: true
+  sampling_ratio: 0.05
+  registration_method: "explicit_to_implicit"
+  information_matrix:
+    x_x:     1.0
+    y_y:     1.0
+    z_z:     1.0
+    yaw_yaw: 1.0
+loop_closure:
+  enabled: true
+  information_matrix:
+    x_x:     100.0
+    y_y:     100.0
+    z_z:     250.0
+    yaw_yaw: 250.0

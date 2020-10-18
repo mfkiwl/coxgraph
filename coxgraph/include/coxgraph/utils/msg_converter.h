@@ -60,6 +60,15 @@ inline coxgraph_msgs::ClientSubmap msgFromClientSubmap(
   return cli_submap_msg;
 }
 
+/**
+ * @brief Generate Client Submap from Message
+ *
+ * @param ser_sm_id
+ * @param submap_config
+ * @param submap_response
+ * @param frame_id
+ * @return CliSm::Ptr
+ */
 inline CliSm::Ptr cliSubmapFromMsg(
     const SerSmId& ser_sm_id, const CliSmConfig& submap_config,
     const coxgraph_msgs::ClientSubmapSrvResponse& submap_response,
@@ -77,9 +86,10 @@ inline CliSm::Ptr cliSubmapFromMsg(
   TransformationD submap_pose;
   tf::poseMsgToKindr(submap_response.submap.map_header.pose.map_pose,
                      &submap_pose);
-  submap_ptr->setPose(submap_pose.cast<voxblox::FloatingPoint>());
+  const Transformation T_M_O;
+  submap_ptr->setPose(T_M_O);
+  submap_ptr->transformSubmap(submap_pose.cast<voxblox::FloatingPoint>());
   *frame_id = submap_response.submap.map_header.pose.frame_id;
-  submap_ptr->finishSubmap();
   return submap_ptr;
 }
 

@@ -22,6 +22,7 @@ void CoxgraphClient::advertiseClientServices() {
       "publish_client_submap", &CoxgraphClient::pubClientSubmapCallback, this);
 }
 
+// TODO(mikexyl): add locks here, if optimizing is running, wait
 bool CoxgraphClient::pubClientSubmapCallback(
     coxgraph_msgs::ClientSubmapSrv::Request& request,
     coxgraph_msgs::ClientSubmapSrv::Response& response) {
