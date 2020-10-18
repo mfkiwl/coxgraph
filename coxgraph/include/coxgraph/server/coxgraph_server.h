@@ -9,6 +9,8 @@
 #include <voxgraph/frontend/submap_collection/voxgraph_submap.h>
 #include <voxgraph/frontend/submap_collection/voxgraph_submap_collection.h>
 #include <voxgraph/tools/ros_params.h>
+#include <voxgraph/tools/threading_helper.h>
+#include <voxgraph/tools/visualization/submap_visuals.h>
 #include <voxgraph_msgs/LoopClosure.h>
 
 #include <deque>
@@ -35,7 +37,11 @@ class CoxgraphServer {
           refuse_interval(ros::Duration(2)),
           fixed_map_client_id(0),
           output_mission_frame("mission"),
-          enable_registration_constraints(true) {}
+          enable_registration_constraints(true),
+          publisher_queue_length(100),
+          mesh_opacity(1.0),
+          submap_mesh_color_mode("lambert_color"),
+          combined_mesh_color_mode("normals") {}
     int32_t client_number;
     std::string map_fusion_topic;
     int32_t map_fusion_queue_size;
@@ -43,6 +49,10 @@ class CoxgraphServer {
     int32_t fixed_map_client_id;
     std::string output_mission_frame;
     bool enable_registration_constraints;
+    int32_t publisher_queue_length;
+    float mesh_opacity;
+    std::string submap_mesh_color_mode;
+    std::string combined_mesh_color_mode;
 
     friend inline std::ostream& operator<<(std::ostream& s, const Config& v) {
       s << std::endl
@@ -57,6 +67,11 @@ class CoxgraphServer {
         << "  Registration Constraint: "
         << static_cast<std::string>(
                v.enable_registration_constraints ? "enabled" : "disabled")
+        << std::endl
+        << "  Publisher Queue Length: " << v.publisher_queue_length << std::endl
+        << "  Mesh Opacity: " << v.mesh_opacity << std::endl
+        << "  Submap Mesh Color Mode: " << v.submap_mesh_color_mode << std::endl
+        << "  Combined Mesh Color Mode: " << v.combined_mesh_color_mode
         << std::endl
         << "-------------------------------------------" << std::endl;
       return (s);
@@ -83,7 +98,8 @@ class CoxgraphServer {
             submap_config_, config.client_number)),
         pose_graph_interface_(nh_private, cli_map_collection_ptr_, mesh_config,
                               config.output_mission_frame),
-        tf_controller_(TfController(nh, nh_private, config.client_number)) {
+        tf_controller_(TfController(nh, nh_private, config.client_number)),
+        submap_vis_(submap_config, mesh_config) {
     nh_private.param<bool>("verbose", verbose_, verbose_);
     LOG(INFO) << "Verbose: " << verbose_;
     LOG(INFO) << config_;
@@ -91,10 +107,21 @@ class CoxgraphServer {
     pose_graph_interface_.setVerbosity(verbose_);
     pose_graph_interface_.setMeasurementConfigFromRosParams(nh_private_);
 
+    submap_vis_.setMeshOpacity(config_.mesh_opacity);
+    submap_vis_.setSubmapMeshColorMode(
+        voxblox::getColorModeFromString(config_.submap_mesh_color_mode));
+    submap_vis_.setCombinedMeshColorMode(
+        voxblox::getColorModeFromString(config_.combined_mesh_color_mode));
+
     subscribeTopics();
+    advertiseTopics();
     initClientHandlers(nh, nh_private);
 
     LOG(INFO) << client_handlers_[0]->getConfig();
+
+    CHECK_EQ(config_.fixed_map_client_id, 0)
+        << "Fixed map client id has to be set 0 now, since pose graph "
+           "optimization set pose of submap 0 as constant";
   }
   ~CoxgraphServer() = default;
 
@@ -104,11 +131,14 @@ class CoxgraphServer {
   using ReqState = ClientHandler::ReqState;
   using CliMapCollection = server::CliMapCollection;
   using PoseGraphInterface = server::PoseGraphInterface;
+  using SubmapVisuals = voxgraph::SubmapVisuals;
+  using ThreadingHelper = voxgraph::ThreadingHelper;
 
   void initClientHandlers(const ros::NodeHandle& nh,
                           const ros::NodeHandle& nh_private);
 
   void subscribeTopics();
+  void advertiseTopics();
 
   void mapFusionMsgCallback(const coxgraph_msgs::MapFusion& map_fusion_msg);
   void loopClosureCallback(const CliId& client_id,
@@ -130,17 +160,21 @@ class CoxgraphServer {
                const CliSm::Ptr& submap_b, const Transformation& T_submap_t_b,
                const Transformation& T_t1_t2);
 
-  int8_t optimizePoseGraph(bool enable_registration);
+  enum OptState { FAILED = 0, OK };
+  OptState optimizePoseGraph(bool enable_registration);
 
   void updateTfGlobalCli();
 
-  void pubSmGlobalTf();
+  void publishSmGlobalTf();
+
+  void publishMaps(const ros::Time& time = ros::Time::now());
 
   inline bool isTimeFused(const CliId& cid, const ros::Time& time) {
     return fused_time_line_[cid].hasTime(time);
   }
   inline bool isTimeNeedRefuse(const CliId& cid, const ros::Time& time) {
-    if (config_.refuse_interval == ros::Duration(0)) return false;
+    if (config_.refuse_interval == ros::Duration(0))
+      return !isTimeFused(cid, time);
     if (isTimeFused(cid, time)) return false;
     if (time < fused_time_line_[cid].start) {
       return (fused_time_line_[cid].start - time) > config_.refuse_interval;
@@ -151,13 +185,16 @@ class CoxgraphServer {
   }
 
   Transformation getTfCliGlobal(const CliId& cid) {}
-  void pubTfCliMissionGlobal() {}
+  void publishTfCliMissionGlobal() {}
 
   // Node handles
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
 
   ros::Subscriber map_fusion_sub_;
+
+  ros::Publisher combined_mesh_pub_;
+  ros::Publisher separated_mesh_pub_;
 
   // Verbosity and debug mode
   bool verbose_;
@@ -175,9 +212,12 @@ class CoxgraphServer {
   std::deque<coxgraph_msgs::MapFusion> map_fusion_msgs_future_;
 
   // Asynchronous handle for the pose graph optimization thread
-  std::future<int8_t> optimization_async_handle_;
+  std::future<OptState> optimization_async_handle_;
 
   TfController tf_controller_;
+
+  // Visualization tools
+  SubmapVisuals submap_vis_;
 
   constexpr static uint8_t kMaxClientNum = 2;
 };

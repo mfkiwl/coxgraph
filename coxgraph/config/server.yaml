@@ -19,13 +19,15 @@ refuse_interval: 2.0
 output_mission_frame: "mission"
 
 mesh_min_weight: 2.0
+submap_mesh_color_mode: "lambert_color"
+combined_mesh_color_mode: "normals"
 
 global_tf_controller:
   init_cli_map_dist: 10
   map_frame_prefix: "map"
 
 submap_registration:
-  enabled: true
+  enabled: false
   sampling_ratio: 0.05
   registration_method: "explicit_to_implicit"
   information_matrix:

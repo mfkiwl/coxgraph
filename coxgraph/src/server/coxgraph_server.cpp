@@ -1,5 +1,8 @@
 #include "coxgraph/server/coxgraph_server.h"
 
+#include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
+
 #include <chrono>
 #include <memory>
 #include <string>
@@ -26,7 +29,7 @@ CoxgraphServer::Config CoxgraphServer::getConfigFromRosParam(
   nh_private.param<int>("map_fusion_queue_size", config.map_fusion_queue_size,
                         config.map_fusion_queue_size);
   float refuse_interval;
-  nh_private.param<float>("refus_interval", refuse_interval, refuse_interval);
+  nh_private.param<float>("refuse_interval", refuse_interval, refuse_interval);
   config.refuse_interval.fromSec(refuse_interval);
   nh_private.param<int>("fixed_map_client_id", config.fixed_map_client_id,
                         config.fixed_map_client_id);
@@ -36,6 +39,8 @@ CoxgraphServer::Config CoxgraphServer::getConfigFromRosParam(
   nh_private.param<bool>("submap_registration/enabled",
                          config.enable_registration_constraints,
                          config.enable_registration_constraints);
+  nh_private.param<int>("publisher_queue_length", config.publisher_queue_length,
+                        config.publisher_queue_length);
   return config;
 }
 
@@ -55,6 +60,13 @@ void CoxgraphServer::subscribeTopics() {
   map_fusion_sub_ =
       nh_.subscribe(config_.map_fusion_topic, config_.map_fusion_queue_size,
                     &CoxgraphServer::mapFusionMsgCallback, this);
+}
+
+void CoxgraphServer::advertiseTopics() {
+  combined_mesh_pub_ = nh_private_.advertise<visualization_msgs::Marker>(
+      "combined_mesh", config_.publisher_queue_length, true);
+  separated_mesh_pub_ = nh_private_.advertise<visualization_msgs::Marker>(
+      "separated_mesh", config_.publisher_queue_length, true);
 }
 
 void CoxgraphServer::mapFusionMsgCallback(
@@ -137,12 +149,13 @@ void CoxgraphServer::mapFusionCallback(
         << submap_b->getTsdfMapPtr()->getTsdfLayerPtr()->getMemorySize();
   }
 
+  bool fused_any = false;
   if (future) {
     CHECK_EQ(ok_a, ReqState::SUCCESS);
     CHECK_EQ(ok_b, ReqState::SUCCESS);
-    fuseMap(cid_a, t1, submap_id_a, submap_a, T_A_t1,  // NOLINT
-            cid_b, t2, submap_id_b, submap_b, T_B_t2,
-            T_t1_t2.cast<voxblox::FloatingPoint>());
+    fused_any = fuseMap(cid_a, t1, submap_id_a, submap_a, T_A_t1,  // NOLINT
+                        cid_b, t2, submap_id_b, submap_b, T_B_t2,
+                        T_t1_t2.cast<voxblox::FloatingPoint>());
   } else {
     if (has_time_a && has_time_b) {
       if ((ok_a == ReqState::SUCCESS && ok_b == ReqState::FUTURE) ||
@@ -150,9 +163,9 @@ void CoxgraphServer::mapFusionCallback(
         addToMFFuture(map_fusion_msg);
       }
       if (ok_a == ReqState::SUCCESS && ok_b == ReqState::SUCCESS) {
-        fuseMap(cid_a, t1, submap_id_a, submap_a, T_A_t1,  // NOLINT
-                cid_b, t2, submap_id_b, submap_b, T_B_t2,
-                T_t1_t2.cast<voxblox::FloatingPoint>());
+        fused_any = fuseMap(cid_a, t1, submap_id_a, submap_a, T_A_t1,  // NOLINT
+                            cid_b, t2, submap_id_b, submap_b, T_B_t2,
+                            T_t1_t2.cast<voxblox::FloatingPoint>());
       }
     } else {
       LOG_IF(INFO, !has_time_a && verbose_)
@@ -165,6 +178,10 @@ void CoxgraphServer::mapFusionCallback(
       addToMFFuture(map_fusion_msg);
       processMFFuture();
     }
+  }
+
+  if (fused_any) {
+    updateNeedRefuse(cid_a, t1, cid_b, t2);
   }
 }
 
@@ -226,8 +243,10 @@ bool CoxgraphServer::updateNeedRefuse(const CliId& cid_a, const ros::Time& t1,
   CHECK_EQ(force_fuse_[config_.fixed_map_client_id], false);
   force_fuse_[cid_a] = false;
   force_fuse_[cid_b] = false;
-  CHECK(fused_time_line_[cid_a].update(t1));
-  CHECK(fused_time_line_[cid_b].update(t2));
+  // TODO(mikexyl): logically timeline update here shouldn't return false,
+  // investigate this
+  fused_time_line_[cid_a].update(t1);
+  fused_time_line_[cid_b].update(t2);
   return true;
 }
 
@@ -247,6 +266,8 @@ bool CoxgraphServer::fuseMap(const CliId& cid_a, const ros::Time& t1,
   LOG_IF(INFO, verbose_) << " T_A_t1: " << std::endl << T_A_t1;
   LOG_IF(INFO, verbose_) << " T_B_t2: " << std::endl << T_B_t2;
 
+  bool prev_result = false;
+
   if (optimization_async_handle_.valid() &&
       optimization_async_handle_.wait_for(std::chrono::milliseconds(10)) !=
           std::future_status::ready) {
@@ -255,6 +276,10 @@ bool CoxgraphServer::fuseMap(const CliId& cid_a, const ros::Time& t1,
     optimization_async_handle_.wait();
   }
 
+  prev_result = optimization_async_handle_.valid()
+                    ? (optimization_async_handle_.get() == OptState::OK)
+                    : false;
+  LOG(INFO) << "Result of Last Optimization" << prev_result;
   // sm_cli_id_map_.emplace(submap_a->getID(), CliIdSmIdPair(cid_a,
   // submap_id_a)); sm_cli_id_map_.emplace(submap_b->getID(),
   // CliIdSmIdPair(cid_b, submap_id_b));
@@ -274,9 +299,12 @@ bool CoxgraphServer::fuseMap(const CliId& cid_a, const ros::Time& t1,
   optimization_async_handle_ =
       std::async(std::launch::async, &CoxgraphServer::optimizePoseGraph, this,
                  this->config_.enable_registration_constraints);
+
+  return prev_result;
 }
 
-int8_t CoxgraphServer::optimizePoseGraph(bool enable_registration) {
+CoxgraphServer::OptState CoxgraphServer::optimizePoseGraph(
+    bool enable_registration) {
   // Optimize the pose graph
   ROS_INFO("Optimizing the pose graph");
   pose_graph_interface_.optimize(enable_registration);
@@ -285,19 +313,38 @@ int8_t CoxgraphServer::optimizePoseGraph(bool enable_registration) {
   pose_graph_interface_.updateSubmapCollectionPoses();
 
   // Publish fused tfs between client mission frames and global mission frame
-  pubTfCliMissionGlobal();
+  publishTfCliMissionGlobal();
+
+  // Publish Optimized Maps
+  publishMaps();
 
   // Report successful completion
-  return 1;
+  return OptState::OK;
 }
 
-void CoxgraphServer::pubSmGlobalTf() {
+void CoxgraphServer::publishSmGlobalTf() {
   for (const SerSmId& submap_id : cli_map_collection_ptr_->getIDs()) {
   }
 }
 
 void CoxgraphServer::updateTfGlobalCli() {
   std::vector<SerSmId> ser_sm_ids = cli_map_collection_ptr_->getIDs();
+}
+
+void CoxgraphServer::publishMaps(const ros::Time& time) {
+  LOG(INFO) << "Publishing meshes";
+  if (combined_mesh_pub_.getNumSubscribers() > 0) {
+    ThreadingHelper::launchBackgroundThread(
+        &SubmapVisuals::publishCombinedMesh, &submap_vis_,
+        *cli_map_collection_ptr_, config_.output_mission_frame,
+        combined_mesh_pub_);
+  }
+  if (separated_mesh_pub_.getNumSubscribers() > 0) {
+    ThreadingHelper::launchBackgroundThread(
+        &SubmapVisuals::publishSeparatedMesh, &submap_vis_,
+        *cli_map_collection_ptr_, config_.output_mission_frame,
+        separated_mesh_pub_);
+  }
 }
 
 }  // namespace coxgraph
