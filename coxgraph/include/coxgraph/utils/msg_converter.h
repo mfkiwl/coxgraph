@@ -88,7 +88,8 @@ inline CliSm::Ptr cliSubmapFromMsg(
                      &submap_pose);
   const Transformation T_M_O;
   submap_ptr->setPose(T_M_O);
-  submap_ptr->transformSubmap(submap_pose.cast<voxblox::FloatingPoint>());
+  submap_ptr->transformSubmap(
+      submap_pose.cast<voxblox::FloatingPoint>().inverse());
   *frame_id = submap_response.submap.map_header.pose.frame_id;
   return submap_ptr;
 }
