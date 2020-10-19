@@ -3,6 +3,7 @@
 
 #include <cblox/core/common.h>
 #include <voxblox/core/common.h>
+#include <voxgraph/backend/constraint/constraint.h>
 #include <voxgraph/common.h>
 #include <voxgraph/frontend/frame_names.h>
 #include <voxgraph/frontend/submap_collection/voxgraph_submap.h>

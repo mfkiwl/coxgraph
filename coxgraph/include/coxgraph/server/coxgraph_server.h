@@ -41,7 +41,10 @@ class CoxgraphServer {
           publisher_queue_length(100),
           mesh_opacity(1.0),
           submap_mesh_color_mode("lambert_color"),
-          combined_mesh_color_mode("normals") {}
+          combined_mesh_color_mode("normals"),
+          // TODO(mikexyl): default false now, for bug not fixed in this
+          // constraint. set default true after bug fixed
+          enable_submap_relative_pose_constraints(false) {}
     int32_t client_number;
     std::string map_fusion_topic;
     int32_t map_fusion_queue_size;
@@ -49,6 +52,7 @@ class CoxgraphServer {
     int32_t fixed_map_client_id;
     std::string output_mission_frame;
     bool enable_registration_constraints;
+    bool enable_submap_relative_pose_constraints;
     int32_t publisher_queue_length;
     float mesh_opacity;
     std::string submap_mesh_color_mode;
@@ -67,6 +71,11 @@ class CoxgraphServer {
         << "  Registration Constraint: "
         << static_cast<std::string>(
                v.enable_registration_constraints ? "enabled" : "disabled")
+        << std::endl
+        << "  Submap Relative Pose Constraint: "
+        << static_cast<std::string>(v.enable_submap_relative_pose_constraints
+                                        ? "enabled"
+                                        : "disabled")
         << std::endl
         << "  Publisher Queue Length: " << v.publisher_queue_length << std::endl
         << "  Mesh Opacity: " << v.mesh_opacity << std::endl
@@ -154,11 +163,13 @@ class CoxgraphServer {
 
   // TODO(mikexyl): make a pack struct for these vars
   bool fuseMap(const CliId& cid_a, const ros::Time& time_a,
-               const CliSmId& submap_id_a, const CliSm::Ptr& submap_a,
+               const CliSmId& cli_sm_id_a, const CliSm::Ptr& submap_a,
                const Transformation& T_submap_t_a, const CliId& cid_b,
-               const ros::Time& time_b, const CliSmId& submap_id_b,
+               const ros::Time& time_b, const CliSmId& cli_sm_id_b,
                const CliSm::Ptr& submap_b, const Transformation& T_submap_t_b,
                const Transformation& T_t1_t2);
+
+  void updateSubmapRPConstraints();
 
   enum OptState { FAILED = 0, OK, SKIPPED };
   OptState optimizePoseGraph(bool enable_registration);

@@ -2,10 +2,14 @@
 
 #include <voxblox/integrator/merge_integration.h>
 
+#include <vector>
+
 namespace coxgraph {
 namespace server {
 
-Transformation SubmapCollection::addSubmap(const CliSm::Ptr& submap) {
+Transformation SubmapCollection::addSubmap(const CliSm::Ptr& submap,
+                                           const CliId& cid,
+                                           const CliSmId& cli_sm_id) {
   // CHECK_LE(size(), client_number_);
   // if (exists(submap->getID())) {
   //   return mergeToCliMap(submap);
@@ -15,6 +19,11 @@ Transformation SubmapCollection::addSubmap(const CliSm::Ptr& submap) {
   // }
 
   voxgraph::VoxgraphSubmapCollection::addSubmap(submap);
+  sm_cli_id_map_.emplace(submap->getID(), CliIdSmIdPair(cid, cli_sm_id));
+  if (!cli_ser_sm_id_map_.count(submap->getID())) {
+    cli_ser_sm_id_map_.emplace(cid, std::vector<SerSmId>());
+  }
+  cli_ser_sm_id_map_[cid].emplace_back(submap->getID());
   return Transformation();
 }
 

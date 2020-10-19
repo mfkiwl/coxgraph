@@ -42,3 +42,12 @@ loop_closure:
     y_y:     100.0
     z_z:     250.0
     yaw_yaw: 250.0
+
+submap_relative_pose:
+  enabled: false
+  information_matrix:
+    x_x:     100.0
+    y_y:     100.0
+    z_z:     250.0
+    yaw_yaw: 250.0
+
