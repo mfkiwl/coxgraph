@@ -1,6 +1,6 @@
 #request
 time timestamp
 ---
-#respoinse
+#response
 coxgraph_msgs/ClientSubmap submap
 geometry_msgs/Transform transform
