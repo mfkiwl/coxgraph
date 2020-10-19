@@ -94,9 +94,9 @@ class CoxgraphServer {
         verbose_(false),
         config_(config),
         submap_config_(submap_config),
-        cli_map_collection_ptr_(std::make_shared<CliMapCollection>(
+        submap_collection_ptr_(std::make_shared<SubmapCollection>(
             submap_config_, config.client_number)),
-        pose_graph_interface_(nh_private, cli_map_collection_ptr_, mesh_config,
+        pose_graph_interface_(nh_private, submap_collection_ptr_, mesh_config,
                               config.output_mission_frame),
         tf_controller_(TfController(nh, nh_private, config.client_number)),
         submap_vis_(submap_config, mesh_config) {
@@ -129,7 +129,7 @@ class CoxgraphServer {
   using ClientHandler = server::ClientHandler;
   using TfController = server::GlobalTfController;
   using ReqState = ClientHandler::ReqState;
-  using CliMapCollection = server::CliMapCollection;
+  using SubmapCollection = server::SubmapCollection;
   using PoseGraphInterface = server::PoseGraphInterface;
   using SubmapVisuals = voxgraph::SubmapVisuals;
   using ThreadingHelper = voxgraph::ThreadingHelper;
@@ -143,7 +143,7 @@ class CoxgraphServer {
   void mapFusionMsgCallback(const coxgraph_msgs::MapFusion& map_fusion_msg);
   void loopClosureCallback(const CliId& client_id,
                            const voxgraph_msgs::LoopClosure& loop_closure_msg);
-  void mapFusionCallback(const coxgraph_msgs::MapFusion& map_fusion_msg,
+  bool mapFusionCallback(const coxgraph_msgs::MapFusion& map_fusion_msg,
                          bool future = false);
   void addToMFFuture(const coxgraph_msgs::MapFusion& map_fusion_msg);
   void processMFFuture();
@@ -160,7 +160,7 @@ class CoxgraphServer {
                const CliSm::Ptr& submap_b, const Transformation& T_submap_t_b,
                const Transformation& T_t1_t2);
 
-  enum OptState { FAILED = 0, OK };
+  enum OptState { FAILED = 0, OK, SKIPPED };
   OptState optimizePoseGraph(bool enable_registration);
 
   void updateTfGlobalCli();
@@ -202,7 +202,7 @@ class CoxgraphServer {
   const Config config_;
 
   const CliSmConfig submap_config_;
-  CliMapCollection::Ptr cli_map_collection_ptr_;
+  SubmapCollection::Ptr submap_collection_ptr_;
   PoseGraphInterface pose_graph_interface_;
 
   std::vector<ClientHandler::Ptr> client_handlers_;
@@ -220,6 +220,7 @@ class CoxgraphServer {
   SubmapVisuals submap_vis_;
 
   constexpr static uint8_t kMaxClientNum = 2;
+  constexpr static uint8_t kPoseUpdateWaitMs = 100;
 };
 
 }  // namespace coxgraph

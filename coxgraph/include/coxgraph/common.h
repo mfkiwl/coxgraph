@@ -1,6 +1,7 @@
 #ifndef COXGRAPH_COMMON_H_
 #define COXGRAPH_COMMON_H_
 
+#include <cblox/core/common.h>
 #include <voxblox/core/common.h>
 #include <voxgraph/common.h>
 #include <voxgraph/frontend/frame_names.h>
@@ -17,6 +18,7 @@ using CliSmConfig = voxgraph::VoxgraphSubmap::Config;
 
 using Transformation = voxgraph::Transformation;
 using TransformationD = voxgraph::TransformationD;
+using TransformationVector = cblox::TransformationVector;
 
 using FrameNames = voxgraph::FrameNames;
 

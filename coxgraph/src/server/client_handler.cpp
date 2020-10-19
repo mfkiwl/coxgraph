@@ -29,8 +29,11 @@ ClientHandler::Config ClientHandler::getConfigFromRosParam(
 }
 
 void ClientHandler::subscribeToTopics() {
-  time_line_sub_ = nh_.subscribe(client_node_name_ + "/time_line", 1,
+  time_line_sub_ = nh_.subscribe(client_node_name_ + "/time_line", 10,
                                  &ClientHandler::timeLineCallback, this);
+  sm_pose_updates_sub_ =
+      nh_.subscribe(client_node_name_ + "/map_pose_updates", 10,
+                    &ClientHandler::submapPoseUpdatesCallback, this);
 }
 
 void ClientHandler::timeLineCallback(
@@ -42,7 +45,7 @@ void ClientHandler::advertiseTopics() {
   loop_closure_pub_ = nh_.advertise<voxgraph_msgs::LoopClosure>(
       client_node_name_ + "/" + config_.client_loop_closure_topic_suffix,
       config_.pub_queue_length, true);
-  sm_pose_update_pub_ = nh_.advertise<coxgraph_msgs::MapPoseUpdate>(
+  sm_pose_tf_pub_ = nh_.advertise<coxgraph_msgs::MapTransform>(
       client_node_name_ + "/" + config_.client_map_pose_update_topic_suffix,
       config_.pub_queue_length, true);
 }
@@ -68,6 +71,28 @@ ClientHandler::ReqState ClientHandler::requestSubmapByTime(
     return ReqState::SUCCESS;
   }
   return ReqState::FAILED;
+}
+
+void ClientHandler::submapPoseUpdatesCallback(
+    const coxgraph_msgs::MapPoseUpdates& map_pose_updates_msg) {
+  LOG(INFO) << "Received new pose for " << map_pose_updates_msg.submap_id.size()
+            << " submaps.";
+  submap_collection_ptr_->getPosesUpdateMutex()->lock();
+
+  for (int i = 0; i < map_pose_updates_msg.submap_id.size(); i++) {
+    // TODO(mikexyl): don't need to transform submap?
+    CliSmId submap_id = map_pose_updates_msg.submap_id[i];
+    geometry_msgs::Pose submap_pose_msg = map_pose_updates_msg.new_pose[i];
+    CHECK(submap_collection_ptr_->exists(submap_id));
+    CliSm::Ptr submap_ptr = submap_collection_ptr_->getSubmapPtr(submap_id);
+    TransformationD submap_pose;
+    tf::poseMsgToKindr(submap_pose_msg, &submap_pose);
+    submap_ptr =
+        submap_collection_ptr_->getSubmapPtr(map_pose_updates_msg.submap_id[i]);
+    submap_ptr->setPose(submap_pose.cast<voxblox::FloatingPoint>());
+  }
+
+  submap_collection_ptr_->getPosesUpdateMutex()->unlock();
 }
 
 }  // namespace server

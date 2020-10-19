@@ -86,10 +86,8 @@ inline CliSm::Ptr cliSubmapFromMsg(
   TransformationD submap_pose;
   tf::poseMsgToKindr(submap_response.submap.map_header.pose.map_pose,
                      &submap_pose);
-  const Transformation T_M_O;
-  submap_ptr->setPose(T_M_O);
-  submap_ptr->transformSubmap(
-      submap_pose.cast<voxblox::FloatingPoint>().inverse());
+  submap_ptr->setPose(submap_pose.cast<voxblox::FloatingPoint>());
+  submap_ptr->finishSubmap();
   *frame_id = submap_response.submap.map_header.pose.frame_id;
   return submap_ptr;
 }

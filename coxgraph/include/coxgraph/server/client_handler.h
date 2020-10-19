@@ -3,7 +3,8 @@
 
 #include <coxgraph_msgs/ClientSubmap.h>
 #include <coxgraph_msgs/ClientSubmapSrv.h>
-#include <coxgraph_msgs/MapPoseUpdate.h>
+#include <coxgraph_msgs/MapPoseUpdates.h>
+#include <coxgraph_msgs/MapTransform.h>
 #include <coxgraph_msgs/TimeLine.h>
 #include <ros/ros.h>
 #include <voxgraph_msgs/LoopClosure.h>
@@ -13,6 +14,7 @@
 #include <string>
 
 #include "coxgraph/common.h"
+#include "coxgraph/server/submap_collection.h"
 
 namespace coxgraph {
 namespace server {
@@ -48,12 +50,15 @@ class ClientHandler {
 
   ClientHandler() : client_id_(-1) {}
   ClientHandler(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private,
-                const CliId& client_id, const CliSmConfig& submap_config)
+                const CliId& client_id, const CliSmConfig& submap_config,
+                const SubmapCollection::Ptr& submap_collection_ptr)
       : ClientHandler(nh, nh_private, client_id, submap_config,
-                      getConfigFromRosParam(nh_private)) {}
+                      getConfigFromRosParam(nh_private),
+                      submap_collection_ptr) {}
   ClientHandler(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private,
                 const CliId& client_id, const CliSmConfig& submap_config,
-                const Config& config)
+                const Config& config,
+                const SubmapCollection::Ptr& submap_collection_ptr)
       : client_id_(client_id),
         nh_(nh),
         nh_private_(nh_private),
@@ -61,7 +66,8 @@ class ClientHandler {
         submap_config_(submap_config),
         client_node_name_(config.client_name_prefix + "_" +
                           std::to_string(client_id_)),
-        log_prefix_("CH " + std::to_string(static_cast<int>(client_id_))) {
+        log_prefix_("CH " + std::to_string(static_cast<int>(client_id_))),
+        submap_collection_ptr_(submap_collection_ptr) {
     subscribeToTopics();
     advertiseTopics();
     subscribeToServices();
@@ -86,13 +92,15 @@ class ClientHandler {
     loop_closure_pub_.publish(loop_closure_msg);
   }
 
-  inline void pubMapPoseUpdateMsg(
-      const coxgraph_msgs::MapPoseUpdate& map_pose_update_msg) {
-    sm_pose_update_pub_.publish(map_pose_update_msg);
+  inline void pubMapPoseTfMsg(
+      const coxgraph_msgs::MapTransform& map_pose_update_msg) {
+    sm_pose_tf_pub_.publish(map_pose_update_msg);
   }
 
  private:
   void timeLineCallback(const coxgraph_msgs::TimeLine& time_line_msg);
+  void submapPoseUpdatesCallback(
+      const coxgraph_msgs::MapPoseUpdates& map_pose_updates_msg);
 
   inline bool updateTimeLine(const ros::Time& new_start,
                              const ros::Time& new_end) {
@@ -121,9 +129,14 @@ class ClientHandler {
   ros::NodeHandle nh_private_;
 
   ros::Publisher loop_closure_pub_;
-  ros::Publisher sm_pose_update_pub_;
+  ros::Publisher sm_pose_tf_pub_;
   ros::Subscriber time_line_sub_;
+  ros::Subscriber sm_pose_updates_sub_;
   ros::ServiceClient pub_client_submap_client_;
+
+  SubmapCollection::Ptr submap_collection_ptr_;
+
+  constexpr static int8_t kSubQueueSize = 10;
 };
 
 }  // namespace server

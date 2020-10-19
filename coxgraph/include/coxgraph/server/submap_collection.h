@@ -4,6 +4,7 @@
 #include <voxgraph/frontend/submap_collection/voxgraph_submap_collection.h>
 
 #include <memory>
+#include <mutex>
 #include <unordered_map>
 #include <utility>
 
@@ -12,17 +13,21 @@
 namespace coxgraph {
 namespace server {
 
-class CliMapCollection : public voxgraph::VoxgraphSubmapCollection {
+class SubmapCollection : public voxgraph::VoxgraphSubmapCollection {
  public:
-  typedef std::shared_ptr<CliMapCollection> Ptr;
+  typedef std::shared_ptr<SubmapCollection> Ptr;
 
-  CliMapCollection(const voxgraph::VoxgraphSubmap::Config& submap_config,
+  SubmapCollection(const voxgraph::VoxgraphSubmap::Config& submap_config,
                    int8_t client_number, bool verbose = false)
       : voxgraph::VoxgraphSubmapCollection(submap_config, verbose),
         client_number_(client_number) {}
-  ~CliMapCollection() = default;
+  ~SubmapCollection() = default;
 
   Transformation addSubmap(const CliSm::Ptr& submap);
+
+  inline std::timed_mutex* getPosesUpdateMutex() {
+    return &submap_poses_update_mutex;
+  }
 
  private:
   typedef std::pair<CliId, CliId> CliIdPair;
@@ -32,6 +37,8 @@ class CliMapCollection : public voxgraph::VoxgraphSubmapCollection {
   Transformation mergeToCliMap(const CliSm::Ptr& submap);
 
   const int8_t client_number_;
+
+  std::timed_mutex submap_poses_update_mutex;
 };
 
 }  // namespace server

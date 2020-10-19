@@ -5,17 +5,20 @@
 namespace coxgraph {
 namespace server {
 
-Transformation CliMapCollection::addSubmap(const CliSm::Ptr& submap) {
-  CHECK_LE(size(), client_number_);
-  if (exists(submap->getID())) {
-    return mergeToCliMap(submap);
-  } else {
-    voxgraph::VoxgraphSubmapCollection::addSubmap(submap);
-    return Transformation();
-  }
+Transformation SubmapCollection::addSubmap(const CliSm::Ptr& submap) {
+  // CHECK_LE(size(), client_number_);
+  // if (exists(submap->getID())) {
+  //   return mergeToCliMap(submap);
+  // } else {
+  //   voxgraph::VoxgraphSubmapCollection::addSubmap(submap);
+  //   return Transformation();
+  // }
+
+  voxgraph::VoxgraphSubmapCollection::addSubmap(submap);
+  return Transformation();
 }
 
-Transformation CliMapCollection::mergeToCliMap(const CliSm::Ptr& submap) {
+Transformation SubmapCollection::mergeToCliMap(const CliSm::Ptr& submap) {
   CHECK(exists(submap->getID()));
 
   auto const& cli_map_ptr = getSubmapPtr(submap->getID());

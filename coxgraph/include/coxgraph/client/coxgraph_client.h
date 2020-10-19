@@ -7,6 +7,8 @@
 #include <voxgraph/frontend/voxgraph_mapper.h>
 #include <voxgraph_msgs/LoopClosure.h>
 
+#include <map>
+
 #include "coxgraph/common.h"
 #include "coxgraph/utils/msg_converter.h"
 
@@ -45,15 +47,20 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
 
  private:
   using VoxgraphMapper = voxgraph::VoxgraphMapper;
+  typedef std::map<CliSmId, Transformation> SmIdTfMap;
 
   void publishTimeLine();
+  void publishMapPoseUpdates();
 
   CliId client_id_;
 
   FrameNames frame_names_;
 
   ros::Publisher time_line_pub_;
+  ros::Publisher map_pose_pub_;
   ros::ServiceServer publish_client_submap_srv_;
+
+  SmIdTfMap ser_sm_id_pose_map_;
 };
 
 }  // namespace coxgraph
