@@ -10,14 +10,6 @@ namespace server {
 Transformation SubmapCollection::addSubmap(const CliSm::Ptr& submap,
                                            const CliId& cid,
                                            const CliSmId& cli_sm_id) {
-  // CHECK_LE(size(), client_number_);
-  // if (exists(submap->getID())) {
-  //   return mergeToCliMap(submap);
-  // } else {
-  //   voxgraph::VoxgraphSubmapCollection::addSubmap(submap);
-  //   return Transformation();
-  // }
-
   voxgraph::VoxgraphSubmapCollection::addSubmap(submap);
   sm_cli_id_map_.emplace(submap->getID(), CliIdSmIdPair(cid, cli_sm_id));
   if (!cli_ser_sm_id_map_.count(submap->getID())) {
