@@ -197,16 +197,10 @@ bool CoxgraphServer::mapFusionCallback(
 
 void CoxgraphServer::addToMFFuture(
     const coxgraph_msgs::MapFusion& map_fusion_msg) {
-  map_fusion_msgs_future_.emplace_back(map_fusion_msg);
-  if (map_fusion_msgs_future_.size() > config_.map_fusion_queue_size) {
-    // TODO(mikexyl): if simply drop the first one, the remained map fusion msgs
-    // have similar timestamp, i.e. all timestamps in msgs may be still ahead of
-    // clients. so we drop the last msg, to make sure at least fuse the first
-    // messages
-    map_fusion_msgs_future_.pop_back();
-    LOG_IF(INFO, verbose_)
-        << "Future map fusion too many, dropping the oldest msg";
-  }
+  if (map_fusion_msgs_future_.size() < config_.map_fusion_queue_size)
+    map_fusion_msgs_future_.emplace_back(map_fusion_msg);
+  else
+    LOG_IF(INFO, verbose_) << "Future map fusion too many, new msg ignored";
 }
 
 void CoxgraphServer::processMFFuture() {

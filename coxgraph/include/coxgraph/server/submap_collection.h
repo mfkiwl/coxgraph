@@ -37,11 +37,30 @@ class SubmapCollection : public voxgraph::VoxgraphSubmapCollection {
     return &cli_ser_sm_id_map_[cid];
   }
 
+  inline SerSmId getSerSmIdByCliSmId(const CliId& cid,
+                                     const CliSmId& cli_sm_id) {
+    for (auto ser_sm_id : cli_ser_sm_id_map_[cid]) {
+      if (sm_cli_id_map_[ser_sm_id].second == cli_sm_id) {
+        return sm_cli_id_map_[ser_sm_id].second;
+      }
+    }
+  }
+
+  inline void updateOriPose(const SerSmId& ser_sm_id,
+                            const Transformation& pose) {
+    CHECK(exists(ser_sm_id));
+    sm_id_ori_pose_map_[ser_sm_id] = pose;
+  }
+  inline Transformation getOriPose(const SerSmId& ser_sm_id) {
+    CHECK(sm_id_ori_pose_map_.count(ser_sm_id));
+    return sm_id_ori_pose_map_[ser_sm_id];
+  }
+
  private:
   typedef std::pair<CliId, CliId> CliIdPair;
   typedef std::pair<CliId, CliSmId> CliIdSmIdPair;
   typedef std::unordered_map<SerSmId, CliIdSmIdPair> SmCliIdMap;
-  typedef std::map<CliId, std::vector<SerSmId>> CliSerSmIdMap;
+  typedef std::unordered_map<CliId, std::vector<SerSmId>> CliSerSmIdMap;
 
   Transformation mergeToCliMap(const CliSm::Ptr& submap);
 
@@ -49,6 +68,8 @@ class SubmapCollection : public voxgraph::VoxgraphSubmapCollection {
 
   SmCliIdMap sm_cli_id_map_;
   CliSerSmIdMap cli_ser_sm_id_map_;
+
+  std::unordered_map<SerSmId, Transformation> sm_id_ori_pose_map_;
 
   std::timed_mutex submap_poses_update_mutex;
 };

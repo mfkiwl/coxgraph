@@ -16,6 +16,7 @@ Transformation SubmapCollection::addSubmap(const CliSm::Ptr& submap,
     cli_ser_sm_id_map_.emplace(cid, std::vector<SerSmId>());
   }
   cli_ser_sm_id_map_[cid].emplace_back(submap->getID());
+  sm_id_ori_pose_map_.emplace(submap->getID(), submap->getPose());
   return Transformation();
 }
 
