@@ -1,5 +1,7 @@
 <?xml version="1.0"?>
 <launch>
+  <param name="use_sim_time" value="true" />
+
   <arg name="pointcloud_topic" doc="ROS topic for pointcloud input"/>
   <arg name="debug_cg" default="false" doc="Run the coxgraph client in debug mode." />
   <arg name="debug_tsdf" default="false" doc="Run the tsdf client in debug mode." />

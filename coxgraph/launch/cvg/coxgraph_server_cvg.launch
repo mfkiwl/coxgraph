@@ -1,5 +1,7 @@
 <?xml version="1.0"?>
 <launch>
+      <param name="use_sim_time" value="true" />
+
       <arg name="client_number" default="2"/>
       <arg name="sim_server" default="false" doc="Publish a static unit transform between client maps, without running the server"/>
       <arg name="debug" default="false"/>

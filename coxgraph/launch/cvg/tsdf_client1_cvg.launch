@@ -2,10 +2,10 @@
   <param name="use_sim_time" value="true" />
 
   <!-- User supplied arguments -->
-  <arg name="pointcloud_topic" default="/kinect2/qhd/points1" doc="ROS topic for pointcloud input" />
+  <arg name="pointcloud_topic" default="/camera1/depth_registered/sw_registered/points" doc="ROS topic for pointcloud input" />
   <arg name="show_rviz" default="false" doc="Automatically launch Rviz." />
   <arg name="scene_name" default="cvg_lab" />
-  <arg name="sensor_name" default="kinect2" />
+  <arg name="sensor_name" default="xtion" />
   <arg name="visualize" default="false" />
   <arg name="verbose" default="true"/>
 
@@ -15,10 +15,10 @@
 
   <node pkg="nodelet" type="nodelet" name="nodelet_manager1" args="manager" output="screen"/>
   <node pkg="nodelet" type="nodelet" name="cloudify1" args="load depth_image_proc/point_cloud_xyzrgb nodelet_manager1 --no-bond">
-    <remap from="depth_registered/image_rect" to="/kinect2/qhd/image_depth_rect1"/>
-    <remap from="depth_registered/points" to="/kinect2/qhd/points1"/>
-    <remap from="rgb/image_rect_color" to="/kinect2/qhd/image_color_rect1"/>
-    <remap from="rgb/camera_info" to="/kinect2/qhd/camera_info"/>
+    <remap from="depth_registered/image_rect" to="/camera1/depth_registered/sw_registered/image_rect"/>
+    <remap from="depth_registered/points" to="$(arg pointcloud_topic)"/>
+    <remap from="rgb/image_rect_color" to="/camera1/rgb/image_rect_color"/>
+    <remap from="rgb/camera_info" to="/camera/rgb/camera_info"/>
   </node>
 
   <arg name="debug" default="false" />
