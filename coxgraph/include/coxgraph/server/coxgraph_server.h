@@ -15,6 +15,7 @@
 
 #include <deque>
 #include <future>
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
@@ -221,6 +222,8 @@ class CoxgraphServer {
   std::vector<TimeLine> fused_time_line_;
 
   std::deque<coxgraph_msgs::MapFusion> map_fusion_msgs_future_;
+
+  std::map<SerSmId, SerSmId> fused_ser_sm_id_pair;
 
   // Asynchronous handle for the pose graph optimization thread
   std::future<OptState> optimization_async_handle_;
