@@ -24,7 +24,7 @@ void GlobalTfController::initClientTf() {
                                      std::to_string(i));
     int8_t cli_row = static_cast<int>(i / tf_grid_dim);
     int8_t cli_col = static_cast<int>(i % tf_grid_dim);
-    T_g_cli_.emplace_back(tf::StampedTransform(
+    T_g_cli_mean_.emplace_back(tf::StampedTransform(
         tf::Transform(tf::Quaternion(0, 0, 0, 1),
                       tf::Vector3(cli_row * config_.init_cli_map_dist,
                                   cli_col * config_.init_cli_map_dist, 0)),
@@ -37,16 +37,16 @@ void GlobalTfController::initClientTf() {
 }
 
 void GlobalTfController::pubCliTfCallback(const ros::TimerEvent& event) {
-  updateCliTf(T_g_cli_);
-  tf_boardcaster_.sendTransform(T_g_cli_);
+  updateCliTf(T_g_cli_mean_);
+  tf_boardcaster_.sendTransform(T_g_cli_mean_);
 }
 
 // TODO(mikexyl): add locks below
 void GlobalTfController::updateCliTf(
     const std::vector<tf::StampedTransform>& new_T_g_cli,
     const ros::Time& time) {
-  T_g_cli_ = new_T_g_cli;
-  for (auto& T_g_cli : T_g_cli_) {
+  T_g_cli_mean_ = new_T_g_cli;
+  for (auto& T_g_cli : T_g_cli_mean_) {
     T_g_cli.stamp_ = time;
   }
 }
@@ -54,9 +54,22 @@ void GlobalTfController::updateCliTf(
 void GlobalTfController::updateCliTf(const CliId& cid,
                                      const tf::StampedTransform& new_T_g_cli,
                                      const ros::Time& time) {
-  T_g_cli_.at(cid) = new_T_g_cli;
-  T_g_cli_.at(cid).stamp_ = time;
+  T_g_cli_mean_.at(cid) = new_T_g_cli;
+  T_g_cli_mean_.at(cid).stamp_ = time;
 }
+
+void GlobalTfController::resetTfGloCli() {
+  for (auto& T_g_cli : T_g_cli_map_) {
+    T_g_cli.second.clear();
+  }
+}
+
+void GlobalTfController::addTfGloCli(const CliId& cid,
+                                     const Transformation& tf) {
+  T_g_cli_map_[cid].emplace_back(tf);
+}
+
+void GlobalTfController::publishTfGloCli() {}
 
 }  // namespace server
 }  // namespace coxgraph

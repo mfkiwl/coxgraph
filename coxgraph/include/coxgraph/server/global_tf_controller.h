@@ -5,6 +5,7 @@
 
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "coxgraph/common.h"
@@ -49,8 +50,16 @@ class GlobalTfController {
         global_mission_frame_(config.map_frame_prefix + "_g") {
     LOG(INFO) << config;
     initClientTf();
+
+    for (int i = 0; i < client_number_; i++) {
+      T_g_cli_map_.emplace(i, std::vector<Transformation>());
+    }
   }
   ~GlobalTfController() = default;
+
+  void resetTfGloCli();
+  void addTfGloCli(const CliId& cid, const Transformation& tf);
+  void publishTfGloCli();
 
  private:
   void initClientTf();
@@ -74,7 +83,8 @@ class GlobalTfController {
   ros::Timer tf_pub_timer_;
   tf::TransformBroadcaster tf_boardcaster_;
   std::vector<bool> cli_tf_fused_;
-  std::vector<tf::StampedTransform> T_g_cli_;
+  std::vector<tf::StampedTransform> T_g_cli_mean_;
+  std::unordered_map<int, std::vector<Transformation>> T_g_cli_map_;
 
   constexpr static float kTfPubFreq = 100;
 };
