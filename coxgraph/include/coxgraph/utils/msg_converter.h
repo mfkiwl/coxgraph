@@ -41,12 +41,14 @@ inline coxgraph_msgs::ClientSubmap msgFromClientSubmap(
   voxblox_msgs::LayerWithTrajectory layer_with_trajectory_msg;
   layer_with_trajectory_msg.layer = layer_msg;
 
-  // Give it two dummy poses with submap timeline stamped to sync timeline
-  geometry_msgs::PoseStamped pose_msg;
-  pose_msg.header.stamp = submap.getStartTime();
-  layer_with_trajectory_msg.trajectory.poses.emplace_back(pose_msg);
-  pose_msg.header.stamp = submap.getEndTime();
-  layer_with_trajectory_msg.trajectory.poses.emplace_back(pose_msg);
+  LOG(INFO) << "debug: submap pose history size: "
+            << submap.getPoseHistory().size();
+  for (auto const& time_pose_kv : submap.getPoseHistory()) {
+    geometry_msgs::PoseStamped pose_msg;
+    pose_msg.header.stamp = time_pose_kv.first;
+    tf::poseKindrToMsg(time_pose_kv.second.cast<double>(), &pose_msg.pose);
+    layer_with_trajectory_msg.trajectory.poses.emplace_back(pose_msg);
+  }
 
   coxgraph_msgs::ClientSubmap cli_submap_msg;
   cli_submap_msg.layer_with_traj = layer_with_trajectory_msg;
@@ -73,22 +75,39 @@ inline CliSm::Ptr cliSubmapFromMsg(
     const SerSmId& ser_sm_id, const CliSmConfig& submap_config,
     const coxgraph_msgs::ClientSubmapSrvResponse& submap_response,
     std::string* frame_id) {
-  CHECK_EQ(submap_response.submap.layer_with_traj.trajectory.poses.size(), 2);
+  // CHECK_EQ(submap_response.submap.layer_with_traj.trajectory.poses.size(),
+  // 2);
 
   CliSm::Ptr submap_ptr(new CliSm(Transformation(), ser_sm_id, submap_config));
-  // Deserialize the submap TSDF
-  if (!voxblox::deserializeMsgToLayer(
-          submap_response.submap.layer_with_traj.layer,
-          submap_ptr->getTsdfMapPtr()->getTsdfLayerPtr())) {
-    LOG(FATAL)
-        << "Received a submap msg with an invalid TSDF. Skipping submap.";
+
+  // Naming copied from voxgraph
+  for (const geometry_msgs::PoseStamped& pose_stamped :
+       submap_response.submap.layer_with_traj.trajectory.poses) {
+    LOG(INFO) << "debug: " << pose_stamped.pose;
+    TransformationD T_odom_base_link;
+    tf::poseMsgToKindr(pose_stamped.pose, &T_odom_base_link);
+    submap_ptr->addPoseToHistory(
+        pose_stamped.header.stamp,
+        T_odom_base_link.cast<voxblox::FloatingPoint>());
   }
-  TransformationD submap_pose;
-  tf::poseMsgToKindr(submap_response.submap.map_header.pose.map_pose,
-                     &submap_pose);
-  submap_ptr->setPose(submap_pose.cast<voxblox::FloatingPoint>());
-  submap_ptr->finishSubmap();
-  *frame_id = submap_response.submap.map_header.pose.frame_id;
+
+  if (submap_ptr->getPoseHistory().size()) {
+    TransformationD submap_pose;
+    tf::poseMsgToKindr(submap_response.submap.map_header.pose.map_pose,
+                       &submap_pose);
+    submap_ptr->setPose(submap_pose.cast<voxblox::FloatingPoint>());
+    *frame_id = submap_response.submap.map_header.pose.frame_id;
+
+    // Deserialize the submap TSDF
+    if (!voxblox::deserializeMsgToLayer(
+            submap_response.submap.layer_with_traj.layer,
+            submap_ptr->getTsdfMapPtr()->getTsdfLayerPtr())) {
+      LOG(FATAL)
+          << "Received a submap msg with an invalid TSDF. Skipping submap.";
+    }
+    submap_ptr->finishSubmap();
+  }
+
   return submap_ptr;
 }
 

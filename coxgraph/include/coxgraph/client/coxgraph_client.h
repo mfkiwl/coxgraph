@@ -8,6 +8,7 @@
 #include <voxgraph_msgs/LoopClosure.h>
 
 #include <map>
+#include <string>
 
 #include "coxgraph/common.h"
 #include "coxgraph/utils/msg_converter.h"
@@ -30,6 +31,7 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
     } else {
       LOG(INFO) << "Started Coxgraph Client " << client_id_;
     }
+    log_prefix_ = "Client " + std::to_string(client_id_) + ": ";
   }
   ~CoxgraphClient() = default;
 
@@ -53,6 +55,7 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
   void publishMapPoseUpdates();
 
   CliId client_id_;
+  std::string log_prefix_;
 
   FrameNames frame_names_;
 

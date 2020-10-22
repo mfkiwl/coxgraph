@@ -128,37 +128,37 @@ Visualization Manager:
       Update Interval: 0
       Value: true
     - Class: rviz/Marker
-      Enabled: false
+      Enabled: true
       Marker Topic: /coxgraph/coxgraph_server_node/combined_mesh
       Name: Marker
       Namespaces:
         {}
       Queue Size: 100
-      Value: false
-    - Class: rviz/Marker
-      Enabled: false
-      Marker Topic: /coxgraph/coxgraph_client_1/combined_mesh
-      Name: Marker
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: false
-    - Class: rviz/Marker
-      Enabled: false
-      Marker Topic: /coxgraph/coxgraph_client_0/combined_mesh
-      Name: Marker
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: false
+      Value: true
     - Class: rviz/Marker
       Enabled: true
-      Marker Topic: /coxgraph/coxgraph_server_node/separated_mesh
+      Marker Topic: /coxgraph/coxgraph_client_1/combined_mesh
       Name: Marker
       Namespaces:
         mesh: true
       Queue Size: 100
       Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /coxgraph/coxgraph_client_0/combined_mesh
+      Name: Marker
+      Namespaces:
+        mesh: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: false
+      Marker Topic: /coxgraph/coxgraph_server_node/separated_mesh
+      Name: Marker
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: false
   Enabled: true
   Global Options:
     Background Color: 255; 255; 255
@@ -184,25 +184,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 24.0129528
+      Distance: 22.2124348
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -3.89343572
-        Y: -9.29451466
-        Z: -8.99128532
+        X: 3.27028823
+        Y: 1.36937416
+        Z: -1.34694588
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.100000001
-      Pitch: 0.724795938
+      Pitch: 0.959797382
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 1.1685816
+      Yaw: 1.19358635
     Saved: ~
 Window Geometry:
   Displays:
@@ -221,4 +221,4 @@ Window Geometry:
     collapsed: true
   Width: 1920
   X: 1920
-  Y: 0
+  Y: 226

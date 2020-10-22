@@ -46,9 +46,16 @@ bool CoxgraphClient::pubClientSubmapCallback(
     if (submap.lookupPoseByTime(request.timestamp, &T_submap_t)) {
       response.submap.map_header.id = submap_id;
       tf::transformKindrToMsg(T_submap_t.cast<double>(), &response.transform);
-      response.submap =
-          utils::msgFromClientSubmap(submap, frame_names_.output_mission_frame);
-      ser_sm_id_pose_map_.emplace(submap_id, submap.getPose());
+      if (!ser_sm_id_pose_map_.count(submap_id)) {
+        response.submap = utils::msgFromClientSubmap(
+            submap, frame_names_.output_mission_frame);
+        ser_sm_id_pose_map_.emplace(submap_id, submap.getPose());
+        LOG(INFO) << log_prefix_ << " Submap " << submap_id
+                  << " is successfully sent to server";
+      } else {
+        LOG(INFO) << log_prefix_ << " Submap " << submap_id
+                  << " has already been sent to server";
+      }
       return true;
     } else {
       LOG(WARNING) << "Client " << client_id_ << ": Requested time "
@@ -83,8 +90,8 @@ void CoxgraphClient::publishTimeLine() {
       submap_collection_ptr_
           ->getSubmapConstPtr(submap_collection_ptr_->getLastSubmapId())
           ->getEndTime();
-  LOG(INFO) << "Updating client time Line from " << time_line_msg.start
-            << " to " << time_line_msg.end;
+  LOG(INFO) << log_prefix_ << "Updating client time Line from "
+            << time_line_msg.start << " to " << time_line_msg.end;
   time_line_pub_.publish(time_line_msg);
 }
 
@@ -95,6 +102,8 @@ void CoxgraphClient::publishMapPoseUpdates() {
   coxgraph_msgs::MapPoseUpdates map_pose_updates_msg;
   for (auto& sm_id_pose_kv : ser_sm_id_pose_map_) {
     if (!(submap_poses[sm_id_pose_kv.first] == sm_id_pose_kv.second)) {
+      LOG(INFO) << log_prefix_ << "Updating pose of submap "
+                << sm_id_pose_kv.first << " to server";
       sm_id_pose_kv.second = submap_poses[sm_id_pose_kv.first];
       map_pose_updates_msg.submap_id.emplace_back(sm_id_pose_kv.first);
       geometry_msgs::Pose new_pose;

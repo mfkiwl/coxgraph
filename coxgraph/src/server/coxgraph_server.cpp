@@ -43,6 +43,9 @@ CoxgraphServer::Config CoxgraphServer::getConfigFromRosParam(
   nh_private.param<bool>("submap_relative_pose/enabled",
                          config.enable_submap_relative_pose_constraints,
                          config.enable_submap_relative_pose_constraints);
+  nh_private.param<bool>("enable_client_loop_closure",
+                         config.enable_client_loop_clousure,
+                         config.enable_client_loop_clousure);
   nh_private.param<int>("publisher_queue_length", config.publisher_queue_length,
                         config.publisher_queue_length);
   return config;
@@ -95,7 +98,8 @@ void CoxgraphServer::mapFusionMsgCallback(
 void CoxgraphServer::loopClosureCallback(
     const CliId& client_id,
     const voxgraph_msgs::LoopClosure& loop_closure_msg) {
-  client_handlers_[client_id]->pubLoopClosureMsg(loop_closure_msg);
+  if (config_.enable_client_loop_clousure)
+    client_handlers_[client_id]->pubLoopClosureMsg(loop_closure_msg);
 }
 
 bool CoxgraphServer::mapFusionCallback(
@@ -121,7 +125,8 @@ bool CoxgraphServer::mapFusionCallback(
   bool has_time_a = client_handlers_[cid_a]->hasTime(t1);
   bool has_time_b = client_handlers_[cid_b]->hasTime(t2);
   if (has_time_a && has_time_b) {
-    // Use client id as submap id to merge submap to client map
+    // TODO(mikexyl): add a service to request submap id, publish submap only if
+    // submap id not requested before
     ok_a = client_handlers_[cid_a]->requestSubmapByTime(
         t1, submap_collection_ptr_->getNextSubmapID(), &cli_sm_id_a, &submap_a,
         &T_A_t1);
@@ -284,20 +289,33 @@ bool CoxgraphServer::fuseMap(const CliId& cid_a, const ros::Time& t1,
                     ? (optimization_async_handle_.get() == OptState::OK)
                     : true;
   LOG(INFO) << "Result of Last Optimization" << prev_result;
-  // sm_cli_id_map_.emplace(submap_a->getID(), CliIdSmIdPair(cid_a,
-  // cli_sm_id_a)); sm_cli_id_map_.emplace(submap_b->getID(),
-  // CliIdSmIdPair(cid_b, cli_sm_id_b));
 
-  submap_collection_ptr_->addSubmap(submap_a, cid_a, cli_sm_id_a);
-  submap_collection_ptr_->addSubmap(submap_b, cid_b, cli_sm_id_b);
+  // TODO(mikexyl): add a duplicate check before adding
+  SerSmId ser_sm_id_a, ser_sm_id_b;
+  if (submap_a->getPoseHistory().empty()) {
+    // TODO(mikexyl): no need to update submap pose here, because if a submap is
+    // already before, its pose will be updated via map pose update topic
+    ser_sm_id_a =
+        submap_collection_ptr_->getSerSmIdByCliSmId(cid_a, cli_sm_id_a);
+  } else {
+    ser_sm_id_a = submap_a->getID();
+    submap_collection_ptr_->addSubmap(submap_a, cid_a, cli_sm_id_a);
+    pose_graph_interface_.addSubmap(submap_a->getID());
+  }
 
-  pose_graph_interface_.addSubmap(submap_a->getID());
-  pose_graph_interface_.addSubmap(submap_b->getID());
+  if (submap_b->getPoseHistory().empty()) {
+    ser_sm_id_b =
+        submap_collection_ptr_->getSerSmIdByCliSmId(cid_b, cli_sm_id_b);
+  } else {
+    ser_sm_id_b = submap_b->getID();
+    submap_collection_ptr_->addSubmap(submap_b, cid_b, cli_sm_id_b);
+    pose_graph_interface_.addSubmap(submap_b->getID());
+  }
 
   // TODO(mikexyl): transform T_t1_t2 based on cli map frame
   Transformation T_A_B = T_A_t1 * T_t1_t2 * T_B_t2.inverse();
-  pose_graph_interface_.addLoopClosureMeasurement(submap_a->getID(),
-                                                  submap_b->getID(), T_A_B);
+  pose_graph_interface_.addLoopClosureMeasurement(ser_sm_id_a, ser_sm_id_b,
+                                                  T_A_B);
 
   if (config_.enable_submap_relative_pose_constraints)
     updateSubmapRPConstraints();

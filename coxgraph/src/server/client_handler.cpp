@@ -64,6 +64,7 @@ ClientHandler::ReqState ClientHandler::requestSubmapByTime(
   cli_submap_srv.request.timestamp = timestamp;
   if (pub_client_submap_client_.call(cli_submap_srv)) {
     *cli_sm_id = cli_submap_srv.response.submap.map_header.id;
+    // TODO(mikexyl): add check if submap is empty
     *submap = utils::cliSubmapFromMsg(
         ser_sm_id, submap_config_, cli_submap_srv.response, &mission_frame_id_);
     tf::transformMsgToKindr<voxblox::FloatingPoint>(
@@ -78,22 +79,25 @@ void ClientHandler::submapPoseUpdatesCallback(
   LOG(INFO) << "Received new pose for " << map_pose_updates_msg.submap_id.size()
             << " submaps.";
   submap_collection_ptr_->getPosesUpdateMutex()->lock();
-
-  for (int i = 0; i < map_pose_updates_msg.submap_id.size(); i++) {
-    // TODO(mikexyl): don't need to transform submap?
-    CliSmId ser_sm_id = submap_collection_ptr_->getSerSmIdByCliSmId(
-        client_id_, map_pose_updates_msg.submap_id[i]);
-    geometry_msgs::Pose submap_pose_msg = map_pose_updates_msg.new_pose[i];
-    CHECK(submap_collection_ptr_->exists(ser_sm_id));
-    CliSm::Ptr submap_ptr = submap_collection_ptr_->getSubmapPtr(ser_sm_id);
-    TransformationD submap_pose;
-    tf::poseMsgToKindr(submap_pose_msg, &submap_pose);
-    submap_ptr = submap_collection_ptr_->getSubmapPtr(ser_sm_id);
-    submap_ptr->setPose(submap_pose.cast<voxblox::FloatingPoint>());
-    submap_collection_ptr_->updateOriPose(
-        ser_sm_id, submap_pose.cast<voxblox::FloatingPoint>());
+  {
+    for (int i = 0; i < map_pose_updates_msg.submap_id.size(); i++) {
+      // TODO(mikexyl): don't need to transform submap?
+      SerSmId ser_sm_id = submap_collection_ptr_->getSerSmIdByCliSmId(
+          client_id_, map_pose_updates_msg.submap_id[i]);
+      if (!submap_collection_ptr_->exists(ser_sm_id)) continue;
+      LOG(INFO) << log_prefix_ << "Updating pose for submap cli id: "
+                << map_pose_updates_msg.submap_id[i]
+                << " ser id: " << ser_sm_id;
+      geometry_msgs::Pose submap_pose_msg = map_pose_updates_msg.new_pose[i];
+      CliSm::Ptr submap_ptr = submap_collection_ptr_->getSubmapPtr(ser_sm_id);
+      TransformationD submap_pose;
+      tf::poseMsgToKindr(submap_pose_msg, &submap_pose);
+      submap_ptr = submap_collection_ptr_->getSubmapPtr(ser_sm_id);
+      submap_ptr->setPose(submap_pose.cast<voxblox::FloatingPoint>());
+      submap_collection_ptr_->updateOriPose(
+          ser_sm_id, submap_pose.cast<voxblox::FloatingPoint>());
+    }
   }
-
   submap_collection_ptr_->getPosesUpdateMutex()->unlock();
 }
 

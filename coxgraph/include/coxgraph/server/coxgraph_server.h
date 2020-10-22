@@ -58,6 +58,7 @@ class CoxgraphServer {
     float mesh_opacity;
     std::string submap_mesh_color_mode;
     std::string combined_mesh_color_mode;
+    bool enable_client_loop_clousure;
 
     friend inline std::ostream& operator<<(std::ostream& s, const Config& v) {
       s << std::endl
@@ -77,6 +78,10 @@ class CoxgraphServer {
         << static_cast<std::string>(v.enable_submap_relative_pose_constraints
                                         ? "enabled"
                                         : "disabled")
+        << std::endl
+        << "  Client Loop Closure: "
+        << static_cast<std::string>(v.enable_client_loop_clousure ? "enabled"
+                                                                  : "disabled")
         << std::endl
         << "  Publisher Queue Length: " << v.publisher_queue_length << std::endl
         << "  Mesh Opacity: " << v.mesh_opacity << std::endl
