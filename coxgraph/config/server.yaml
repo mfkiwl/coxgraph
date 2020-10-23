@@ -27,28 +27,46 @@ global_tf_controller:
   map_frame_prefix: "map"
 
 submap_registration:
-  enabled: true
+  enabled: false
   sampling_ratio: 0.05
   registration_method: "explicit_to_implicit"
   information_matrix:
-    x_x:     1.0
-    y_y:     1.0
-    z_z:     1.0
+    x_x: 1.0
+    x_y: 1.0
+    x_z: 1.0
+    x_yaw: 1.0
+    y_y: 1.0
+    y_z: 1.0
+    y_yaw: 1.0
+    z_z: 1.0
+    z_yaw: 1.0
     yaw_yaw: 1.0
 loop_closure:
   enabled: true
   information_matrix:
-    x_x:     100.0
-    y_y:     100.0
-    z_z:     250.0
+    x_x: 100.0
+    x_y: 100.0
+    x_z: 100.0
+    x_yaw: 100.0
+    y_y: 100.0
+    y_z: 100.0
+    y_yaw: 100.0
+    z_z: 250.0
+    z_yaw: 250.0
     yaw_yaw: 250.0
 
 submap_relative_pose:
-  enabled: false
+  enabled: true
   information_matrix:
-    x_x:     100.0
-    y_y:     100.0
-    z_z:     250.0
-    yaw_yaw: 250.0
+    x_x: 1000.0
+    x_y: 1000.0
+    x_z: 1000.0
+    x_yaw: 1000.0
+    y_y: 1000.0
+    y_z: 1000.0
+    y_yaw: 1000.0
+    z_z: 2500.0
+    z_yaw: 2500.0
+    yaw_yaw: 2500.0
 
-enable_client_loop_closure: false
+enable_client_loop_closure: true

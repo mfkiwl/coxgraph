@@ -204,12 +204,9 @@ void CoxgraphServer::addToMFFuture(
     const coxgraph_msgs::MapFusion& map_fusion_msg) {
   if (map_fusion_msgs_future_.size() < config_.map_fusion_queue_size)
     map_fusion_msgs_future_.emplace_back(map_fusion_msg);
-  else
-    LOG_IF(INFO, verbose_) << "Future map fusion too many, new msg ignored";
 }
 
 void CoxgraphServer::processMFFuture() {
-  LOG(INFO) << "Processing Future MF msg";
   bool processed_any = false;
   for (auto it = map_fusion_msgs_future_.begin();
        it != map_fusion_msgs_future_.end(); it++) {
@@ -229,8 +226,8 @@ void CoxgraphServer::processMFFuture() {
   // Reset timeline update flag, and clear all future map fusion to avoid
   // unnecessary computation
   if (processed_any) {
-    LOG_IF(INFO, verbose_)
-        << "Successfully processed a MF msg, clearing MF msg queue";
+    // LOG_IF(INFO, verbose_)
+    // << "Successfully processed a MF msg, clearing MF msg queue";
     // map_fusion_msgs_future_.clear();
   }
 }
@@ -333,18 +330,23 @@ void CoxgraphServer::updateSubmapRPConstraints() {
   for (int cid = 0; cid < config_.client_number; cid++) {
     std::vector<SerSmId>* cli_ser_sm_ids =
         submap_collection_ptr_->getSerSmIdsByCliId(cid);
-    for (int i = 0; i < cli_ser_sm_ids->size(); i++) {
-      for (int j = i + 1; j < cli_ser_sm_ids->size(); j++) {
-        SerSmId sid_i = cli_ser_sm_ids->at(i);
-        SerSmId sid_j = cli_ser_sm_ids->at(j);
+    for (int i = 0; i < cli_ser_sm_ids->size() - 1; i++) {
+      int j = i + 1;
+      SerSmId sid_i = cli_ser_sm_ids->at(i);
+      SerSmId sid_j = cli_ser_sm_ids->at(j);
 
-        Transformation T_M_SMi =
-            submap_collection_ptr_->getSubmapPtr(sid_i)->getPose();
-        Transformation T_M_SMj =
-            submap_collection_ptr_->getSubmapPtr(sid_j)->getPose();
-        pose_graph_interface_.addSubmapRelativePoseConstraint(
-            sid_i, sid_j, T_M_SMi.inverse() * T_M_SMj);
-      }
+      Transformation T_M_SMi =
+          submap_collection_ptr_->getSubmapPtr(sid_i)->getPose();
+      Transformation T_M_SMj =
+          submap_collection_ptr_->getSubmapPtr(sid_j)->getPose();
+      pose_graph_interface_.addSubmapRelativePoseConstraint(
+          sid_i, sid_j, T_M_SMi.inverse() * T_M_SMj);
+      LOG(INFO) << "debug: submap rp constraints between " << sid_i << " and "
+                << sid_j << std::endl
+                << "from: " << std::endl
+                << T_M_SMi << "to: " << std::endl
+                << T_M_SMj << std::endl
+                << T_M_SMi.inverse() * T_M_SMj;
     }
   }
 }
@@ -361,10 +363,23 @@ CoxgraphServer::OptState CoxgraphServer::optimizePoseGraph(
     return OptState::SKIPPED;
   }
 
+  TransformationVector submap_poses;
+  submap_collection_ptr_->getSubmapPoses(&submap_poses);
+  LOG(INFO) << "before optimize";
+  for (int i = 0; i < submap_poses.size(); i++) {
+    LOG(INFO) << i << std::endl << submap_poses[i];
+  }
+
   pose_graph_interface_.optimize(enable_registration);
 
   // Update the submap poses
   pose_graph_interface_.updateSubmapCollectionPoses();
+
+  submap_collection_ptr_->getSubmapPoses(&submap_poses);
+  LOG(INFO) << "after optimize";
+  for (int i = 0; i < submap_poses.size(); i++) {
+    LOG(INFO) << i << std::endl << submap_poses[i];
+  }
 
   // Publish fused tfs between client mission frames and global mission frame
   publishTfCliMissionGlobal();

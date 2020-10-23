@@ -4,7 +4,7 @@
   <!-- User supplied arguments -->
   <arg name="show_rviz" default="false" doc="Automatically launch Rviz." />
   <arg name="scene_name" default="cvg_lab" />
-  <arg name="sensor_name" default="kinect" />
+  <arg name="sensor_name" default="xtion" />
   <arg name="visualize" default="false" />
   <arg name="verbose" default="true"/>
 

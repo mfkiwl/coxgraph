@@ -109,22 +109,8 @@ Visualization Manager:
       Show Axes: true
       Show Names: true
       Tree:
-        map:
-          mission:
-            {}
         map_g:
-          map_0:
-            mission_0:
-              {}
-            robot_base_0:
-              sensor_coxgraph_0:
-                {}
-          map_1:
-            mission_1:
-              {}
-            robot_base_1:
-              sensor_coxgraph_1:
-                {}
+          {}
       Update Interval: 0
       Value: true
     - Class: rviz/Marker
@@ -140,7 +126,7 @@ Visualization Manager:
       Marker Topic: /coxgraph/coxgraph_client_1/combined_mesh
       Name: Marker
       Namespaces:
-        mesh: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -148,7 +134,7 @@ Visualization Manager:
       Marker Topic: /coxgraph/coxgraph_client_0/combined_mesh
       Name: Marker
       Namespaces:
-        mesh: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -159,6 +145,13 @@ Visualization Manager:
         {}
       Queue Size: 100
       Value: false
+    - Class: voxblox_rviz_plugin/VoxbloxMesh
+      Enabled: false
+      Name: VoxbloxMesh
+      Topic: /tsdf_client/label_tsdf_client_0/mesh
+      Unreliable: false
+      Value: false
+      Visible: true
   Enabled: true
   Global Options:
     Background Color: 255; 255; 255
@@ -184,25 +177,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 22.2124348
+      Distance: 18.6639519
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 3.27028823
-        Y: 1.36937416
-        Z: -1.34694588
+        X: 2.31678462
+        Y: -6.18427134
+        Z: -2.54227114
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.100000001
-      Pitch: 0.959797382
+      Pitch: 0.534797668
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 1.19358635
+      Yaw: 1.54174244
     Saved: ~
 Window Geometry:
   Displays:
