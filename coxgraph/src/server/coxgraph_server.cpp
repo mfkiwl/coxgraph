@@ -40,6 +40,9 @@ CoxgraphServer::Config CoxgraphServer::getConfigFromRosParam(
   nh_private.param<bool>("submap_registration/enabled",
                          config.enable_registration_constraints,
                          config.enable_registration_constraints);
+  nh_private.param<bool>("loop_closure/enabled",
+                         config.enable_map_fusion_constraints,
+                         config.enable_map_fusion_constraints);
   nh_private.param<bool>("submap_relative_pose/enabled",
                          config.enable_submap_relative_pose_constraints,
                          config.enable_submap_relative_pose_constraints);
@@ -181,13 +184,6 @@ bool CoxgraphServer::mapFusionCallback(
                             T_t1_t2.cast<voxblox::FloatingPoint>());
       }
     } else {
-      LOG_IF(INFO, !has_time_a && verbose_)
-          << "Map Fusion timestamp from Client "
-          << map_fusion_msg.from_client_id
-          << " is ahead of client timeline, map fusion msg saved for later";
-      LOG_IF(INFO, !has_time_b && verbose_)
-          << "Map Fusion timestamp from Client " << map_fusion_msg.to_client_id
-          << " is ahead of client timeline, map fusion msg saved for later";
       addToMFFuture(map_fusion_msg);
       processMFFuture();
     }
@@ -309,10 +305,12 @@ bool CoxgraphServer::fuseMap(const CliId& cid_a, const ros::Time& t1,
     pose_graph_interface_.addSubmap(submap_b->getID());
   }
 
-  // TODO(mikexyl): transform T_t1_t2 based on cli map frame
-  Transformation T_A_B = T_A_t1 * T_t1_t2 * T_B_t2.inverse();
-  pose_graph_interface_.addLoopClosureMeasurement(ser_sm_id_a, ser_sm_id_b,
-                                                  T_A_B);
+  if (config_.enable_map_fusion_constraints) {
+    // TODO(mikexyl): transform T_t1_t2 based on cli map frame
+    Transformation T_A_B = T_A_t1 * T_t1_t2.inverse() * T_B_t2.inverse();
+    pose_graph_interface_.addLoopClosureMeasurement(ser_sm_id_a, ser_sm_id_b,
+                                                    T_A_B);
+  }
 
   if (config_.enable_submap_relative_pose_constraints)
     updateSubmapRPConstraints();
@@ -339,14 +337,9 @@ void CoxgraphServer::updateSubmapRPConstraints() {
           submap_collection_ptr_->getSubmapPtr(sid_i)->getPose();
       Transformation T_M_SMj =
           submap_collection_ptr_->getSubmapPtr(sid_j)->getPose();
-      pose_graph_interface_.addSubmapRelativePoseConstraint(
-          sid_i, sid_j, T_M_SMi.inverse() * T_M_SMj);
-      LOG(INFO) << "debug: submap rp constraints between " << sid_i << " and "
-                << sid_j << std::endl
-                << "from: " << std::endl
-                << T_M_SMi << "to: " << std::endl
-                << T_M_SMj << std::endl
-                << T_M_SMi.inverse() * T_M_SMj;
+      Transformation T_SMi_SMj = T_M_SMi.inverse() * T_M_SMj;
+      pose_graph_interface_.addSubmapRelativePoseConstraint(sid_i, sid_j,
+                                                            T_SMi_SMj);
     }
   }
 }
@@ -365,10 +358,6 @@ CoxgraphServer::OptState CoxgraphServer::optimizePoseGraph(
 
   TransformationVector submap_poses;
   submap_collection_ptr_->getSubmapPoses(&submap_poses);
-  LOG(INFO) << "before optimize";
-  for (int i = 0; i < submap_poses.size(); i++) {
-    LOG(INFO) << i << std::endl << submap_poses[i];
-  }
 
   pose_graph_interface_.optimize(enable_registration);
 
@@ -376,10 +365,6 @@ CoxgraphServer::OptState CoxgraphServer::optimizePoseGraph(
   pose_graph_interface_.updateSubmapCollectionPoses();
 
   submap_collection_ptr_->getSubmapPoses(&submap_poses);
-  LOG(INFO) << "after optimize";
-  for (int i = 0; i < submap_poses.size(); i++) {
-    LOG(INFO) << i << std::endl << submap_poses[i];
-  }
 
   // Publish fused tfs between client mission frames and global mission frame
   publishTfCliMissionGlobal();

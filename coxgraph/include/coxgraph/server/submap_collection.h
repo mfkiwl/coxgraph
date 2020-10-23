@@ -41,7 +41,7 @@ class SubmapCollection : public voxgraph::VoxgraphSubmapCollection {
                                      const CliSmId& cli_sm_id) {
     for (auto ser_sm_id : cli_ser_sm_id_map_[cid]) {
       if (sm_cli_id_map_[ser_sm_id].second == cli_sm_id) {
-        return sm_cli_id_map_[ser_sm_id].second;
+        return ser_sm_id;
       }
     }
   }

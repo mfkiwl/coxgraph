@@ -84,7 +84,7 @@ void ClientHandler::submapPoseUpdatesCallback(
       // TODO(mikexyl): don't need to transform submap?
       SerSmId ser_sm_id = submap_collection_ptr_->getSerSmIdByCliSmId(
           client_id_, map_pose_updates_msg.submap_id[i]);
-      if (!submap_collection_ptr_->exists(ser_sm_id)) continue;
+      CHECK(submap_collection_ptr_->exists(ser_sm_id));
       LOG(INFO) << log_prefix_ << "Updating pose for submap cli id: "
                 << map_pose_updates_msg.submap_id[i]
                 << " ser id: " << ser_sm_id;

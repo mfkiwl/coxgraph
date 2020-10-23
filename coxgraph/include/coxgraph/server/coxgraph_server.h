@@ -39,6 +39,7 @@ class CoxgraphServer {
           fixed_map_client_id(0),
           output_mission_frame("mission"),
           enable_registration_constraints(true),
+          enable_map_fusion_constraints(true),
           publisher_queue_length(100),
           mesh_opacity(1.0),
           submap_mesh_color_mode("lambert_color"),
@@ -53,6 +54,7 @@ class CoxgraphServer {
     int32_t fixed_map_client_id;
     std::string output_mission_frame;
     bool enable_registration_constraints;
+    bool enable_map_fusion_constraints;
     bool enable_submap_relative_pose_constraints;
     int32_t publisher_queue_length;
     float mesh_opacity;
@@ -73,6 +75,10 @@ class CoxgraphServer {
         << "  Registration Constraint: "
         << static_cast<std::string>(
                v.enable_registration_constraints ? "enabled" : "disabled")
+        << std::endl
+        << "  Map Fusion Constraint: "
+        << static_cast<std::string>(
+               v.enable_map_fusion_constraints ? "enabled" : "disabled")
         << std::endl
         << "  Submap Relative Pose Constraint: "
         << static_cast<std::string>(v.enable_submap_relative_pose_constraints

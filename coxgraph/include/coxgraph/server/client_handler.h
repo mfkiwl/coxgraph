@@ -66,7 +66,8 @@ class ClientHandler {
         submap_config_(submap_config),
         client_node_name_(config.client_name_prefix + "_" +
                           std::to_string(client_id_)),
-        log_prefix_("CH " + std::to_string(static_cast<int>(client_id_))),
+        log_prefix_("CH " + std::to_string(static_cast<int>(client_id_)) +
+                    ": "),
         submap_collection_ptr_(submap_collection_ptr) {
     subscribeToTopics();
     advertiseTopics();

@@ -10,6 +10,8 @@ namespace server {
 Transformation SubmapCollection::addSubmap(const CliSm::Ptr& submap,
                                            const CliId& cid,
                                            const CliSmId& cli_sm_id) {
+  LOG(INFO) << "debug: adding submap (sid, cid, csmid) " << submap->getID()
+            << " " << static_cast<int>(cid) << " " << cli_sm_id;
   voxgraph::VoxgraphSubmapCollection::addSubmap(submap);
   sm_cli_id_map_.emplace(submap->getID(), CliIdSmIdPair(cid, cli_sm_id));
   if (!cli_ser_sm_id_map_.count(submap->getID())) {
