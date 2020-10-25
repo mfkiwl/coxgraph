@@ -186,6 +186,8 @@ class CoxgraphServer {
   enum OptState { FAILED = 0, OK, SKIPPED };
   OptState optimizePoseGraph(bool enable_registration);
 
+  void evaluateResiduals();
+
   void updateTfGlobalCli();
 
   void publishSmGlobalTf();

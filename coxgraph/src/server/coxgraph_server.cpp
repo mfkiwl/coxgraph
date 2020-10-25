@@ -361,6 +361,8 @@ CoxgraphServer::OptState CoxgraphServer::optimizePoseGraph(
 
   pose_graph_interface_.optimize(enable_registration);
 
+  if (verbose_) evaluateResiduals();
+
   // Update the submap poses
   pose_graph_interface_.updateSubmapCollectionPoses();
 
@@ -376,6 +378,25 @@ CoxgraphServer::OptState CoxgraphServer::optimizePoseGraph(
 
   // Report successful completion
   return OptState::OK;
+}
+
+void CoxgraphServer::evaluateResiduals() {
+  LOG(INFO) << "Evaluating Residuals of Map Fusion Constraints";
+  for (double residual : pose_graph_interface_.evaluateResiduals(
+           PoseGraphInterface::ConstraintType::RelPose)) {
+    std::cout << residual << " ";
+  }
+  std::cout << std::endl;
+  if (submap_collection_ptr_->size() > 2) {
+    LOG(INFO) << "Evaluating Residuals of Submap RelPose Constraints";
+    for (double residual : pose_graph_interface_.evaluateResiduals(
+             PoseGraphInterface::ConstraintType::SubmapRelPose)) {
+      std::cout << residual << " ";
+    }
+    std::cout << std::endl;
+  } else {
+    LOG(INFO) << "No Submap RelPose Constraints added yet";
+  }
 }
 
 void CoxgraphServer::publishSmGlobalTf() {
