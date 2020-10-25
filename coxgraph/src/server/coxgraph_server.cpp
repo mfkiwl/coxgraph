@@ -307,7 +307,7 @@ bool CoxgraphServer::fuseMap(const CliId& cid_a, const ros::Time& t1,
 
   if (config_.enable_map_fusion_constraints) {
     // TODO(mikexyl): transform T_t1_t2 based on cli map frame
-    Transformation T_A_B = T_A_t1 * T_t1_t2.inverse() * T_B_t2.inverse();
+    Transformation T_A_B = T_A_t1 * T_t1_t2 * T_B_t2.inverse();
     pose_graph_interface_.addLoopClosureMeasurement(ser_sm_id_a, ser_sm_id_b,
                                                     T_A_B);
   }
