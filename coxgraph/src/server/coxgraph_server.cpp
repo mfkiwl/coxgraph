@@ -1,5 +1,8 @@
 #include "coxgraph/server/coxgraph_server.h"
 
+#include <geometry_msgs/Quaternion.h>
+#include <math.h>
+#include <tf/transform_datatypes.h>
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <voxgraph/frontend/submap_collection/voxgraph_submap_collection.h>
@@ -267,6 +270,7 @@ bool CoxgraphServer::fuseMap(const CliId& cid_a, const ros::Time& t1,
             << " -> Submap: " << static_cast<int>(cli_sm_id_b);
   LOG_IF(INFO, verbose_) << " T_A_t1: " << std::endl << T_A_t1;
   LOG_IF(INFO, verbose_) << " T_B_t2: " << std::endl << T_B_t2;
+  LOG_IF(INFO, verbose_) << " T_t1_t2: " << std::endl << T_t1_t2;
 
   bool prev_result = false;
 
@@ -310,7 +314,19 @@ bool CoxgraphServer::fuseMap(const CliId& cid_a, const ros::Time& t1,
     Transformation T_A_B = T_A_t1 * T_t1_t2 * T_B_t2.inverse();
     pose_graph_interface_.addLoopClosureMeasurement(ser_sm_id_a, ser_sm_id_b,
                                                     T_A_B);
+    geometry_msgs::Transform pose;
+    tf::transformKindrToMsg(T_A_B.cast<double>(), &pose);
+    double roll, pitch, yaw;
+    tf::Quaternion quat;
+    tf::quaternionMsgToTF(pose.rotation, quat);
+    tf::Matrix3x3(quat).getRPY(roll, pitch, yaw);
+    double PI = 3.14159265;
+    LOG(INFO) << roll / PI * 180 << " " << pitch / PI * 180 << " "
+              << yaw / PI * 180;
   }
+
+  pose_graph_interface_.addForceRegistrationConstraint(ser_sm_id_a,
+                                                       ser_sm_id_b);
 
   if (config_.enable_submap_relative_pose_constraints)
     updateSubmapRPConstraints();
@@ -340,6 +356,12 @@ void CoxgraphServer::updateSubmapRPConstraints() {
       Transformation T_SMi_SMj = T_M_SMi.inverse() * T_M_SMj;
       pose_graph_interface_.addSubmapRelativePoseConstraint(sid_i, sid_j,
                                                             T_SMi_SMj);
+      LOG(INFO) << "debug: submap rp constraints between " << sid_i << " and "
+                << sid_j << std::endl
+                << "from: " << std::endl
+                << T_M_SMi << "to: " << std::endl
+                << T_M_SMj << std::endl
+                << T_SMi_SMj;
     }
   }
 }
@@ -358,6 +380,10 @@ CoxgraphServer::OptState CoxgraphServer::optimizePoseGraph(
 
   TransformationVector submap_poses;
   submap_collection_ptr_->getSubmapPoses(&submap_poses);
+  LOG(INFO) << "before optimize";
+  for (int i = 0; i < submap_poses.size(); i++) {
+    LOG(INFO) << i << std::endl << submap_poses[i];
+  }
 
   pose_graph_interface_.optimize(enable_registration);
 
@@ -367,6 +393,10 @@ CoxgraphServer::OptState CoxgraphServer::optimizePoseGraph(
   pose_graph_interface_.updateSubmapCollectionPoses();
 
   submap_collection_ptr_->getSubmapPoses(&submap_poses);
+  LOG(INFO) << "after optimize";
+  for (int i = 0; i < submap_poses.size(); i++) {
+    LOG(INFO) << i << std::endl << submap_poses[i];
+  }
 
   // Publish fused tfs between client mission frames and global mission frame
   publishTfCliMissionGlobal();
@@ -381,13 +411,16 @@ CoxgraphServer::OptState CoxgraphServer::optimizePoseGraph(
 }
 
 void CoxgraphServer::evaluateResiduals() {
-  LOG(INFO) << "Evaluating Residuals of Map Fusion Constraints";
-  for (double residual : pose_graph_interface_.evaluateResiduals(
-           PoseGraphInterface::ConstraintType::RelPose)) {
-    std::cout << residual << " ";
+  if (config_.enable_map_fusion_constraints) {
+    LOG(INFO) << "Evaluating Residuals of Map Fusion Constraints";
+    for (double residual : pose_graph_interface_.evaluateResiduals(
+             PoseGraphInterface::ConstraintType::RelPose)) {
+      std::cout << residual << " ";
+    }
+    std::cout << std::endl;
   }
-  std::cout << std::endl;
-  if (submap_collection_ptr_->size() > 2) {
+  if (config_.enable_submap_relative_pose_constraints &&
+      submap_collection_ptr_->size() > 2) {
     LOG(INFO) << "Evaluating Residuals of Submap RelPose Constraints";
     for (double residual : pose_graph_interface_.evaluateResiduals(
              PoseGraphInterface::ConstraintType::SubmapRelPose)) {

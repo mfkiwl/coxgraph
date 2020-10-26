@@ -83,11 +83,11 @@ inline CliSm::Ptr cliSubmapFromMsg(
   // Naming copied from voxgraph
   for (const geometry_msgs::PoseStamped& pose_stamped :
        submap_response.submap.layer_with_traj.trajectory.poses) {
-    TransformationD T_odom_base_link;
-    tf::poseMsgToKindr(pose_stamped.pose, &T_odom_base_link);
+    TransformationD T_submap_base_link;
+    tf::poseMsgToKindr(pose_stamped.pose, &T_submap_base_link);
     submap_ptr->addPoseToHistory(
         pose_stamped.header.stamp,
-        T_odom_base_link.cast<voxblox::FloatingPoint>());
+        T_submap_base_link.cast<voxblox::FloatingPoint>());
   }
 
   if (submap_ptr->getPoseHistory().size()) {

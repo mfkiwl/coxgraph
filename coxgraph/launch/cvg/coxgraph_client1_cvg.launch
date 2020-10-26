@@ -2,6 +2,7 @@
 <launch>
   <param name="use_sim_time" value="true" />
 
+  <arg name="sensor" default="xtion"/>
   <arg name="pointcloud_topic" doc="ROS topic for pointcloud input"/>
   <arg name="debug_cg" default="false" doc="Run the coxgraph client in debug mode." />
   <arg name="debug_tsdf" default="false" doc="Run the tsdf client in debug mode." />
@@ -32,6 +33,7 @@
     <include file="$(find coxgraph)/launch/cvg/tsdf_client1_cvg.launch">
       <arg name="debug" default="$(arg debug_tsdf)"/>
       <arg name="verbose" default="$(arg verbose)"/>
+      <arg name="sensor_name" default="$(arg sensor)"/>
     </include>
   </group>
 

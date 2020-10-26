@@ -57,6 +57,25 @@ void PoseGraphInterface::addSubmapRelativePoseConstraint(
   pose_graph_.addSubmapRelativePoseConstraint(submap_rp_config);
 }
 
+void PoseGraphInterface::addForceRegistrationConstraint(
+    const SerSmId& first_submap_id, const SerSmId& second_submap_id) {
+  RegistrationConstraint::Config constraint_config =
+      measurement_templates_.registration;
+  constraint_config.first_submap_id = first_submap_id;
+  constraint_config.second_submap_id = second_submap_id;
+
+  // Add pointers to both submaps
+  constraint_config.first_submap_ptr =
+      submap_collection_ptr_->getSubmapConstPtr(first_submap_id);
+  constraint_config.second_submap_ptr =
+      submap_collection_ptr_->getSubmapConstPtr(second_submap_id);
+  CHECK_NOTNULL(constraint_config.first_submap_ptr);
+  CHECK_NOTNULL(constraint_config.second_submap_ptr);
+
+  // Add the constraint to the pose graph
+  pose_graph_.addForceRegistrationConstraint(constraint_config);
+}
+
 void PoseGraphInterface::setInformationMatrixFromRosParams(
     const ros::NodeHandle& node_handle, InformationMatrix* information_matrix) {
   CHECK_NOTNULL(information_matrix);

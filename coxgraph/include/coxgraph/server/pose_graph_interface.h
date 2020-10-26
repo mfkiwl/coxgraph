@@ -14,6 +14,7 @@ namespace server {
 class PoseGraphInterface : public voxgraph::PoseGraphInterface {
  public:
   using RelativePoseConstraint = voxgraph::RelativePoseConstraint;
+  using RegistrationConstraint = voxgraph::RegistrationConstraint;
   using InformationMatrix = voxgraph::Constraint::InformationMatrix;
 
   PoseGraphInterface(
@@ -39,6 +40,9 @@ class PoseGraphInterface : public voxgraph::PoseGraphInterface {
   void addSubmapRelativePoseConstraint(const SerSmId& first_submap_id,
                                        const SerSmId& second_submap_id,
                                        const Transformation& T_S1_S2);
+
+  void addForceRegistrationConstraint(const SerSmId& first_submap_id,
+                                      const SerSmId& second_submap_id);
 
   static void setInformationMatrixFromRosParams(
       const ros::NodeHandle& node_handle,
