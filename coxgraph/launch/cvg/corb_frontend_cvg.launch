@@ -7,7 +7,7 @@
   <node if="$(eval sensor == 'kinect')" pkg="image_transport" type="republish" name="republish_color_1" args="compressed in:=/kinect2/qhd/image_color_rect1 raw out:=/kinect2/qhd/image_color_rect1"/>
   <node if="$(eval sensor == 'kinect')" pkg="image_transport" type="republish" name="republish_depth_1" args="compressed in:=/kinect2/qhd/image_depth_rect1 raw out:=/kinect2/qhd/image_depth_rect1"/>
   <arg name="dist" default="0"/>
-  <arg name="cam" default="$(find ccmslam)/conf/caminfo_$(arg sensor)_cvg.yaml"/>
+  <arg name="cam" default="$(find corbslam_client)/conf/$(arg sensor).yaml"/>
 
   <arg if="$(eval sensor == 'xtion')" name="rgb_topic" default="/camera/rgb/image_rect_color"/>
   <arg if="$(eval sensor == 'kinect')" name="rgb_topic" default="/kinect2/qhd/image_color_rect"/>
@@ -22,15 +22,22 @@
     <arg unless="$(arg debug_client)" name="launch_prefix_client" value=" " />
     <arg if="$(arg debug_client)" name="launch_prefix_client" value="xterm -e gdb --args" />
 
-    <node pkg="corbslam_client" type="corbslam_client_rgbd_ros" name="corbslamClientNode0" args="$(find ccmslam)/conf/ORBvoc.txt $(arg cam) 0" output="screen" launch-prefix="$(arg launch_prefix_client)">
+    <node pkg="corbslam_client" type="corbslam_client_rgbd_ros" name="corbslamClientNode0" args="$(find corbslam_client)/Vocabulary/ORBvoc.txt $(arg cam) 0" output="screen" launch-prefix="$(arg launch_prefix_client)">
       <remap from="camera/rgb/image_raw" to="$(arg rgb_topic)"/>
       <remap from="camera/depth_registered/image_raw" to="$(arg depth_topic)"/>
+      <remap from="loop_closure_out" to="/loop_closure_in"/>
     </node>
 
-    <node pkg="corbslam_client" type="corbslam_client_rgbd_ros" name="corbslamClientNode1" args="$(find ccmslam)/conf/ORBvoc.txt $(arg cam) 1" output="screen" launch-prefix="$(arg launch_prefix_client)">
+    <node pkg="corbslam_client" type="corbslam_client_rgbd_ros" name="corbslamClientNode1" args="$(find corbslam_client)/Vocabulary/ORBvoc.txt $(arg cam) 1" output="screen" launch-prefix="$(arg launch_prefix_client)">
       <remap from="camera/rgb/image_raw" to="$(arg rgb_topic)1"/>
       <remap from="camera/depth_registered/image_raw" to="$(arg depth_topic)1"/>
+      <remap from="loop_closure_out" to="/loop_closure_in1"/>
     </node>
+
+    <arg name="debug_server" default="false" />
+    <arg unless="$(arg debug_server)" name="launch_prefix_server" value=" " />
+    <arg if="$(arg debug_server)" name="launch_prefix_server" value="xterm -e gdb -ex run --args" />
+    <node pkg="corbslam_server" type="corbslam_server" name="corbslam_server" args="$(find corbslam_client)/Vocabulary/ORBvoc.txt $(arg cam)" output="screen" launch-prefix="$(arg launch_prefix_server)" />
 
   </group>
 

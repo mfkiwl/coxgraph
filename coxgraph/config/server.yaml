@@ -4,7 +4,7 @@ client_number: 2
 tsdf_voxel_size: 0.05
 tsdf_voxels_per_size: 16
 
-map_fusion_topic: "/ccmslam/map_fusion_out"
+map_fusion_topic: "map_fusion_in"
 map_fusion_queue_size: 1
 
 client_handler:

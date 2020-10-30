@@ -85,9 +85,6 @@ void ClientHandler::submapPoseUpdatesCallback(
       SerSmId ser_sm_id = submap_collection_ptr_->getSerSmIdByCliSmId(
           client_id_, map_pose_updates_msg.submap_id[i]);
       CHECK(submap_collection_ptr_->exists(ser_sm_id));
-      LOG(INFO) << log_prefix_ << "Updating pose for submap cli id: "
-                << map_pose_updates_msg.submap_id[i]
-                << " ser id: " << ser_sm_id;
       geometry_msgs::Pose submap_pose_msg = map_pose_updates_msg.new_pose[i];
       CliSm::Ptr submap_ptr = submap_collection_ptr_->getSubmapPtr(ser_sm_id);
       TransformationD submap_pose;
@@ -96,6 +93,9 @@ void ClientHandler::submapPoseUpdatesCallback(
       submap_ptr->setPose(submap_pose.cast<voxblox::FloatingPoint>());
       submap_collection_ptr_->updateOriPose(
           ser_sm_id, submap_pose.cast<voxblox::FloatingPoint>());
+      LOG(INFO) << log_prefix_ << "Updating pose for submap cli id: "
+                << map_pose_updates_msg.submap_id[i]
+                << " ser id: " << ser_sm_id;
     }
   }
   submap_collection_ptr_->getPosesUpdateMutex()->unlock();
