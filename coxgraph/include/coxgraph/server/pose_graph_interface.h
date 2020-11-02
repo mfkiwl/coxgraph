@@ -16,6 +16,7 @@ class PoseGraphInterface : public voxgraph::PoseGraphInterface {
  public:
   using RelativePoseConstraint = voxgraph::RelativePoseConstraint;
   using RegistrationConstraint = voxgraph::RegistrationConstraint;
+  using PoseMap = voxgraph::PoseGraph::PoseMap;
 
   PoseGraphInterface(
       const ros::NodeHandle& nh,
@@ -42,6 +43,8 @@ class PoseGraphInterface : public voxgraph::PoseGraphInterface {
 
   void addForceRegistrationConstraint(const SerSmId& first_submap_id,
                                       const SerSmId& second_submap_id);
+
+  PoseMap getPoseMap() { return pose_graph_.getSubmapPoses(); }
 
  private:
   InformationMatrix sm_rp_info_matrix_;

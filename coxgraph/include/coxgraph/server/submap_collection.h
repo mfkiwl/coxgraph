@@ -33,8 +33,10 @@ class SubmapCollection : public voxgraph::VoxgraphSubmapCollection {
   }
 
   inline std::vector<SerSmId>* getSerSmIdsByCliId(const CliId& cid) {
-    CHECK(cli_ser_sm_id_map_.count(cid));
-    return &cli_ser_sm_id_map_[cid];
+    if (cli_ser_sm_id_map_.count(cid))
+      return &cli_ser_sm_id_map_[cid];
+    else
+      return nullptr;
   }
 
   inline SerSmId getSerSmIdByCliSmId(const CliId& cid,

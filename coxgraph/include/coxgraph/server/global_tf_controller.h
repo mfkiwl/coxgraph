@@ -4,6 +4,7 @@
 #include <tf/transform_broadcaster.h>
 
 #include <memory>
+#include <mutex>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -54,7 +55,7 @@ class GlobalTfController {
         global_mission_frame_(config.map_frame_prefix + "_g"),
         client_tf_optimizer_(nh, nh_private, verbose) {
     LOG(INFO) << config;
-    initClientTf();
+    initCliMapPose();
 
     for (int i = 0; i < client_number_; i++) {
       T_g_cli_map_.emplace(i, std::vector<Transformation>());
@@ -62,19 +63,25 @@ class GlobalTfController {
   }
   ~GlobalTfController() = default;
 
-  void resetTfGloCli();
-  void addTfGloCli(const CliId& cid, const Transformation& tf);
   void publishTfGloCli();
 
+  void addCliMapRelativePose(const CliId& first_cid, const CliId& second_cid,
+                             const Transformation& T_C1_C2);
+
+  void resetCliMapRelativePoses() {
+    client_tf_optimizer_.resetClientRelativePoseConstraints();
+  }
+
+  std::mutex* getPoseUpdateMutex() { return &pose_update_mutex; }
+
  private:
-  void initClientTf();
+  void initCliMapPose();
 
   void pubCliTfCallback(const ros::TimerEvent& event);
 
-  void updateCliTf(const std::vector<tf::StampedTransform>& new_T_g_cli,
-                   const ros::Time& time = ros::Time::now());
-  void updateCliTf(const CliId& cid, const tf::StampedTransform& new_T_g_cli,
-                   const ros::Time& time = ros::Time::now());
+  void updateCliMapPose();
+
+  void computeOptCliMapPose();
 
   bool verbose_;
 
@@ -94,6 +101,9 @@ class GlobalTfController {
   std::unordered_map<int, std::vector<Transformation>> T_g_cli_map_;
 
   ClientTfOptimizer client_tf_optimizer_;
+  bool pose_updated_;
+
+  std::mutex pose_update_mutex;
 
   constexpr static float kTfPubFreq = 100;
 };

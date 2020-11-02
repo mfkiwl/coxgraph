@@ -20,7 +20,7 @@ class ClientFrameNode : public voxgraph::Node {
 
   ClientFrameNode(const NodeId& node_id, const Config& config)
       : Node(node_id, config), config_(config) {}
-  ~ClientFrameNode();
+  ~ClientFrameNode() = default;
 
   CliId getCliId() const { return config_.client_id; }
 

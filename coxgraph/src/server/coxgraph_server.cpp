@@ -8,9 +8,11 @@
 
 #include <chrono>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
+#include "coxgraph/common.h"
 #include "coxgraph/utils/msg_converter.h"
 
 namespace coxgraph {
@@ -389,21 +391,15 @@ CoxgraphServer::OptState CoxgraphServer::optimizePoseGraph(
   if (verbose_) evaluateResiduals();
 
   // Update the submap poses
-  pose_graph_interface_.updateSubmapCollectionPoses();
+  // TODO(mikexyl) deprecate this
+  // pose_graph_interface_.updateSubmapCollectionPoses();
 
-  submap_collection_ptr_->getSubmapPoses(&submap_poses);
-  LOG(INFO) << "after optimize";
-  for (int i = 0; i < submap_poses.size(); i++) {
-    LOG(INFO) << i << std::endl << submap_poses[i];
-  }
+  submap_collection_ptr_->getPosesUpdateMutex()->unlock();
 
-  // Publish fused tfs between client mission frames and global mission frame
-  publishTfCliMissionGlobal();
+  updateCliMapRelativePose();
 
   // Publish Optimized Maps
   publishMaps();
-
-  submap_collection_ptr_->getPosesUpdateMutex()->unlock();
 
   // Report successful completion
   return OptState::OK;
@@ -431,13 +427,35 @@ void CoxgraphServer::evaluateResiduals() {
   }
 }
 
-void CoxgraphServer::publishSmGlobalTf() {
-  for (const SerSmId& submap_id : submap_collection_ptr_->getIDs()) {
-  }
-}
+void CoxgraphServer::updateCliMapRelativePose() {
+  std::lock_guard<std::mutex> pose_update_lock(
+      *(tf_controller_->getPoseUpdateMutex()));
+  PoseMap pose_map = pose_graph_interface_.getPoseMap();
+  TransformationVector submap_poses;
+  // TODO(mikexyl) assume this submap poses vector is sorted by sm id
+  submap_collection_ptr_->getSubmapPoses(&submap_poses);
+  for (int i = 0; i < config_.client_number; i++) {
+    std::vector<SerSmId>* ser_sm_ids_a =
+        submap_collection_ptr_->getSerSmIdsByCliId(i);
+    if (ser_sm_ids_a == nullptr) continue;
+    for (int j = i + 1; j < config_.client_number; j++) {
+      std::vector<SerSmId>* ser_sm_ids_b =
+          submap_collection_ptr_->getSerSmIdsByCliId(j);
+      if (ser_sm_ids_b == nullptr) continue;
 
-void CoxgraphServer::updateTfGlobalCli() {
-  std::vector<SerSmId> ser_sm_ids = submap_collection_ptr_->getIDs();
+      // TODO(mikexyl) these traversing add too many constraints
+      for (auto const& sm_id_a : *ser_sm_ids_a) {
+        for (auto const& sm_id_b : *ser_sm_ids_b) {
+          Transformation T_CA_SMA = submap_poses[sm_id_a];
+          Transformation T_CB_SMB = submap_poses[sm_id_b];
+          Transformation T_SMA_SMB =
+              pose_map[sm_id_a].inverse() * pose_map[sm_id_b];
+          Transformation T_CA_CB = T_CA_SMA * T_SMA_SMB * T_CB_SMB.inverse();
+          tf_controller_->addCliMapRelativePose(i, j, T_CA_CB);
+        }
+      }
+    }
+  }
 }
 
 void CoxgraphServer::publishMaps(const ros::Time& time) {
