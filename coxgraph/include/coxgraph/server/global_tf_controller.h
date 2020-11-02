@@ -9,6 +9,8 @@
 #include <vector>
 
 #include "coxgraph/common.h"
+#include "coxgraph/server/client_tf_optimizer.h"
+#include "coxgraph/server/pose_graph_interface.h"
 
 namespace coxgraph {
 namespace server {
@@ -36,18 +38,21 @@ class GlobalTfController {
   typedef std::shared_ptr<GlobalTfController> Ptr;
 
   GlobalTfController(const ros::NodeHandle& nh,
-                     const ros::NodeHandle& nh_private, int8_t client_number)
+                     const ros::NodeHandle& nh_private, int8_t client_number,
+                     bool verbose)
       : GlobalTfController(nh, nh_private, client_number,
-                           getConfigFromRosParam(nh_private)) {}
+                           getConfigFromRosParam(nh_private), verbose) {}
 
   GlobalTfController(const ros::NodeHandle& nh,
                      const ros::NodeHandle& nh_private, int8_t client_number,
-                     const Config& config)
-      : nh_(nh),
+                     const Config& config, bool verbose)
+      : verbose_(verbose),
+        nh_(nh),
         nh_private_(nh_private),
         client_number_(client_number),
         config_(config),
-        global_mission_frame_(config.map_frame_prefix + "_g") {
+        global_mission_frame_(config.map_frame_prefix + "_g"),
+        client_tf_optimizer_(nh, nh_private, verbose) {
     LOG(INFO) << config;
     initClientTf();
 
@@ -71,6 +76,8 @@ class GlobalTfController {
   void updateCliTf(const CliId& cid, const tf::StampedTransform& new_T_g_cli,
                    const ros::Time& time = ros::Time::now());
 
+  bool verbose_;
+
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
 
@@ -85,6 +92,8 @@ class GlobalTfController {
   std::vector<bool> cli_tf_fused_;
   std::vector<tf::StampedTransform> T_g_cli_mean_;
   std::unordered_map<int, std::vector<Transformation>> T_g_cli_map_;
+
+  ClientTfOptimizer client_tf_optimizer_;
 
   constexpr static float kTfPubFreq = 100;
 };

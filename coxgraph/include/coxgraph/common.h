@@ -20,6 +20,7 @@ using CliSmConfig = voxgraph::VoxgraphSubmap::Config;
 using Transformation = voxgraph::Transformation;
 using TransformationD = voxgraph::TransformationD;
 using TransformationVector = cblox::TransformationVector;
+using InformationMatrix = voxgraph::Constraint::InformationMatrix;
 
 using FrameNames = voxgraph::FrameNames;
 

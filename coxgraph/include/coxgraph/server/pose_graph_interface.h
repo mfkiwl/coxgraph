@@ -7,6 +7,7 @@
 #include <string>
 
 #include "coxgraph/common.h"
+#include "coxgraph/utils/ros_params.h"
 
 namespace coxgraph {
 namespace server {
@@ -15,18 +16,16 @@ class PoseGraphInterface : public voxgraph::PoseGraphInterface {
  public:
   using RelativePoseConstraint = voxgraph::RelativePoseConstraint;
   using RegistrationConstraint = voxgraph::RegistrationConstraint;
-  using InformationMatrix = voxgraph::Constraint::InformationMatrix;
 
   PoseGraphInterface(
-      const ros::NodeHandle& node_handle,
+      const ros::NodeHandle& nh,
       const voxgraph::VoxgraphSubmapCollection::Ptr& submap_collection_ptr,
       const voxblox::MeshIntegratorConfig& mesh_config,
       const std::string& visualizations_mission_frame, bool verbose = false)
-      : voxgraph::PoseGraphInterface(node_handle, submap_collection_ptr,
-                                     mesh_config, visualizations_mission_frame,
-                                     verbose) {
-    setInformationMatrixFromRosParams(
-        ros::NodeHandle(node_handle, "submap_relative_pose/information_matrix"),
+      : voxgraph::PoseGraphInterface(nh, submap_collection_ptr, mesh_config,
+                                     visualizations_mission_frame, verbose) {
+    utils::setInformationMatrixFromRosParams(
+        ros::NodeHandle(nh, "submap_relative_pose/information_matrix"),
         &sm_rp_info_matrix_);
   }
   ~PoseGraphInterface() = default;
@@ -43,10 +42,6 @@ class PoseGraphInterface : public voxgraph::PoseGraphInterface {
 
   void addForceRegistrationConstraint(const SerSmId& first_submap_id,
                                       const SerSmId& second_submap_id);
-
-  static void setInformationMatrixFromRosParams(
-      const ros::NodeHandle& node_handle,
-      InformationMatrix* information_matrix);
 
  private:
   InformationMatrix sm_rp_info_matrix_;

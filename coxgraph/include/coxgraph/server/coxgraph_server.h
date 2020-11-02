@@ -119,12 +119,13 @@ class CoxgraphServer {
             submap_config_, config.client_number)),
         pose_graph_interface_(nh_private, submap_collection_ptr_, mesh_config,
                               config.output_mission_frame),
-        tf_controller_(TfController(nh, nh_private, config.client_number)),
         submap_vis_(submap_config, mesh_config) {
     nh_private.param<bool>("verbose", verbose_, verbose_);
     LOG(INFO) << "Verbose: " << verbose_;
     LOG(INFO) << config_;
 
+    tf_controller_.reset(
+        new GlobalTfController(nh, nh_private, config.client_number, verbose_));
     pose_graph_interface_.setVerbosity(verbose_);
     pose_graph_interface_.setMeasurementConfigFromRosParams(nh_private_);
 
@@ -148,7 +149,7 @@ class CoxgraphServer {
 
  private:
   using ClientHandler = server::ClientHandler;
-  using TfController = server::GlobalTfController;
+  using GlobalTfController = server::GlobalTfController;
   using ReqState = ClientHandler::ReqState;
   using SubmapCollection = server::SubmapCollection;
   using PoseGraphInterface = server::PoseGraphInterface;
@@ -241,7 +242,7 @@ class CoxgraphServer {
   // Asynchronous handle for the pose graph optimization thread
   std::future<OptState> optimization_async_handle_;
 
-  TfController tf_controller_;
+  GlobalTfController::Ptr tf_controller_;
 
   // Visualization tools
   SubmapVisuals submap_vis_;

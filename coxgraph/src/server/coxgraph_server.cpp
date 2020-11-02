@@ -1,7 +1,6 @@
 #include "coxgraph/server/coxgraph_server.h"
 
 #include <geometry_msgs/Quaternion.h>
-#include <math.h>
 #include <tf/transform_datatypes.h>
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>

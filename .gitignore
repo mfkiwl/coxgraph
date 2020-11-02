@@ -32,3 +32,6 @@
 *.app
 
 TaskList.md
+
+coxgraph/.cache
+coxgraph/compile_commands.json
