@@ -37,6 +37,7 @@ class GlobalTfController {
   static Config getConfigFromRosParam(const ros::NodeHandle& nh_private);
 
   typedef std::shared_ptr<GlobalTfController> Ptr;
+  using PoseMap = ClientTfOptimizer::PoseMap;
 
   GlobalTfController(const ros::NodeHandle& nh,
                      const ros::NodeHandle& nh_private, int8_t client_number,
@@ -53,13 +54,10 @@ class GlobalTfController {
         client_number_(client_number),
         config_(config),
         global_mission_frame_(config.map_frame_prefix + "_g"),
-        client_tf_optimizer_(nh, nh_private, verbose) {
+        client_tf_optimizer_(nh_private, verbose),
+        pose_updated_(false) {
     LOG(INFO) << config;
     initCliMapPose();
-
-    for (int i = 0; i < client_number_; i++) {
-      T_g_cli_map_.emplace(i, std::vector<Transformation>());
-    }
   }
   ~GlobalTfController() = default;
 
@@ -97,8 +95,7 @@ class GlobalTfController {
   ros::Timer tf_pub_timer_;
   tf::TransformBroadcaster tf_boardcaster_;
   std::vector<bool> cli_tf_fused_;
-  std::vector<tf::StampedTransform> T_g_cli_mean_;
-  std::unordered_map<int, std::vector<Transformation>> T_g_cli_map_;
+  std::vector<tf::StampedTransform> T_G_CLI_opt_;
 
   ClientTfOptimizer client_tf_optimizer_;
   bool pose_updated_;

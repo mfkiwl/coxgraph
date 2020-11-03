@@ -21,6 +21,7 @@
       <param name="output_odom_frame" value="map_0"/>
       <param name="output_base_link_frame" value="robot_base_0"/>
       <param name="output_sensor_frame" value="sensor_coxgraph_0"/>
+      <param name="output_active_submap_frame" value="voxgraph_active_submap_0"/>
       <param name="tsdf_voxel_size" value="0.05"/>
       <param name="tsdf_integrator/truncation_distance" value="0.15"/>
       <param name="submap_topic" value="/tsdf_client/label_tsdf_client_0/tsdf_map_out" />

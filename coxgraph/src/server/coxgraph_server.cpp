@@ -398,8 +398,9 @@ CoxgraphServer::OptState CoxgraphServer::optimizePoseGraph(
 
   updateCliMapRelativePose();
 
+  // TODO(mikexyl): make this a service to generate global mesh
   // Publish Optimized Maps
-  publishMaps();
+  // publishMaps();
 
   // Report successful completion
   return OptState::OK;
@@ -430,6 +431,7 @@ void CoxgraphServer::evaluateResiduals() {
 void CoxgraphServer::updateCliMapRelativePose() {
   std::lock_guard<std::mutex> pose_update_lock(
       *(tf_controller_->getPoseUpdateMutex()));
+  tf_controller_->resetCliMapRelativePoses();
   PoseMap pose_map = pose_graph_interface_.getPoseMap();
   TransformationVector submap_poses;
   // TODO(mikexyl) assume this submap poses vector is sorted by sm id
