@@ -24,7 +24,7 @@ combined_mesh_color_mode: "normals"
 
 global_tf_controller:
   init_cli_map_dist: 10
-  map_frame_prefix: "map"
+  map_frame_prefix: "mission"
 
 submap_registration:
   enabled: false
@@ -50,5 +50,12 @@ submap_relative_pose:
     y_y: 1000.0
     z_z: 2500.0
     yaw_yaw: 2500.0
+
+client_map_relative_pose:
+  information_matrix:
+    x_x: 100.0
+    y_y: 100.0
+    z_z: 250.0
+    yaw_yaw: 250.0
 
 enable_client_loop_closure: true

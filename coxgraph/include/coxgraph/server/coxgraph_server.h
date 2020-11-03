@@ -155,6 +155,7 @@ class CoxgraphServer {
   using PoseGraphInterface = server::PoseGraphInterface;
   using SubmapVisuals = voxgraph::SubmapVisuals;
   using ThreadingHelper = voxgraph::ThreadingHelper;
+  using PoseMap = PoseGraphInterface::PoseMap;
 
   void initClientHandlers(const ros::NodeHandle& nh,
                           const ros::NodeHandle& nh_private);
@@ -189,9 +190,7 @@ class CoxgraphServer {
 
   void evaluateResiduals();
 
-  void updateTfGlobalCli();
-
-  void publishSmGlobalTf();
+  void updateCliMapRelativePose();
 
   void publishMaps(const ros::Time& time = ros::Time::now());
 
@@ -209,9 +208,6 @@ class CoxgraphServer {
     }
     return false;
   }
-
-  Transformation getTfCliGlobal(const CliId& cid) {}
-  void publishTfCliMissionGlobal() {}
 
   // Node handles
   ros::NodeHandle nh_;

@@ -17,11 +17,11 @@ class ClientTfOptimizer {
  public:
   using PoseMap = PoseGraph::PoseMap;
 
-  ClientTfOptimizer(const ros::NodeHandle& nh,
-                    const ros::NodeHandle& nh_private, bool verbose)
-      : nh_(nh), nh_private_(nh_private), verbose_(verbose) {
+  ClientTfOptimizer(const ros::NodeHandle& nh_private, bool verbose)
+      : verbose_(verbose) {
     utils::setInformationMatrixFromRosParams(
-        ros::NodeHandle(nh, "client_map_relative_pose/information_matrix"),
+        ros::NodeHandle(nh_private,
+                        "client_map_relative_pose/information_matrix"),
         &cli_rp_info_matrix_);
   }
 
@@ -37,13 +37,10 @@ class ClientTfOptimizer {
 
   void optimize() { pose_graph_.optimize(); }
 
-  PoseMap getClientMapTf() { return pose_graph_.getClientMapTf(); }
+  PoseMap getClientMapTfs() { return pose_graph_.getClientMapTf(); }
 
  private:
   bool verbose_;
-
-  ros::NodeHandle nh_;
-  ros::NodeHandle nh_private_;
 
   PoseGraph pose_graph_;
 

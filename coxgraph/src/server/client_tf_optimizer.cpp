@@ -26,7 +26,7 @@ void ClientTfOptimizer::addClientRelativePoseMeasurement(
   RelativePoseConstraint::Config config;
   config.information_matrix = cli_rp_info_matrix_;
   config.origin_client_id = first_cid;
-  config.destination_client_id = first_cid;
+  config.destination_client_id = second_cid;
   config.T_origin_destination = T_C1_C2;
 
   pose_graph_.addClientRelativePoseConstraint(config);

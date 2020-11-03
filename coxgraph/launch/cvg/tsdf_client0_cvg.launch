@@ -17,7 +17,7 @@
   <arg if="$(eval sensor_name == 'xtion')" name="camera_info" default="/camera/rgb/camera_info"/>
   <arg if="$(eval sensor_name == 'kinect')" name="camera_info" default="/kinect2/qhd/camera_info"/>
 
-  <node pkg="tf" type="static_transform_publisher" name="map0_to_mission0" args="0 0 0 0 0 0 1 map_0 mission_0 100"/>
+  <!-- <node pkg="tf" type="static_transform_publisher" name="map0_to_mission0" args="0 0 0 0 0 0 1 map_0 mission_0 100"/> -->
   <!--tf borrowed from realsense-->
   <!-- <node pkg="tf" type="static_transform_publisher" name="base_to_kinect2_0" args="0 0 0 0.502 -0.499 0.503 -0.496 robot_base_0 kinect2_rgb_optical_frame_0 100"/> -->
 
