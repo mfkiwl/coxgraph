@@ -2,23 +2,31 @@
   <param name="use_sim_time" value="true" />
 
   <!-- User supplied arguments -->
-  <arg name="pointcloud_topic" default="/kinect2/qhd/points" doc="ROS topic for pointcloud input" />
   <arg name="show_rviz" default="false" doc="Automatically launch Rviz." />
   <arg name="scene_name" default="cvg_lab" />
-  <arg name="sensor_name" default="kinect2" />
+  <arg name="sensor_name" default="xtion" />
   <arg name="visualize" default="false" />
   <arg name="verbose" default="true"/>
 
-  <node pkg="tf" type="static_transform_publisher" name="map0_to_mission0" args="0 0 0 0 0 0 1 map0 mission0 100"/>
+  <arg if="$(eval sensor_name == 'xtion')" name="pointcloud_topic" default="/camera/depth_registered/sw_registered/points" doc="ROS topic for pointcloud input" />
+  <arg if="$(eval sensor_name == 'kinect')" name="pointcloud_topic" default="/kinect2/qhd/points" doc="ROS topic for pointcloud input" />
+  <arg if="$(eval sensor_name == 'xtion')" name="rgb_topic" default="/camera/rgb/image_rect_color"/>
+  <arg if="$(eval sensor_name == 'kinect')" name="rgb_topic" default="/kinect2/qhd/image_color_rect"/>
+  <arg if="$(eval sensor_name == 'xtion')" name="depth_topic" default="/camera/depth_registered/sw_registered/image_rect"/>
+  <arg if="$(eval sensor_name == 'kinect')" name="depth_topic" default="/kinect2/qhd/image_depth_rect"/>
+  <arg if="$(eval sensor_name == 'xtion')" name="camera_info" default="/camera/rgb/camera_info"/>
+  <arg if="$(eval sensor_name == 'kinect')" name="camera_info" default="/kinect2/qhd/camera_info"/>
+
+  <!-- <node pkg="tf" type="static_transform_publisher" name="map0_to_mission0" args="0 0 0 0 0 0 1 map_0 mission_0 100"/> -->
   <!--tf borrowed from realsense-->
   <!-- <node pkg="tf" type="static_transform_publisher" name="base_to_kinect2_0" args="0 0 0 0.502 -0.499 0.503 -0.496 robot_base_0 kinect2_rgb_optical_frame_0 100"/> -->
 
   <node pkg="nodelet" type="nodelet" name="nodelet_manager0" args="manager" output="screen"/>
   <node pkg="nodelet" type="nodelet" name="cloudify0" args="load depth_image_proc/point_cloud_xyzrgb nodelet_manager0 --no-bond">
-    <remap from="depth_registered/image_rect" to="/kinect2/qhd/image_depth_rect"/>
-    <remap from="depth_registered/points" to="/kinect2/qhd/points"/>
-    <remap from="rgb/image_rect_color" to="/kinect2/qhd/image_color_rect"/>
-    <remap from="rgb/camera_info" to="/kinect2/qhd/camera_info"/>
+    <remap from="depth_registered/image_rect" to="$(arg depth_topic)"/>
+    <remap from="depth_registered/points" to="$(arg pointcloud_topic)"/>
+    <remap from="rgb/image_rect_color" to="$(arg rgb_topic)"/>
+    <remap from="rgb/camera_info" to="$(arg camera_info)"/>
   </node>
 
   <arg name="debug" default="false" />
@@ -37,7 +45,7 @@
       <param name="enable_segment_map" value="false" />
       <param name="enable_local_segment_map" value="false" />
       <param name="verbose" value="$(arg verbose)" />
-      <param name="world_frame" value="map0"/>
+      <param name="world_frame" value="map_0"/>
       <!-- <param name="point_cloud_frame_id" value="kinect2_rgb_optical_frame_0" /> -->
       <param name="point_cloud_frame_id" value="robot_base_0" />
     </node>
