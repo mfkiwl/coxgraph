@@ -118,8 +118,7 @@ class CoxgraphServer {
         submap_collection_ptr_(std::make_shared<SubmapCollection>(
             submap_config_, config.client_number)),
         pose_graph_interface_(nh_private, submap_collection_ptr_, mesh_config,
-                              config.output_mission_frame),
-        submap_vis_(submap_config, mesh_config) {
+                              config.output_mission_frame) {
     nh_private.param<bool>("verbose", verbose_, verbose_);
     LOG(INFO) << "Verbose: " << verbose_;
     LOG(INFO) << config_;
@@ -128,12 +127,6 @@ class CoxgraphServer {
         new GlobalTfController(nh, nh_private, config.client_number, verbose_));
     pose_graph_interface_.setVerbosity(verbose_);
     pose_graph_interface_.setMeasurementConfigFromRosParams(nh_private_);
-
-    submap_vis_.setMeshOpacity(config_.mesh_opacity);
-    submap_vis_.setSubmapMeshColorMode(
-        voxblox::getColorModeFromString(config_.submap_mesh_color_mode));
-    submap_vis_.setCombinedMeshColorMode(
-        voxblox::getColorModeFromString(config_.combined_mesh_color_mode));
 
     subscribeTopics();
     advertiseTopics();
@@ -153,7 +146,6 @@ class CoxgraphServer {
   using ReqState = ClientHandler::ReqState;
   using SubmapCollection = server::SubmapCollection;
   using PoseGraphInterface = server::PoseGraphInterface;
-  using SubmapVisuals = voxgraph::SubmapVisuals;
   using ThreadingHelper = voxgraph::ThreadingHelper;
   using PoseMap = PoseGraphInterface::PoseMap;
 
@@ -192,8 +184,6 @@ class CoxgraphServer {
 
   void updateCliMapRelativePose();
 
-  void publishMaps(const ros::Time& time = ros::Time::now());
-
   inline bool isTimeFused(const CliId& cid, const ros::Time& time) {
     return fused_time_line_[cid].hasTime(time);
   }
@@ -222,9 +212,6 @@ class CoxgraphServer {
 
   ros::Subscriber map_fusion_sub_;
 
-  ros::Publisher combined_mesh_pub_;
-  ros::Publisher separated_mesh_pub_;
-
   // Verbosity and debug mode
   bool verbose_;
 
@@ -246,9 +233,6 @@ class CoxgraphServer {
   std::future<OptState> optimization_async_handle_;
 
   GlobalTfController::Ptr tf_controller_;
-
-  // Visualization tools
-  SubmapVisuals submap_vis_;
 
   constexpr static uint8_t kMaxClientNum = 2;
   constexpr static uint8_t kPoseUpdateWaitMs = 100;

@@ -76,12 +76,7 @@ void CoxgraphServer::subscribeTopics() {
                     &CoxgraphServer::mapFusionMsgCallback, this);
 }
 
-void CoxgraphServer::advertiseTopics() {
-  combined_mesh_pub_ = nh_private_.advertise<visualization_msgs::Marker>(
-      "combined_mesh", config_.publisher_queue_length, true);
-  separated_mesh_pub_ = nh_private_.advertise<visualization_msgs::Marker>(
-      "separated_mesh", config_.publisher_queue_length, true);
-}
+void CoxgraphServer::advertiseTopics() {}
 
 void CoxgraphServer::mapFusionMsgCallback(
     const coxgraph_msgs::MapFusion& map_fusion_msg) {
@@ -463,24 +458,6 @@ void CoxgraphServer::updateCliMapRelativePose() {
         }
       }
     }
-  }
-}
-
-void CoxgraphServer::publishMaps(const ros::Time& time) {
-  LOG(INFO) << "Publishing meshes";
-  if (combined_mesh_pub_.getNumSubscribers() > 0) {
-    ThreadingHelper::launchBackgroundThread(
-        &SubmapVisuals::publishCombinedMesh, &submap_vis_,
-        *(static_cast<voxgraph::VoxgraphSubmapCollection::Ptr>(
-            submap_collection_ptr_)),
-        config_.output_mission_frame, combined_mesh_pub_);
-  }
-  if (separated_mesh_pub_.getNumSubscribers() > 0) {
-    ThreadingHelper::launchBackgroundThread(
-        &SubmapVisuals::publishSeparatedMesh, &submap_vis_,
-        *(static_cast<voxgraph::VoxgraphSubmapCollection::Ptr>(
-            submap_collection_ptr_)),
-        config_.output_mission_frame, separated_mesh_pub_);
   }
 }
 
