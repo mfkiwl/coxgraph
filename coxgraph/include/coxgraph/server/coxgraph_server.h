@@ -209,6 +209,13 @@ class CoxgraphServer {
     return false;
   }
 
+  inline SerSmId addSubmap(const CliSm::Ptr& submap, const CliId& cid,
+                           const CliSmId& cli_sm_id) {
+    submap_collection_ptr_->addSubmap(submap, cid, cli_sm_id);
+    pose_graph_interface_.addSubmap(submap->getID());
+    return submap->getID();
+  }
+
   // Node handles
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;

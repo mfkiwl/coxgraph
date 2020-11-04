@@ -7,7 +7,10 @@ Panels:
         - /Global Options1
         - /Grid1
         - /TF1
+        - /TF1/Status1
         - /TF1/Tree1
+        - /Marker1
+        - /Marker1/Status1
       Splitter Ratio: 0.673529387
     Tree Height: 755
   - Class: rviz/Selection
@@ -87,7 +90,9 @@ Visualization Manager:
               {}
           mission_1:
             map_1:
-              {}
+              robot_base_1:
+                sensor_coxgraph_1:
+                  {}
       Update Interval: 0
       Value: true
     - Class: rviz/Marker
@@ -113,6 +118,14 @@ Visualization Manager:
       Unreliable: false
       Value: false
       Visible: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /coxgraph/coxgraph_server_node/combined_mesh
+      Name: Marker
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 255; 255; 255
@@ -138,25 +151,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 5.25546598
+      Distance: 20.9273357
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -1.7874099
-        Y: -0.273322493
-        Z: -2.34280062
+        X: 6.7717247
+        Y: -3.65283346
+        Z: -6.69221926
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.0500000007
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.100000001
-      Pitch: 0.859796941
+      Pitch: 0.84979713
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 0.441741794
+      Yaw: 2.70675397
     Saved: ~
 Window Geometry:
   Displays:

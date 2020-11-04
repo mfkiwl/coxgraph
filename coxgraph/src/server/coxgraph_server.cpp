@@ -169,6 +169,16 @@ bool CoxgraphServer::mapFusionCallback(
         << submap_b->getTsdfMapPtr()->getTsdfLayerPtr()->getMemorySize();
   }
 
+  if (ok_a != ReqState::SUCCESS || ok_b != ReqState::SUCCESS) {
+    if (ok_a == ReqState::SUCCESS) {
+      addSubmap(submap_a, cid_a, cli_sm_id_a);
+    }
+    if (ok_b == ReqState::SUCCESS) {
+      addSubmap(submap_b, cid_b, cli_sm_id_b);
+    }
+    return false;
+  }
+
   bool fused_any = false;
   if (future) {
     CHECK_EQ(ok_a, ReqState::SUCCESS);
@@ -296,18 +306,14 @@ bool CoxgraphServer::fuseMap(const CliId& cid_a, const ros::Time& t1,
     ser_sm_id_a =
         submap_collection_ptr_->getSerSmIdByCliSmId(cid_a, cli_sm_id_a);
   } else {
-    ser_sm_id_a = submap_a->getID();
-    submap_collection_ptr_->addSubmap(submap_a, cid_a, cli_sm_id_a);
-    pose_graph_interface_.addSubmap(submap_a->getID());
+    ser_sm_id_a = addSubmap(submap_a, cid_a, cli_sm_id_a);
   }
 
   if (submap_b->getPoseHistory().empty()) {
     ser_sm_id_b =
         submap_collection_ptr_->getSerSmIdByCliSmId(cid_b, cli_sm_id_b);
   } else {
-    ser_sm_id_b = submap_b->getID();
-    submap_collection_ptr_->addSubmap(submap_b, cid_b, cli_sm_id_b);
-    pose_graph_interface_.addSubmap(submap_b->getID());
+    ser_sm_id_b = addSubmap(submap_b, cid_b, cli_sm_id_b);
   }
 
   if (config_.enable_map_fusion_constraints) {
