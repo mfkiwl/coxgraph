@@ -76,15 +76,17 @@ ClientHandler::ReqState ClientHandler::requestSubmapByTime(
 
 void ClientHandler::submapPoseUpdatesCallback(
     const coxgraph_msgs::MapPoseUpdates& map_pose_updates_msg) {
-  LOG(INFO) << "Received new pose for " << map_pose_updates_msg.submap_id.size()
-            << " submaps.";
+  LOG(INFO) << log_prefix_ << "Received new pose for "
+            << map_pose_updates_msg.submap_id.size() << " submaps.";
   submap_collection_ptr_->getPosesUpdateMutex()->lock();
   {
     for (int i = 0; i < map_pose_updates_msg.submap_id.size(); i++) {
       // TODO(mikexyl): don't need to transform submap?
       SerSmId ser_sm_id = submap_collection_ptr_->getSerSmIdByCliSmId(
           client_id_, map_pose_updates_msg.submap_id[i]);
-      CHECK(submap_collection_ptr_->exists(ser_sm_id));
+      CHECK(submap_collection_ptr_->exists(ser_sm_id))
+          << "CliSmId " << map_pose_updates_msg.submap_id[i]
+          << ", SerSmId: " << ser_sm_id;
       geometry_msgs::Pose submap_pose_msg = map_pose_updates_msg.new_pose[i];
       CliSm::Ptr submap_ptr = submap_collection_ptr_->getSubmapPtr(ser_sm_id);
       TransformationD submap_pose;

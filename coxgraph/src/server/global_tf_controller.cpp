@@ -69,6 +69,10 @@ void GlobalTfController::updateCliMapPose() {
           << cli_map_pose_kv.second;
     }
     pose_updated_ = false;
+  } else {
+    for (auto& T_G_CLI : T_G_CLI_opt_) {
+      T_G_CLI.stamp_ = ros::Time::now();
+    }
   }
 }
 
