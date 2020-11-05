@@ -107,7 +107,7 @@ bool CoxgraphServer::getFinalGlobalMeshCallback(
       << "Mesh file path is not given, mesh will not be saved as file";
 
   uint8_t trials_ = 0;
-  while (!map_fusion_proc_mutex_.try_lock_for(std::chrono::milliseconds(500))) {
+  while (!final_mesh_gen_mutex_.try_lock_for(std::chrono::milliseconds(500))) {
     LOG(INFO) << "current map fusion is still being processing, waiting";
     trials_++;
     CHECK_LT(trials_, 3)
@@ -132,7 +132,7 @@ bool CoxgraphServer::getFinalGlobalMeshCallback(
 
   LOG(INFO) << "Global mesh generated, map fusion process unpaused";
 
-  map_fusion_proc_mutex_.unlock();
+  final_mesh_gen_mutex_.unlock();
   return true;
 }
 
@@ -164,8 +164,7 @@ void CoxgraphServer::loopClosureCallback(
 
 bool CoxgraphServer::mapFusionCallback(
     const coxgraph_msgs::MapFusion& map_fusion_msg, bool future) {
-  std::lock_guard<std::timed_mutex> map_fusion_proc_lock(
-      map_fusion_proc_mutex_);
+  std::lock_guard<std::timed_mutex> map_fusion_proc_lock(final_mesh_gen_mutex_);
 
   CHECK_NE(map_fusion_msg.from_client_id, map_fusion_msg.to_client_id);
 
@@ -255,7 +254,6 @@ bool CoxgraphServer::mapFusionCallback(
       }
     } else {
       addToMFFuture(map_fusion_msg);
-      processMFFuture();
     }
   }
 
@@ -268,11 +266,13 @@ bool CoxgraphServer::mapFusionCallback(
 
 void CoxgraphServer::addToMFFuture(
     const coxgraph_msgs::MapFusion& map_fusion_msg) {
+  std::lock_guard<std::mutex> future_mf_queue_lock(future_mf_queue_mutex_);
   if (map_fusion_msgs_future_.size() < config_.map_fusion_queue_size)
     map_fusion_msgs_future_.emplace_back(map_fusion_msg);
 }
 
 void CoxgraphServer::processMFFuture() {
+  std::lock_guard<std::mutex> future_mf_queue_lock(future_mf_queue_mutex_);
   bool processed_any = false;
   for (auto it = map_fusion_msgs_future_.begin();
        it != map_fusion_msgs_future_.end(); it++) {
@@ -295,6 +295,12 @@ void CoxgraphServer::processMFFuture() {
     // LOG_IF(INFO, verbose_)
     // << "Successfully processed a MF msg, clearing MF msg queue";
     // map_fusion_msgs_future_.clear();
+  }
+}
+
+void CoxgraphServer::futureMFProcCallback(const ros::TimerEvent& event) {
+  if (inControl()) {
+    processMFFuture();
   }
 }
 
@@ -330,6 +336,8 @@ bool CoxgraphServer::fuseMap(const CliId& cid_a, const ros::Time& t1,
                              const CliSm::Ptr& submap_b,
                              const Transformation& T_B_t2,
                              const Transformation& T_t1_t2) {
+  std::lock_guard<std::mutex> map_fuse_lock(map_fuse_mutex_);
+
   LOG(INFO) << "Fusing: " << std::endl
             << "  Client: " << static_cast<int>(cid_a)
             << " -> Submap: " << static_cast<int>(cli_sm_id_a) << std::endl

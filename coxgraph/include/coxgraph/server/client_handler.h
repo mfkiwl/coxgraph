@@ -11,6 +11,7 @@
 #include <Eigen/Dense>
 
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -141,6 +142,8 @@ class ClientHandler {
   ros::ServiceClient get_all_submaps_client_;
 
   SubmapCollection::Ptr submap_collection_ptr_;
+
+  std::mutex submap_request_mutex_;
 
   constexpr static int8_t kSubQueueSize = 10;
 };

@@ -145,6 +145,10 @@ class CoxgraphServer {
         voxblox::getColorModeFromString(config_.submap_mesh_color_mode));
     server_vis_.setCombinedMeshColorMode(
         voxblox::getColorModeFromString(config_.combined_mesh_color_mode));
+
+    future_msg_proc_timer_ =
+        nh_.createTimer(ros::Duration(kFutureMFProcInterval),
+                        &CoxgraphServer::futureMFProcCallback, this);
   }
 
   ~CoxgraphServer() = default;
@@ -158,6 +162,11 @@ class CoxgraphServer {
   bool getFinalGlobalMeshCallback(
       voxblox_msgs::FilePath::Request& request,     // NOLINT
       voxblox_msgs::FilePath::Response& response);  // NOLINT
+
+  // TODO(mikexyl): control check for zoo keeper implementation
+  inline bool inControl() { return true; }
+
+  void futureMFProcCallback(const ros::TimerEvent& event);
 
  private:
   using ClientHandler = server::ClientHandler;
@@ -217,6 +226,7 @@ class CoxgraphServer {
 
   inline SerSmId addSubmap(const CliSm::Ptr& submap, const CliId& cid,
                            const CliSmId& cli_sm_id) {
+    std::lock_guard<std::mutex> submap_add_lock(submap_add_mutex_);
     submap_collection_ptr_->addSubmap(submap, cid, cli_sm_id);
     pose_graph_interface_.addSubmap(submap->getID());
     return submap->getID();
@@ -236,14 +246,18 @@ class CoxgraphServer {
   const CliSmConfig submap_config_;
   SubmapCollection::Ptr submap_collection_ptr_;
   PoseGraphInterface pose_graph_interface_;
+  std::mutex submap_add_mutex_;
 
   std::vector<ClientHandler::Ptr> client_handlers_;
+
+  // Map fusion msg process related
+  std::deque<coxgraph_msgs::MapFusion> map_fusion_msgs_future_;
   std::vector<bool> force_fuse_;
   std::vector<TimeLine> fused_time_line_;
-
-  std::deque<coxgraph_msgs::MapFusion> map_fusion_msgs_future_;
-
   std::map<SerSmId, SerSmId> fused_ser_sm_id_pair;
+  std::mutex map_fuse_mutex_;
+  std::mutex future_mf_queue_mutex_;
+  ros::Timer future_msg_proc_timer_;
 
   // Asynchronous handle for the pose graph optimization thread
   std::future<OptState> optimization_async_handle_;
@@ -255,10 +269,11 @@ class CoxgraphServer {
   ros::Publisher combined_mesh_pub_;
   ros::Publisher separated_mesh_pub_;
   ros::ServiceServer get_final_global_mesh_srv_;
-  std::timed_mutex map_fusion_proc_mutex_;
+  std::timed_mutex final_mesh_gen_mutex_;
 
   constexpr static uint8_t kMaxClientNum = 2;
   constexpr static uint8_t kPoseUpdateWaitMs = 100;
+  constexpr static float kFutureMFProcInterval = 1.0;
 };
 
 }  // namespace coxgraph

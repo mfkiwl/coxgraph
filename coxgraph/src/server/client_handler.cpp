@@ -62,6 +62,8 @@ void ClientHandler::subscribeToServices() {
 ClientHandler::ReqState ClientHandler::requestSubmapByTime(
     const ros::Time& timestamp, const SerSmId& ser_sm_id, CliSmId* cli_sm_id,
     CliSm::Ptr* submap, Transformation* T_submap_t) {
+  std::lock_guard<std::mutex> submap_request_lock(submap_request_mutex_);
+
   if (!time_line_.hasTime(timestamp)) return ReqState::FUTURE;
 
   coxgraph_msgs::ClientSubmapSrv cli_submap_srv;
@@ -109,6 +111,8 @@ void ClientHandler::submapPoseUpdatesCallback(
 
 bool ClientHandler::requestAllSubmaps(std::vector<CliSmIdPack>* submap_packs,
                                       SerSmId* start_ser_sm_id) {
+  std::lock_guard<std::mutex> submap_request_lock(submap_request_mutex_);
+
   CHECK(submap_packs != nullptr);
   submap_packs->clear();
   coxgraph_msgs::SubmapsSrv submap_srv;
