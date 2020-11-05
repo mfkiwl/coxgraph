@@ -23,9 +23,18 @@ class SubmapCollection : public voxgraph::VoxgraphSubmapCollection {
                    int8_t client_number, bool verbose = false)
       : voxgraph::VoxgraphSubmapCollection(submap_config, verbose),
         client_number_(client_number) {}
+
+  // Copy constructor
+  SubmapCollection(const SubmapCollection& rhs)
+      : voxgraph::VoxgraphSubmapCollection(
+            static_cast<voxgraph::VoxgraphSubmapCollection>(rhs)),
+        client_number_(rhs.client_number_) {}
+
   ~SubmapCollection() = default;
 
-  Transformation addSubmap(const CliSm::Ptr& submap, const CliId& cid,
+  const int8_t& getClientNumber() const { return client_number_; }
+
+  Transformation addSubmap(const CliSm::Ptr& submap_ptr, const CliId& cid,
                            const CliSmId& cli_sm_id);
 
   inline std::timed_mutex* getPosesUpdateMutex() {
@@ -60,11 +69,10 @@ class SubmapCollection : public voxgraph::VoxgraphSubmapCollection {
 
  private:
   typedef std::pair<CliId, CliId> CliIdPair;
-  typedef std::pair<CliId, CliSmId> CliIdSmIdPair;
   typedef std::unordered_map<SerSmId, CliIdSmIdPair> SmCliIdMap;
   typedef std::unordered_map<CliId, std::vector<SerSmId>> CliSerSmIdMap;
 
-  Transformation mergeToCliMap(const CliSm::Ptr& submap);
+  Transformation mergeToCliMap(const CliSm::Ptr& submap_ptr);
 
   const int8_t client_number_;
 

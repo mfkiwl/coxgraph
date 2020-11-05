@@ -27,7 +27,7 @@ global_tf_controller:
   map_frame_prefix: "mission"
 
 submap_registration:
-  enabled: false
+  enabled: true
   sampling_ratio: 0.05
   registration_method: "explicit_to_implicit"
   information_matrix:

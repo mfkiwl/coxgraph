@@ -1,9 +1,9 @@
 #include "coxgraph/server/coxgraph_server.h"
 
+#include <coxgraph_msgs/SubmapsSrv.h>
 #include <geometry_msgs/Quaternion.h>
 #include <tf/transform_datatypes.h>
 #include <visualization_msgs/Marker.h>
-#include <visualization_msgs/MarkerArray.h>
 #include <voxgraph/frontend/submap_collection/voxgraph_submap_collection.h>
 
 #include <chrono>
@@ -55,6 +55,13 @@ CoxgraphServer::Config CoxgraphServer::getConfigFromRosParam(
                          config.enable_client_loop_clousure);
   nh_private.param<int>("publisher_queue_length", config.publisher_queue_length,
                         config.publisher_queue_length);
+
+  nh_private.param<float>("mesh_opacity", config.mesh_opacity, 1.0);
+  nh_private.param<std::string>("submap_mesh_color_mode",
+                                config.submap_mesh_color_mode, "lambert_color");
+  nh_private.param<std::string>("combined_mesh_color_mode",
+                                config.combined_mesh_color_mode, "normals");
+
   return config;
 }
 
@@ -76,7 +83,58 @@ void CoxgraphServer::subscribeTopics() {
                     &CoxgraphServer::mapFusionMsgCallback, this);
 }
 
-void CoxgraphServer::advertiseTopics() {}
+void CoxgraphServer::advertiseTopics() {
+  combined_mesh_pub_ = nh_private_.advertise<visualization_msgs::Marker>(
+      "combined_mesh", config_.publisher_queue_length, true);
+  separated_mesh_pub_ = nh_private_.advertise<visualization_msgs::Marker>(
+      "separated_mesh", config_.publisher_queue_length, true);
+}
+
+void CoxgraphServer::advertiseServices() {
+  get_final_global_mesh_srv_ = nh_private_.advertiseService(
+      "get_final_global_mesh", &CoxgraphServer::getFinalGlobalMeshCallback,
+      this);
+}
+
+bool CoxgraphServer::getFinalGlobalMeshCallback(
+    voxblox_msgs::FilePath::Request& request,
+    voxblox_msgs::FilePath::Response& response) {
+  LOG(INFO) << "Service called to get final global mesh, pausing map fusion "
+               "process";
+
+  std::string mesh_file_path = request.file_path;
+  LOG_IF(INFO, mesh_file_path.empty())
+      << "Mesh file path is not given, mesh will not be saved as file";
+
+  uint8_t trials_ = 0;
+  while (!map_fusion_proc_mutex_.try_lock_for(std::chrono::milliseconds(500))) {
+    LOG(INFO) << "current map fusion is still being processing, waiting";
+    trials_++;
+    CHECK_LT(trials_, 3)
+        << " Tried 3 times, map fusion process is still running";
+  }
+  LOG(INFO) << "Map fusion process is paused, generating final mesh";
+
+  // requesting submaps one by one to avoid bandwidth peak,
+  std::vector<CliSmIdPack> all_submaps;
+  SerSmId start_ser_sm_id = submap_collection_ptr_->getNextSubmapID();
+  for (auto const& ch : client_handlers_) {
+    std::vector<CliSmIdPack> submaps_in_client;
+    CHECK(ch->requestAllSubmaps(&submaps_in_client, &start_ser_sm_id));
+    all_submaps.insert(all_submaps.end(), submaps_in_client.begin(),
+                       submaps_in_client.end());
+  }
+
+  server_vis_.getFinalGlobalMesh(submap_collection_ptr_, pose_graph_interface_,
+                                 all_submaps,
+                                 tf_controller_->getGlobalMissionFrame(),
+                                 combined_mesh_pub_, mesh_file_path);
+
+  LOG(INFO) << "Global mesh generated, map fusion process unpaused";
+
+  map_fusion_proc_mutex_.unlock();
+  return true;
+}
 
 void CoxgraphServer::mapFusionMsgCallback(
     const coxgraph_msgs::MapFusion& map_fusion_msg) {
@@ -106,6 +164,9 @@ void CoxgraphServer::loopClosureCallback(
 
 bool CoxgraphServer::mapFusionCallback(
     const coxgraph_msgs::MapFusion& map_fusion_msg, bool future) {
+  std::lock_guard<std::timed_mutex> map_fusion_proc_lock(
+      map_fusion_proc_mutex_);
+
   CHECK_NE(map_fusion_msg.from_client_id, map_fusion_msg.to_client_id);
 
   // TODO(mikexyl): make ifs cleaner
@@ -341,31 +402,7 @@ bool CoxgraphServer::fuseMap(const CliId& cid_a, const ros::Time& t1,
 }
 
 void CoxgraphServer::updateSubmapRPConstraints() {
-  // TODO(mikexyl): constraints wrong
-  pose_graph_interface_.resetSubmapRelativePoseConstrains();
-  for (int cid = 0; cid < config_.client_number; cid++) {
-    std::vector<SerSmId>* cli_ser_sm_ids =
-        submap_collection_ptr_->getSerSmIdsByCliId(cid);
-    for (int i = 0; i < cli_ser_sm_ids->size() - 1; i++) {
-      int j = i + 1;
-      SerSmId sid_i = cli_ser_sm_ids->at(i);
-      SerSmId sid_j = cli_ser_sm_ids->at(j);
-
-      Transformation T_M_SMi =
-          submap_collection_ptr_->getSubmapPtr(sid_i)->getPose();
-      Transformation T_M_SMj =
-          submap_collection_ptr_->getSubmapPtr(sid_j)->getPose();
-      Transformation T_SMi_SMj = T_M_SMi.inverse() * T_M_SMj;
-      pose_graph_interface_.addSubmapRelativePoseConstraint(sid_i, sid_j,
-                                                            T_SMi_SMj);
-      LOG(INFO) << "debug: submap rp constraints between " << sid_i << " and "
-                << sid_j << std::endl
-                << "from: " << std::endl
-                << T_M_SMi << "to: " << std::endl
-                << T_M_SMj << std::endl
-                << T_SMi_SMj;
-    }
-  }
+  pose_graph_interface_.updateSubmapRPConstraints();
 }
 
 CoxgraphServer::OptState CoxgraphServer::optimizePoseGraph(

@@ -1,8 +1,10 @@
 #include "coxgraph/server/client_handler.h"
 
+#include <coxgraph_msgs/SubmapsSrv.h>
 #include <coxgraph_msgs/TimeLine.h>
 
 #include <string>
+#include <vector>
 
 #include "coxgraph/utils/msg_converter.h"
 
@@ -52,7 +54,9 @@ void ClientHandler::advertiseTopics() {
 
 void ClientHandler::subscribeToServices() {
   pub_client_submap_client_ = nh_.serviceClient<coxgraph_msgs::ClientSubmapSrv>(
-      client_node_name_ + "/publish_client_submap");
+      client_node_name_ + "/get_client_submap");
+  get_all_submaps_client_ = nh_.serviceClient<coxgraph_msgs::SubmapsSrv>(
+      client_node_name_ + "/get_all_submaps");
 }
 
 ClientHandler::ReqState ClientHandler::requestSubmapByTime(
@@ -101,6 +105,22 @@ void ClientHandler::submapPoseUpdatesCallback(
     }
   }
   submap_collection_ptr_->getPosesUpdateMutex()->unlock();
+}
+
+bool ClientHandler::requestAllSubmaps(std::vector<CliSmIdPack>* submap_packs,
+                                      SerSmId* start_ser_sm_id) {
+  CHECK(submap_packs != nullptr);
+  submap_packs->clear();
+  coxgraph_msgs::SubmapsSrv submap_srv;
+  if (get_all_submaps_client_.call(submap_srv)) {
+    for (auto const& submap_msg : submap_srv.response.submaps)
+      submap_packs->emplace_back(
+          utils::cliSubmapFromMsg((*start_ser_sm_id)++, submap_config_,
+                                  submap_msg, &mission_frame_id_),
+          client_id_, submap_msg.map_header.id);
+    return true;
+  }
+  return false;
 }
 
 }  // namespace server

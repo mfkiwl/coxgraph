@@ -59,7 +59,12 @@ class GlobalTfController {
     LOG(INFO) << config;
     initCliMapPose();
   }
+
   ~GlobalTfController() = default;
+
+  const std::string& getGlobalMissionFrame() const {
+    return global_mission_frame_;
+  }
 
   void publishTfGloCli();
 

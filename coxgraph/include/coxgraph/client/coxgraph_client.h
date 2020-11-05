@@ -3,11 +3,13 @@
 
 #include <coxgraph_msgs/ClientSubmap.h>
 #include <coxgraph_msgs/ClientSubmapSrv.h>
+#include <coxgraph_msgs/SubmapsSrv.h>
 #include <coxgraph_msgs/TimeLine.h>
 #include <voxgraph/frontend/voxgraph_mapper.h>
 #include <voxgraph_msgs/LoopClosure.h>
 
 #include <map>
+#include <mutex>
 #include <string>
 
 #include "coxgraph/common.h"
@@ -41,9 +43,13 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
   void advertiseClientTopics();
   void advertiseClientServices();
 
-  bool pubClientSubmapCallback(
+  bool getClientSubmapCallback(
       coxgraph_msgs::ClientSubmapSrv::Request& request,     // NOLINT
       coxgraph_msgs::ClientSubmapSrv::Response& response);  // NOLINT
+
+  bool getAllClientSubmapsCallback(
+      coxgraph_msgs::SubmapsSrv::Request& request,     // NOLINT
+      coxgraph_msgs::SubmapsSrv::Response& response);  // NOLINT
 
   void submapCallback(const voxblox_msgs::LayerWithTrajectory& submap_msg);
 
@@ -61,9 +67,12 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
 
   ros::Publisher time_line_pub_;
   ros::Publisher map_pose_pub_;
-  ros::ServiceServer publish_client_submap_srv_;
+  ros::ServiceServer get_client_submap_srv_;
+  ros::ServiceServer get_all_client_submaps_srv_;
 
   SmIdTfMap ser_sm_id_pose_map_;
+
+  std::timed_mutex submap_proc_mutex_;
 };
 
 }  // namespace coxgraph

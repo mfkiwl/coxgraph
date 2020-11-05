@@ -1,5 +1,7 @@
 #include "coxgraph/server/pose_graph_interface.h"
 
+#include <vector>
+
 #include <voxgraph/backend/constraint/relative_pose_constraint.h>
 
 namespace coxgraph {
@@ -26,6 +28,33 @@ void PoseGraphInterface::optimize(bool enable_registration) {
   if (pose_graph_pub_.getNumSubscribers() > 0) {
     pose_graph_vis_.publishPoseGraph(pose_graph_, visualization_mission_frame_,
                                      "optimized", pose_graph_pub_);
+  }
+}
+
+void PoseGraphInterface::updateSubmapRPConstraints() {
+  resetSubmapRelativePoseConstrains();
+  for (int cid = 0; cid < cox_submap_collection_ptr_->getClientNumber();
+       cid++) {
+    std::vector<SerSmId>* cli_ser_sm_ids =
+        cox_submap_collection_ptr_->getSerSmIdsByCliId(cid);
+    for (int i = 0; i < cli_ser_sm_ids->size() - 1; i++) {
+      int j = i + 1;
+      SerSmId sid_i = cli_ser_sm_ids->at(i);
+      SerSmId sid_j = cli_ser_sm_ids->at(j);
+
+      Transformation T_M_SMi =
+          cox_submap_collection_ptr_->getSubmapPtr(sid_i)->getPose();
+      Transformation T_M_SMj =
+          cox_submap_collection_ptr_->getSubmapPtr(sid_j)->getPose();
+      Transformation T_SMi_SMj = T_M_SMi.inverse() * T_M_SMj;
+      addSubmapRelativePoseConstraint(sid_i, sid_j, T_SMi_SMj);
+      LOG(INFO) << "debug: submap rp constraints between " << sid_i << " and "
+                << sid_j << std::endl
+                << "from: " << std::endl
+                << T_M_SMi << "to: " << std::endl
+                << T_M_SMj << std::endl
+                << T_SMi_SMj;
+    }
   }
 }
 

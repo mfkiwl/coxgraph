@@ -3,7 +3,7 @@
 
 #include <coxgraph_msgs/MapFusion.h>
 #include <ros/ros.h>
-#include <voxblox/mesh/mesh_integrator.h>
+#include <voxblox_msgs/FilePath.h>
 #include <voxblox_ros/ros_params.h>
 #include <voxgraph/frontend/pose_graph_interface/pose_graph_interface.h>
 #include <voxgraph/frontend/submap_collection/voxgraph_submap.h>
@@ -17,6 +17,7 @@
 #include <future>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -25,6 +26,7 @@
 #include "coxgraph/server/global_tf_controller.h"
 #include "coxgraph/server/pose_graph_interface.h"
 #include "coxgraph/server/submap_collection.h"
+#include "coxgraph/server/visualizer/server_visualizer.h"
 
 namespace coxgraph {
 
@@ -44,9 +46,7 @@ class CoxgraphServer {
           mesh_opacity(1.0),
           submap_mesh_color_mode("lambert_color"),
           combined_mesh_color_mode("normals"),
-          // TODO(mikexyl): default false now, for bug not fixed in this
-          // constraint. set default true after bug fixed
-          enable_submap_relative_pose_constraints(false) {}
+          enable_submap_relative_pose_constraints(true) {}
     int32_t client_number;
     std::string map_fusion_topic;
     int32_t map_fusion_queue_size;
@@ -109,7 +109,7 @@ class CoxgraphServer {
 
   CoxgraphServer(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private,
                  const Config& config, const CliSmConfig& submap_config,
-                 const voxblox::MeshIntegratorConfig& mesh_config)
+                 const MeshIntegratorConfig& mesh_config)
       : nh_(nh),
         nh_private_(nh_private),
         verbose_(false),
@@ -118,27 +118,46 @@ class CoxgraphServer {
         submap_collection_ptr_(std::make_shared<SubmapCollection>(
             submap_config_, config.client_number)),
         pose_graph_interface_(nh_private, submap_collection_ptr_, mesh_config,
-                              config.output_mission_frame) {
-    nh_private.param<bool>("verbose", verbose_, verbose_);
+                              config.output_mission_frame),
+        server_vis_(submap_config, mesh_config) {
+    nh_private_.param<bool>("verbose", verbose_, verbose_);
     LOG(INFO) << "Verbose: " << verbose_;
     LOG(INFO) << config_;
 
-    tf_controller_.reset(
-        new GlobalTfController(nh, nh_private, config.client_number, verbose_));
+    tf_controller_.reset(new GlobalTfController(
+        nh_, nh_private_, config_.client_number, verbose_));
     pose_graph_interface_.setVerbosity(verbose_);
     pose_graph_interface_.setMeasurementConfigFromRosParams(nh_private_);
 
     subscribeTopics();
     advertiseTopics();
-    initClientHandlers(nh, nh_private);
+    advertiseServices();
+    initClientHandlers(nh_, nh_private_);
 
     LOG(INFO) << client_handlers_[0]->getConfig();
 
     CHECK_EQ(config_.fixed_map_client_id, 0)
         << "Fixed map client id has to be set 0 now, since pose graph "
            "optimization set pose of submap 0 as constant";
+
+    server_vis_.setMeshOpacity(config_.mesh_opacity);
+    server_vis_.setSubmapMeshColorMode(
+        voxblox::getColorModeFromString(config_.submap_mesh_color_mode));
+    server_vis_.setCombinedMeshColorMode(
+        voxblox::getColorModeFromString(config_.combined_mesh_color_mode));
   }
+
   ~CoxgraphServer() = default;
+
+  void subscribeTopics();
+  void advertiseTopics();
+  void advertiseServices();
+
+  void mapFusionMsgCallback(const coxgraph_msgs::MapFusion& map_fusion_msg);
+
+  bool getFinalGlobalMeshCallback(
+      voxblox_msgs::FilePath::Request& request,     // NOLINT
+      voxblox_msgs::FilePath::Response& response);  // NOLINT
 
  private:
   using ClientHandler = server::ClientHandler;
@@ -148,14 +167,11 @@ class CoxgraphServer {
   using PoseGraphInterface = server::PoseGraphInterface;
   using ThreadingHelper = voxgraph::ThreadingHelper;
   using PoseMap = PoseGraphInterface::PoseMap;
+  using ServerVisualizer = server::ServerVisualizer;
 
   void initClientHandlers(const ros::NodeHandle& nh,
                           const ros::NodeHandle& nh_private);
 
-  void subscribeTopics();
-  void advertiseTopics();
-
-  void mapFusionMsgCallback(const coxgraph_msgs::MapFusion& map_fusion_msg);
   void loopClosureCallback(const CliId& client_id,
                            const voxgraph_msgs::LoopClosure& loop_closure_msg);
   bool mapFusionCallback(const coxgraph_msgs::MapFusion& map_fusion_msg,
@@ -233,6 +249,13 @@ class CoxgraphServer {
   std::future<OptState> optimization_async_handle_;
 
   GlobalTfController::Ptr tf_controller_;
+
+  // Visualization
+  ServerVisualizer server_vis_;
+  ros::Publisher combined_mesh_pub_;
+  ros::Publisher separated_mesh_pub_;
+  ros::ServiceServer get_final_global_mesh_srv_;
+  std::timed_mutex map_fusion_proc_mutex_;
 
   constexpr static uint8_t kMaxClientNum = 2;
   constexpr static uint8_t kPoseUpdateWaitMs = 100;
