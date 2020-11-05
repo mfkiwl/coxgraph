@@ -71,6 +71,13 @@ class PoseGraphInterface : public voxgraph::PoseGraphInterface {
 
   PoseMap getPoseMap() { return pose_graph_.getSubmapPoses(); }
 
+  void printResiduals(ConstraintType constraint_type) {
+    for (double residual : evaluateResiduals(constraint_type)) {
+      std::cout << residual << " ";
+    }
+    std::cout << std::endl;
+  }
+
  private:
   SubmapCollection::Ptr cox_submap_collection_ptr_;
   InformationMatrix sm_rp_info_matrix_;

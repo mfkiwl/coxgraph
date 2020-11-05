@@ -30,6 +30,14 @@ void ServerVisualizer::getFinalGlobalMesh(
         submap_pack.submap_ptr, submap_pack.cid, submap_pack.cli_sm_id);
     global_pg_interface.addSubmap(submap_pack.submap_ptr->getID());
   }
+
+  TransformationVector submap_poses;
+  global_submap_collection_ptr->getSubmapPoses(&submap_poses);
+  LOG(INFO) << "before optimize";
+  for (int i = 0; i < submap_poses.size(); i++) {
+    LOG(INFO) << i << std::endl << submap_poses[i];
+  }
+
   global_pg_interface.updateSubmapRPConstraints();
 
   auto opt_async = std::async(std::launch::async, &PoseGraphInterface::optimize,
@@ -41,7 +49,22 @@ void ServerVisualizer::getFinalGlobalMesh(
   }
   LOG(INFO) << "Optimization finished, generating global mesh...";
 
+  auto pose_map = global_pg_interface.getPoseMap();
+  LOG(INFO) << "pose graph results";
+  for (auto const& pose_kv : pose_map)
+    LOG(INFO) << pose_kv.first << std::endl << pose_kv.second;
+
+  LOG(INFO) << "Evaluating Residuals of Map Fusion Constraints";
+  global_pg_interface.printResiduals(
+      PoseGraphInterface::ConstraintType::RelPose);
+
   global_pg_interface.updateSubmapCollectionPoses();
+
+  global_submap_collection_ptr->getSubmapPoses(&submap_poses);
+  LOG(INFO) << "after optimize";
+  for (int i = 0; i < submap_poses.size(); i++) {
+    LOG(INFO) << i << std::endl << submap_poses[i];
+  }
 
   // TODO(mikexyl): also update client map tf using global opt
 
@@ -50,5 +73,6 @@ void ServerVisualizer::getFinalGlobalMesh(
 
   LOG(INFO) << "Global mesh generated, published and saved to " << file_path;
 }
+
 }  // namespace server
 }  // namespace coxgraph

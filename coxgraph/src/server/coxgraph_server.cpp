@@ -434,6 +434,11 @@ CoxgraphServer::OptState CoxgraphServer::optimizePoseGraph(
 
   pose_graph_interface_.optimize(enable_registration);
 
+  auto pose_map = pose_graph_interface_.getPoseMap();
+  LOG(INFO) << "pose graph results";
+  for (auto const& pose_kv : pose_map)
+    LOG(INFO) << pose_kv.first << std::endl << pose_kv.second;
+
   if (verbose_) evaluateResiduals();
 
   // Update the submap poses
@@ -455,20 +460,14 @@ CoxgraphServer::OptState CoxgraphServer::optimizePoseGraph(
 void CoxgraphServer::evaluateResiduals() {
   if (config_.enable_map_fusion_constraints) {
     LOG(INFO) << "Evaluating Residuals of Map Fusion Constraints";
-    for (double residual : pose_graph_interface_.evaluateResiduals(
-             PoseGraphInterface::ConstraintType::RelPose)) {
-      std::cout << residual << " ";
-    }
-    std::cout << std::endl;
+    pose_graph_interface_.printResiduals(
+        PoseGraphInterface::ConstraintType::RelPose);
   }
   if (config_.enable_submap_relative_pose_constraints &&
       submap_collection_ptr_->size() > 2) {
     LOG(INFO) << "Evaluating Residuals of Submap RelPose Constraints";
-    for (double residual : pose_graph_interface_.evaluateResiduals(
-             PoseGraphInterface::ConstraintType::SubmapRelPose)) {
-      std::cout << residual << " ";
-    }
-    std::cout << std::endl;
+    pose_graph_interface_.printResiduals(
+        PoseGraphInterface::ConstraintType::SubmapRelPose);
   } else {
     LOG(INFO) << "No Submap RelPose Constraints added yet";
   }
