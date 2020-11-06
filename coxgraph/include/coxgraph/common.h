@@ -3,10 +3,13 @@
 
 #include <cblox/core/common.h>
 #include <voxblox/core/common.h>
+#include <voxblox/mesh/mesh_integrator.h>
 #include <voxgraph/backend/constraint/constraint.h>
 #include <voxgraph/common.h>
 #include <voxgraph/frontend/frame_names.h>
 #include <voxgraph/frontend/submap_collection/voxgraph_submap.h>
+
+#include <utility>
 
 namespace coxgraph {
 
@@ -15,7 +18,19 @@ typedef int8_t CliId;
 using CliSm = voxgraph::VoxgraphSubmap;
 using SerSmId = voxgraph::SubmapID;
 using CliSmId = voxgraph::SubmapID;
+typedef std::pair<CliId, CliSmId> CliIdSmIdPair;
+
+struct CliSmIdPack {
+  CliSmIdPack(const CliSm::Ptr& submap_ptr_in, const CliId& cid_in,
+              const CliSmId& cli_sm_id_in)
+      : submap_ptr(submap_ptr_in), cid(cid_in), cli_sm_id(cli_sm_id_in) {}
+  CliSm::Ptr submap_ptr;
+  CliId cid;
+  CliSmId cli_sm_id;
+};
+
 using CliSmConfig = voxgraph::VoxgraphSubmap::Config;
+using MeshIntegratorConfig = voxblox::MeshIntegratorConfig;
 
 using Transformation = voxgraph::Transformation;
 using TransformationD = voxgraph::TransformationD;

@@ -1,18 +1,14 @@
 #include "coxgraph/server/pose_graph_interface.h"
 
+#include <vector>
+
 #include <voxgraph/backend/constraint/relative_pose_constraint.h>
 
 namespace coxgraph {
 namespace server {
 
 void PoseGraphInterface::optimize(bool enable_registration) {
-  if (new_loop_closures_added_since_last_optimization_) {
-    // Optimize the graph excluding the registration constraints
-    pose_graph_.optimize(true);
-
-    // Indicate that the new loop closures have been taken care off
-    new_loop_closures_added_since_last_optimization_ = false;
-  }
+  pose_graph_.optimize(true);
 
   // update registration constrains after loop closure optimized. Submaps
   // overlapping can only be determined after their relative poses computed by
@@ -29,6 +25,27 @@ void PoseGraphInterface::optimize(bool enable_registration) {
   }
 }
 
+void PoseGraphInterface::updateSubmapRPConstraints() {
+  resetSubmapRelativePoseConstrains();
+  for (int cid = 0; cid < cox_submap_collection_ptr_->getClientNumber();
+       cid++) {
+    std::vector<SerSmId>* cli_ser_sm_ids =
+        cox_submap_collection_ptr_->getSerSmIdsByCliId(cid);
+    for (int i = 0; i < cli_ser_sm_ids->size() - 1; i++) {
+      int j = i + 1;
+      SerSmId sid_i = cli_ser_sm_ids->at(i);
+      SerSmId sid_j = cli_ser_sm_ids->at(j);
+
+      Transformation T_M_SMi =
+          cox_submap_collection_ptr_->getSubmapPtr(sid_i)->getPose();
+      Transformation T_M_SMj =
+          cox_submap_collection_ptr_->getSubmapPtr(sid_j)->getPose();
+      Transformation T_SMi_SMj = T_M_SMi.inverse() * T_M_SMj;
+      addSubmapRelativePoseConstraint(sid_i, sid_j, T_SMi_SMj);
+    }
+  }
+}
+
 void PoseGraphInterface::addSubmapRelativePoseConstraint(
     const SerSmId& first_submap_id, const SerSmId& second_submap_id,
     const Transformation& T_S1_S2) {
@@ -41,7 +58,7 @@ void PoseGraphInterface::addSubmapRelativePoseConstraint(
   // Add the constraint to the pose graph
   // TODO(mikexyl): since these should be called every time submap pose updated,
   // don't log it
-  if (false) {
+  if (verbose_) {
     std::cout << "Adding submap relative pose constraint\n"
               << "From: " << submap_rp_config.origin_submap_id << "\n"
               << "To: " << submap_rp_config.destination_submap_id << "\n"
