@@ -13,7 +13,8 @@ cs_add_library(${PROJECT_NAME}
     src/server/pose_graph_interface.cpp
     src/server/global_tf_controller.cpp
     src/server/submap_collection.cpp
-    src/server/client_tf_optimizer.cpp)
+    src/server/client_tf_optimizer.cpp
+    src/server/visualizer/server_visualizer.cpp)
 
 cs_add_executable(coxgraph_client_node
     src/coxgraph_client_node.cpp)

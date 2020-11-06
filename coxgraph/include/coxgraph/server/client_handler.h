@@ -11,7 +11,9 @@
 #include <Eigen/Dense>
 
 #include <memory>
+#include <mutex>
 #include <string>
+#include <vector>
 
 #include "coxgraph/common.h"
 #include "coxgraph/server/submap_collection.h"
@@ -84,6 +86,9 @@ class ClientHandler {
                                const SerSmId& ser_sm_id, CliSmId* cli_sm_id,
                                CliSm::Ptr* submap, Transformation* T_submap_t);
 
+  bool requestAllSubmaps(std::vector<CliSmIdPack>* submap_packs,
+                         SerSmId* start_ser_sm_id);
+
   inline bool hasTime(const ros::Time time) { return time_line_.hasTime(time); }
   inline bool isTimeLineUpdated() const { return time_line_updated_; }
   inline void resetTimeLineUpdated() { time_line_updated_ = false; }
@@ -134,8 +139,11 @@ class ClientHandler {
   ros::Subscriber time_line_sub_;
   ros::Subscriber sm_pose_updates_sub_;
   ros::ServiceClient pub_client_submap_client_;
+  ros::ServiceClient get_all_submaps_client_;
 
   SubmapCollection::Ptr submap_collection_ptr_;
+
+  std::mutex submap_request_mutex_;
 
   constexpr static int8_t kSubQueueSize = 10;
 };
