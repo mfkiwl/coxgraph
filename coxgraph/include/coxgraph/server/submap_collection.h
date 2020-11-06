@@ -24,11 +24,14 @@ class SubmapCollection : public voxgraph::VoxgraphSubmapCollection {
       : voxgraph::VoxgraphSubmapCollection(submap_config, verbose),
         client_number_(client_number) {}
 
-  // Copy constructor
+  // Copy constructor without copy mutex
   SubmapCollection(const SubmapCollection& rhs)
       : voxgraph::VoxgraphSubmapCollection(
             static_cast<voxgraph::VoxgraphSubmapCollection>(rhs)),
-        client_number_(rhs.client_number_) {}
+        client_number_(rhs.client_number_),
+        sm_cli_id_map_(rhs.sm_cli_id_map_),
+        cli_ser_sm_id_map_(rhs.cli_ser_sm_id_map_),
+        sm_id_ori_pose_map_(rhs.sm_id_ori_pose_map_) {}
 
   ~SubmapCollection() = default;
 

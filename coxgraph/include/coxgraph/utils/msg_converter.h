@@ -9,6 +9,7 @@
 #include <voxblox_msgs/Layer.h>
 #include <voxblox_msgs/LayerWithTrajectory.h>
 #include <voxblox_ros/conversions.h>
+#include <voxgraph_msgs/LoopClosure.h>
 
 #include <string>
 

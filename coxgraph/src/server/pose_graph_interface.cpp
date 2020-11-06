@@ -58,7 +58,7 @@ void PoseGraphInterface::addSubmapRelativePoseConstraint(
   // Add the constraint to the pose graph
   // TODO(mikexyl): since these should be called every time submap pose updated,
   // don't log it
-  if (false) {
+  if (verbose_) {
     std::cout << "Adding submap relative pose constraint\n"
               << "From: " << submap_rp_config.origin_submap_id << "\n"
               << "To: " << submap_rp_config.destination_submap_id << "\n"

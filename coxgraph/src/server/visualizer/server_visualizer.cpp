@@ -25,6 +25,9 @@ void ServerVisualizer::getFinalGlobalMesh(
       new SubmapCollection(*submap_collection_ptr));
   PoseGraphInterface global_pg_interface(pose_graph_interface,
                                          global_submap_collection_ptr);
+  // SubmapCollection::Ptr global_submap_collection_ptr = submap_collection_ptr;
+  // PoseGraphInterface& global_pg_interface = pose_graph_interface;
+
   for (auto const& submap_pack : other_submaps) {
     global_submap_collection_ptr->addSubmap(
         submap_pack.submap_ptr, submap_pack.cid, submap_pack.cli_sm_id);
