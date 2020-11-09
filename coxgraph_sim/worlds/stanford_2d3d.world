@@ -36,7 +36,7 @@
       <real_time>1929 601495828</real_time>
       <wall_time>1585484683 919932171</wall_time>
       <iterations>1699382</iterations>
-      <model name='mp1'>
+      <model name='2d3d_house'>
         <pose frame=''>0 0 0 0 -0 1.5708</pose>
         <scale>1 1 1</scale>
         <link name='link'>
@@ -51,7 +51,7 @@
       </light>
     </state>
 
-    <model name='mp1'>
+    <model name='2d3d_house'>
       <static>1</static>
       <link name='link'>
         <collision name='collision'>
