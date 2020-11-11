@@ -50,7 +50,7 @@
 
     <!-- Include simulated backend -->
     <node name="odometry_transform_publisher" pkg="multi_robot_simulation" type="odometry_transform_publisher_node" respawn="false" clear_params="true" output="screen">
-      <rosparam file="$(find multi_robot_simulation)/cfg/parameters_vins_four.yaml"/>
+      <rosparam file="$(find coxgraph_sim)/config/parameters.yaml"/>
     </node>
     
     <!-- Start RViz -->
