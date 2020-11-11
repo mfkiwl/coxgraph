@@ -22,7 +22,7 @@
     <include file="$(find rotors_gazebo)/launch/spawn_mav.launch">
       <arg name="mav_name" value="$(arg mav_name)" />
       <arg name="namespace" value="$(arg mav_name)_$(arg id)" />
-      <arg name="model" value="$(find multi_robot_simulation)/descriptions/$(arg mav_name)_base_gps.xacro" />
+      <arg name="model" value="$(find coxgraph_sim)/descriptions/$(arg mav_name)_base_gps.xacro" />
       <arg name="enable_logging" value="$(arg enable_logging)" />
       <arg name="enable_ground_truth" value="$(arg enable_ground_truth)" />
       <arg name="log_file" value="$(arg log_file)"/>

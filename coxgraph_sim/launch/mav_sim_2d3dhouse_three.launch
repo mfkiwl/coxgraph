@@ -4,32 +4,14 @@
     <arg name="mav_name"   default="firefly"/>
     
     <!-- Initial pose and control commands -->
-    <arg name="x_0" default="60.0"/>
-    <arg name="y_0" default="17.0"/>
-    <arg name="z_0" default="0.3"/>
-    
-    <arg name="x_1" default="52.5"/>
-    <arg name="y_1" default="17.0"/>
-    <arg name="z_1" default="0.3"/>
-    
-    <arg name="x_2" default="20.0"/>
-    <arg name="y_2" default="17.0"/>
-    <arg name="z_2" default="0.3"/>
+    <arg name="x_0" default="0.0"/>
+    <arg name="y_0" default="0.0"/>
+    <arg name="z_0" default="2"/>
     
     <arg name="x_ctrl_0" default="0.0"/>
     <arg name="y_ctrl_0" default="0.0"/>
-    <arg name="z_ctrl_0" default="1.5"/>
-    <arg name="yaw_ctrl_0" default="-1.57"/>
-    
-    <arg name="x_ctrl_1" default="0.0"/>
-    <arg name="y_ctrl_1" default="0.0"/>
-    <arg name="z_ctrl_1" default="1.5"/>
-    <arg name="yaw_ctrl_1" default="-1.57"/>
-    
-    <arg name="x_ctrl_2" default="0.0"/>
-    <arg name="y_ctrl_2" default="0.0"/>
-    <arg name="z_ctrl_2" default="1.5"/>
-    <arg name="yaw_ctrl_2" default="-1.57"/>
+    <arg name="z_ctrl_0" default="0"/>
+    <arg name="yaw_ctrl_0" default="0"/>
     
     <!-- Other parameters -->
     <arg name="enable_logging"      default="false"/>
@@ -37,6 +19,7 @@
     <arg name="log_file"            default="$(arg mav_name)"/>
     <arg name="run_gazebo_gui"      default="true"/>
     <arg name="world"               default="stanford_2d3d"/>
+    <!-- <arg name="world"               default="chemical-plant"/> -->
 
     <!-- Run Gazebo -->
     <include file="$(find gazebo_ros)/launch/empty_world.launch">
@@ -65,44 +48,12 @@
       </include>
     </group>
 
-    <!-- Spawn MAV 1 -->
-    <group ns="$(arg mav_name)_1">
-      <include file="$(find coxgraph_sim)/launch/spawn_mav.launch">
-        <arg name="mav_name"            value="$(arg mav_name)" />
-        <arg name="id"                  value="1" />
-        <arg name="enable_logging"      value="$(arg enable_logging)" />
-        <arg name="enable_ground_truth" value="$(arg enable_ground_truth)" />
-        <arg name="log_file"            value="$(arg log_file)"/>
-            
-        <arg name="x" value="$(arg x_1)"/>
-        <arg name="y" value="$(arg y_1)"/>
-        <arg name="z" value="$(arg z_1)"/>
-         
-        <arg name="x_ctrl" value="$(arg x_ctrl_1)"/>
-        <arg name="y_ctrl" value="$(arg y_ctrl_1)"/>
-        <arg name="z_ctrl" value="$(arg z_ctrl_1)"/>
-        <arg name="yaw_ctrl" value="$(arg yaw_ctrl_1)"/>
-      </include>
-    </group>
-
-    <!-- Spawn MAV 2 -->
-    <group ns="$(arg mav_name)_2">
-      <include file="$(find coxgraph_sim)/launch/spawn_mav.launch">
-        <arg name="mav_name"            value="$(arg mav_name)" />
-        <arg name="id"                  value="2" />
-        <arg name="enable_logging"      value="$(arg enable_logging)" />
-        <arg name="enable_ground_truth" value="$(arg enable_ground_truth)" />
-        <arg name="log_file"            value="$(arg log_file)"/>
-            
-        <arg name="x" value="$(arg x_2)"/>
-        <arg name="y" value="$(arg y_2)"/>
-        <arg name="z" value="$(arg z_2)"/>
-         
-        <arg name="x_ctrl" value="$(arg x_ctrl_2)"/>
-        <arg name="y_ctrl" value="$(arg y_ctrl_2)"/>
-        <arg name="z_ctrl" value="$(arg z_ctrl_2)"/>
-        <arg name="yaw_ctrl" value="$(arg yaw_ctrl_2)"/>
-      </include>
-    </group>
-
+    <!-- Include simulated backend -->
+    <node name="odometry_transform_publisher" pkg="multi_robot_simulation" type="odometry_transform_publisher_node" respawn="false" clear_params="true" output="screen">
+      <rosparam file="$(find multi_robot_simulation)/cfg/parameters_vins_four.yaml"/>
+    </node>
+    
+    <!-- Start RViz -->
+    <node name="rviz" pkg="rviz" type="rviz" respawn="false" output="screen" args="-d $(find multi_robot_simulation)/cfg/rviz/simulation.rviz"/>
+    
 </launch>
