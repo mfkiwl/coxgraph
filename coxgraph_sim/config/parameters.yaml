@@ -6,7 +6,7 @@ publish_pcl_world: true
 
 agent_0:
   namespace: "firefly_0"
-  position: [0.0, 0.0, 2.0] # Position of the reference frame [m]
+  position: [0.0, 0.0, 1.5] # Position of the reference frame [m]
   yaw: 0.0 # Orientation of reference frame [deg]
   random_walk_mean_pos: 0.0
   random_walk_cov_pos: 0.00003
@@ -15,7 +15,7 @@ agent_0:
 
 agent_1:
   namespace: "firefly_1"
-  position: [1.0, 1.0, 2.0] # Position of the reference frame [m]
+  position: [1.0, 1.0, 1.5] # Position of the reference frame [m]
   yaw: 0.0 # Orientation of reference frame [deg]
   random_walk_mean_pos: 0.0
   random_walk_cov_pos: 0.00003
