@@ -37,6 +37,7 @@
 
     <node name="label_tsdf_client_0" pkg="maskgraph" type="label_tsdf_server" output="screen" args="-alsologtostderr" clear_params="true" launch-prefix="$(arg launch_prefix)">
       <remap from="pointcloud" to="$(arg pointcloud_topic)"/>
+      <remap from="~esdf_map_in" to="~esdf_map_out"/>
       <rosparam file="$(find maskgraph)/config/label_tsdf_server.yaml"/>
       <rosparam file="$(find maskgraph)/config/segment_map.yaml"/>
       <rosparam file="$(find maskgraph)/config/$(arg scene_name).yaml"/>
@@ -47,11 +48,16 @@
       <param name="verbose" value="$(arg verbose)" />
       <param name="world_frame" value="map_0"/>
       <param name="mission_frame" value="mission_0"/>
-      <!-- <param name="point_cloud_frame_id" value="kinect2_rgb_optical_frame_0" /> -->
       <param name="point_cloud_frame_id" value="robot_base_0" />
+      <param name="publish_tsdf_map" value="true" />
+      <param name="publish_esdf_map" value="true" />
+      <param name="publish_slices" value="true" />
+      <param name="publish_pointclouds" value="true" />
+      <param name="publish_traversable" value="true"/>
+      <param name="traversability_radius " value="4.0"/>
+      <param name="update_esdf_every_n_sec " value="1.0"/>
     </node>
 
   </group>
-
 
 </launch>
