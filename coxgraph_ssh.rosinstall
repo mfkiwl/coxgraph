@@ -106,3 +106,4 @@
 - git: {local-name: nlopt, uri: 'git@github.com:ethz-asl/nlopt.git'}
 - git: {local-name: mav_comm, uri: 'git@github.com:ethz-asl/mav_comm.git'}
 - git: {local-name: mavros, uri: 'git@github.com:ethz-asl/mavros.git'}
+- git: {local-name: vision_opencv, uri: 'git@github.com:ethz-asl/vision_opencv.git', version: 'kinetic'}
