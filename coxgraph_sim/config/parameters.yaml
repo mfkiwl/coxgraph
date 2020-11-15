@@ -1,8 +1,8 @@
 num_agents: 2
-world_frame: "world"
-odom_frame: "odom"
+world_frame: "map_0"
+odom_frame: "odom_fake"
 agent_frame: "agent"
-publish_pcl_world: true
+publish_pcl_world: false
 
 agent_0:
   namespace: "firefly_0"

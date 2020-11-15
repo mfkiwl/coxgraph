@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<launch>
+  <param name="use_sim_time" value="true" />
+
+  <arg name="sensor" default="firefly"/>
+  <arg name="pointcloud_topic" doc="ROS topic for pointcloud input" default="/firefly_0/vi_sensor/camera_depth/depth/points"/>
+  <arg name="debug_cg" default="false" doc="Run the coxgraph client in debug mode." />
+  <arg name="debug_tsdf" default="false" doc="Run the tsdf client in debug mode." />
+  <arg name="show_rviz" default="false" doc="Automatically launch Rviz." />
+  <arg name="verbose" default="false"/>
+
+  <node pkg="tf" type="static_transform_publisher" name="mission0_to_map0" args="0 0 0 0 0 0 1 mission_0 map_0 100"/>
+  <node pkg="tf" type="static_transform_publisher" name="map0_to_odom0" args="0 0 0 0 0 0 1 map_0 odom_0 100"/>
+
+  <group ns="coxgraph">
+    <arg unless="$(arg debug_cg)" name="launch_prefix" value="" />
+    <arg if="$(arg debug_cg)" name="launch_prefix" value="xterm -e gdb --args" />
+
+    <node name="coxgraph_client_0" pkg="coxgraph" type="coxgraph_client_node" output="screen" launch-prefix="$(arg launch_prefix)" args="-alsologtostderr">
+      <rosparam file="$(find voxgraph)/config/voxgraph_mapper.yaml" />
+      <param name="input_odom_frame" value="map_0"/>
+      <param name="input_base_link_frame" value="agent_0"/>
+      <param name="output_mission_frame" value="mission_0"/>
+      <param name="output_odom_frame" value="map_0"/>
+      <param name="output_base_link_frame" value="agent_0"/>
+      <param name="output_sensor_frame" value="sensor_coxgraph_0"/>
+      <param name="output_active_submap_frame" value="voxgraph_active_submap_0"/>
+      <param name="tsdf_voxel_size" value="0.05"/>
+      <param name="tsdf_integrator/truncation_distance" value="0.15"/>
+      <param name="submap_topic" value="/tsdf_client/label_tsdf_client_0/tsdf_map_out" />
+      <param name="loop_closure_topic" value="/loop_closure_in" />
+      <param name="client_id" value="0"/>
+    </node>
+  </group>
+
+  <group ns="tsdf_client">
+    <include file="$(find coxgraph)/launch/firefly/tsdf_client0.launch">
+      <arg name="debug" default="$(arg debug_tsdf)"/>
+      <arg name="verbose" default="$(arg verbose)"/>
+      <arg name="sensor_name" default="$(arg sensor)"/>
+    </include>
+  </group>
+
+</launch>

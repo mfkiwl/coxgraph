@@ -17,6 +17,7 @@
     <arg name="enable_logging" default="false"/>
     <arg name="enable_ground_truth" default="true"/>
     <arg name="log_file" default="$(arg mav_name)"/>
+    <arg name="hover" default="true"/>
 
     <!-- Spawn MAV -->
     <include file="$(find rotors_gazebo)/launch/spawn_mav.launch">
@@ -59,7 +60,7 @@
     </node>
         
     <!-- Hovering -->
-    <node name="hovering_example" pkg="rotors_gazebo" type="hovering_example" output="screen">
+    <node name="hovering_example" pkg="rotors_gazebo" type="hovering_example" output="screen" if="$(arg hover)">
       <param name="x" value="$(arg x_ctrl)"/>
       <param name="y" value="$(arg y_ctrl)"/>
       <param name="z" value="$(arg z_ctrl)"/>

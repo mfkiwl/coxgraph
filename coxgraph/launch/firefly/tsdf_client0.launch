@@ -1,0 +1,39 @@
+<launch>
+  <param name="use_sim_time" value="true" />
+
+  <!-- User supplied arguments -->
+  <arg name="show_rviz" default="false" doc="Automatically launch Rviz." />
+  <arg name="scene_name" default="cvg_lab" />
+  <arg name="sensor_name" default="firefly" />
+  <arg name="visualize" default="false" />
+  <arg name="verbose" default="true"/>
+  <arg name="debug" default="false" />
+  <arg name="pointcloud_topic" doc="ROS topic for pointcloud input" default="/firefly_0/vi_sensor/camera_depth/depth/points"/>
+
+  <group>
+    <arg unless="$(arg debug)" name="launch_prefix" value=" " />
+    <arg if="$(arg debug)" name="launch_prefix" value="xterm -e gdb --args" />
+
+    <node name="label_tsdf_client_0" pkg="maskgraph" type="label_tsdf_server" output="screen" args="-alsologtostderr" clear_params="true" launch-prefix="$(arg launch_prefix)">
+      <remap from="pointcloud" to="$(arg pointcloud_topic)"/>
+      <rosparam file="$(find maskgraph)/config/label_tsdf_server.yaml"/>
+      <rosparam file="$(find maskgraph)/config/segment_map.yaml"/>
+      <rosparam file="$(find maskgraph)/config/$(arg scene_name).yaml"/>
+      <param name="meshing/visualize" value="$(arg visualize)" />
+      <param name="enable_segment_map" value="false" />
+      <param name="enable_local_segment_map" value="false" />
+      <param name="verbose" value="$(arg verbose)" />
+      <param name="world_frame" value="map_0"/>
+      <param name="mission_frame" value="mission_0"/>
+      <param name="publish_tsdf_map" value="true" />
+      <param name="publish_esdf_map" value="true" />
+      <param name="publish_slices" value="true" />
+      <param name="publish_pointclouds" value="true" />
+      <param name="publish_traversable" value="true"/>
+      <param name="traversability_radius " value="4.0"/>
+      <param name="update_esdf_every_n_sec " value="1.0"/>
+    </node>
+
+  </group>
+
+</launch>

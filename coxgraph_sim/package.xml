@@ -18,5 +18,6 @@
   <depend>mav_lowlevel_attitude_controller</depend>
   <depend>geodetic_utils</depend>
   <depend>mav_active_3d_planning</depend>
+  <depend>coxgraph</depend>
 </package>
 
