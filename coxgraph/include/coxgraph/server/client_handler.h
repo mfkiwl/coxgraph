@@ -113,6 +113,7 @@ class ClientHandler {
     time_line_updated_ = time_line_.update(new_start, new_end);
     LOG(INFO) << log_prefix_ << ": Updated new client time line from "
               << time_line_.start << " to " << time_line_.end << std::endl;
+    return true;
   }
 
   void subscribeToTopics();
