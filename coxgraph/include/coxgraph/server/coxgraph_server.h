@@ -1,6 +1,7 @@
 #ifndef COXGRAPH_SERVER_COXGRAPH_SERVER_H_
 #define COXGRAPH_SERVER_COXGRAPH_SERVER_H_
 
+#include <coxgraph_msgs/ControlTrigger.h>
 #include <coxgraph_msgs/MapFusion.h>
 #include <ros/ros.h>
 #include <voxblox_msgs/FilePath.h>
@@ -124,8 +125,12 @@ class CoxgraphServer {
     LOG(INFO) << "Verbose: " << verbose_;
     LOG(INFO) << config_;
 
+    nh_private_.param<bool>("in_control", in_control_, true);
+    LOG(INFO) << "Server in control: "
+              << static_cast<std::string>(in_control_ ? "true" : "false");
+
     tf_controller_.reset(new GlobalTfController(
-        nh_, nh_private_, config_.client_number, verbose_));
+        nh_, nh_private_, config_.client_number, in_control_, verbose_));
     pose_graph_interface_.setVerbosity(verbose_);
     pose_graph_interface_.setMeasurementConfigFromRosParams(nh_private_);
 
@@ -164,7 +169,7 @@ class CoxgraphServer {
       voxblox_msgs::FilePath::Response& response);  // NOLINT
 
   // TODO(mikexyl): control check for zoo keeper implementation
-  inline bool inControl() { return true; }
+  inline bool inControl() const { return in_control_; }
 
   void futureMFProcCallback(const ros::TimerEvent& event);
 
@@ -270,6 +275,19 @@ class CoxgraphServer {
   ros::Publisher separated_mesh_pub_;
   ros::ServiceServer get_final_global_mesh_srv_;
   std::timed_mutex final_mesh_gen_mutex_;
+
+  // Control trigger service
+  ros::ServiceServer control_trigger_srv_;
+  bool in_control_;
+  bool ControlTriggerCallback(
+      coxgraph_msgs::ControlTrigger::Request& request,      // NOLINT
+      coxgraph_msgs::ControlTrigger::Response& response) {  // NOLINT
+    LOG(INFO) << "Triggering control state to: "
+              << static_cast<std::string>(in_control_ ? "true" : "false");
+    in_control_ = request.in_control;
+    tf_controller_->setControl(in_control_);
+    return true;
+  }
 
   constexpr static uint8_t kMaxClientNum = 2;
   constexpr static uint8_t kPoseUpdateWaitMs = 100;

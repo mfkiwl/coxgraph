@@ -94,6 +94,8 @@ void CoxgraphServer::advertiseServices() {
   get_final_global_mesh_srv_ = nh_private_.advertiseService(
       "get_final_global_mesh", &CoxgraphServer::getFinalGlobalMeshCallback,
       this);
+  control_trigger_srv_ = nh_private_.advertiseService(
+      "control_trigger", &CoxgraphServer::ControlTriggerCallback, this);
 }
 
 bool CoxgraphServer::getFinalGlobalMeshCallback(
@@ -299,9 +301,7 @@ void CoxgraphServer::processMFFuture() {
 }
 
 void CoxgraphServer::futureMFProcCallback(const ros::TimerEvent& event) {
-  if (inControl()) {
-    processMFFuture();
-  }
+  processMFFuture();
 }
 
 bool CoxgraphServer::needRefuse(const CliId& cid_a, const ros::Time& t1,
@@ -415,6 +415,10 @@ void CoxgraphServer::updateSubmapRPConstraints() {
 
 CoxgraphServer::OptState CoxgraphServer::optimizePoseGraph(
     bool enable_registration) {
+  if (!inControl()) {
+    LOG(INFO) << "Server not in control, optimization skipped";
+    return OptState::SKIPPED;
+  }
   // Optimize the pose graph
   ROS_INFO("Optimizing the pose graph");
 

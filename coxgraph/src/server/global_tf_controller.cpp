@@ -40,6 +40,7 @@ void GlobalTfController::initCliMapPose() {
 
 // TODO(mikexyl): move pose update another thread
 void GlobalTfController::pubCliTfCallback(const ros::TimerEvent& event) {
+  if (!inControl()) return;
   updateCliMapPose();
   tf_boardcaster_.sendTransform(T_G_CLI_opt_);
 }

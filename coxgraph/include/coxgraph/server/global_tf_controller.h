@@ -41,17 +41,18 @@ class GlobalTfController {
 
   GlobalTfController(const ros::NodeHandle& nh,
                      const ros::NodeHandle& nh_private, int8_t client_number,
-                     bool verbose)
-      : GlobalTfController(nh, nh_private, client_number,
+                     bool in_control, bool verbose)
+      : GlobalTfController(nh, nh_private, client_number, in_control,
                            getConfigFromRosParam(nh_private), verbose) {}
 
   GlobalTfController(const ros::NodeHandle& nh,
                      const ros::NodeHandle& nh_private, int8_t client_number,
-                     const Config& config, bool verbose)
+                     bool in_control, const Config& config, bool verbose)
       : verbose_(verbose),
         nh_(nh),
         nh_private_(nh_private),
         client_number_(client_number),
+        in_control_(in_control),
         config_(config),
         global_mission_frame_(config.map_frame_prefix + "_g"),
         client_tf_optimizer_(nh_private, verbose),
@@ -76,6 +77,9 @@ class GlobalTfController {
   }
 
   std::mutex* getPoseUpdateMutex() { return &pose_update_mutex; }
+
+  inline bool inControl() const { return in_control_; }
+  inline void setControl(bool in_control) { in_control_ = in_control; }
 
  private:
   void initCliMapPose();
@@ -106,6 +110,8 @@ class GlobalTfController {
   bool pose_updated_;
 
   std::mutex pose_update_mutex;
+
+  bool in_control_;
 
   constexpr static float kTfPubFreq = 100;
 };
