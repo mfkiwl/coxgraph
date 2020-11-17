@@ -94,8 +94,6 @@ void CoxgraphServer::advertiseServices() {
   get_final_global_mesh_srv_ = nh_private_.advertiseService(
       "get_final_global_mesh", &CoxgraphServer::getFinalGlobalMeshCallback,
       this);
-  control_trigger_srv_ = nh_private_.advertiseService(
-      "control_trigger", &CoxgraphServer::ControlTriggerCallback, this);
 }
 
 bool CoxgraphServer::getFinalGlobalMeshCallback(
@@ -367,15 +365,15 @@ bool CoxgraphServer::fuseMap(const CliId& cid_a, const ros::Time& t1,
   if (submap_a->getPoseHistory().empty()) {
     // TODO(mikexyl): no need to update submap pose here, because if a submap is
     // already before, its pose will be updated via map pose update topic
-    ser_sm_id_a =
-        submap_collection_ptr_->getSerSmIdByCliSmId(cid_a, cli_sm_id_a);
+    CHECK(submap_collection_ptr_->getSerSmIdByCliSmId(cid_a, cli_sm_id_a,
+                                                      &ser_sm_id_a));
   } else {
     ser_sm_id_a = addSubmap(submap_a, cid_a, cli_sm_id_a);
   }
 
   if (submap_b->getPoseHistory().empty()) {
-    ser_sm_id_b =
-        submap_collection_ptr_->getSerSmIdByCliSmId(cid_b, cli_sm_id_b);
+    CHECK(submap_collection_ptr_->getSerSmIdByCliSmId(cid_b, cli_sm_id_b,
+                                                      &ser_sm_id_b));
   } else {
     ser_sm_id_b = addSubmap(submap_b, cid_b, cli_sm_id_b);
   }

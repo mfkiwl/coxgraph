@@ -51,13 +51,16 @@ class SubmapCollection : public voxgraph::VoxgraphSubmapCollection {
       return nullptr;
   }
 
-  inline SerSmId getSerSmIdByCliSmId(const CliId& cid,
-                                     const CliSmId& cli_sm_id) {
-    for (auto ser_sm_id : cli_ser_sm_id_map_[cid]) {
-      if (sm_cli_id_map_[ser_sm_id].second == cli_sm_id) {
-        return ser_sm_id;
+  inline bool getSerSmIdByCliSmId(const CliId& cid, const CliSmId& cli_sm_id,
+                                  SerSmId* ser_sm_id) {
+    CHECK(ser_sm_id != nullptr);
+    for (auto ser_sm_id_v : cli_ser_sm_id_map_[cid]) {
+      if (sm_cli_id_map_[ser_sm_id_v].second == cli_sm_id) {
+        *ser_sm_id = ser_sm_id_v;
+        return true;
       }
     }
+    return false;
   }
 
   inline void updateOriPose(const SerSmId& ser_sm_id,

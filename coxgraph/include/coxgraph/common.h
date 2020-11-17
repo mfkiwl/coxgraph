@@ -7,6 +7,7 @@
 #include <voxgraph/backend/constraint/constraint.h>
 #include <voxgraph/common.h>
 #include <voxgraph/frontend/frame_names.h>
+#include <voxgraph/frontend/submap_collection/bounding_box.h>
 #include <voxgraph/frontend/submap_collection/voxgraph_submap.h>
 
 #include <utility>
@@ -38,6 +39,7 @@ using TransformationVector = cblox::TransformationVector;
 using InformationMatrix = voxgraph::Constraint::InformationMatrix;
 
 using FrameNames = voxgraph::FrameNames;
+using BoundingBox = voxgraph::BoundingBox;
 
 struct TimeLine {
   TimeLine() : start(0), end(0) {}
