@@ -283,7 +283,8 @@ class CoxgraphServer {
       coxgraph_msgs::ControlTrigger::Request& request,      // NOLINT
       coxgraph_msgs::ControlTrigger::Response& response) {  // NOLINT
     LOG(INFO) << "Triggering control state to: "
-              << static_cast<std::string>(in_control_ ? "true" : "false");
+              << static_cast<std::string>(request.in_control ? "true"
+                                                             : "false");
     in_control_ = request.in_control;
     tf_controller_->setControl(in_control_);
     return true;
