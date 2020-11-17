@@ -37,6 +37,7 @@
 
     <node name="label_tsdf_client_0" pkg="maskgraph" type="label_tsdf_server" output="screen" args="-alsologtostderr" clear_params="true" launch-prefix="$(arg launch_prefix)">
       <remap from="pointcloud" to="$(arg pointcloud_topic)"/>
+      <remap from="~active_tsdf_out" to="/coxgraph/coxgraph_client_0/active_tsdf_in"/>
       <rosparam file="$(find maskgraph)/config/label_tsdf_server.yaml"/>
       <rosparam file="$(find maskgraph)/config/segment_map.yaml"/>
       <rosparam file="$(find maskgraph)/config/$(arg scene_name).yaml"/>
@@ -54,6 +55,7 @@
       <param name="publish_pointclouds" value="false" />
       <param name="publish_traversable" value="false"/>
       <param name="update_esdf_every_n_sec " value="0.0"/>
+      <param name="publish_active_tsdf_every_n_sec " value="1.0"/>
     </node>
 
   </group>
