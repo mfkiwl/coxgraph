@@ -49,12 +49,11 @@
       <param name="mission_frame" value="mission_0"/>
       <param name="point_cloud_frame_id" value="robot_base_0" />
       <param name="publish_tsdf_map" value="true" />
-      <param name="publish_esdf_map" value="true" />
-      <param name="publish_slices" value="true" />
-      <param name="publish_pointclouds" value="true" />
-      <param name="publish_traversable" value="true"/>
-      <param name="traversability_radius " value="4.0"/>
-      <param name="update_esdf_every_n_sec " value="1.0"/>
+      <param name="publish_esdf_map" value="false" />
+      <param name="publish_slices" value="false" />
+      <param name="publish_pointclouds" value="false" />
+      <param name="publish_traversable" value="false"/>
+      <param name="update_esdf_every_n_sec " value="0.0"/>
     </node>
 
   </group>

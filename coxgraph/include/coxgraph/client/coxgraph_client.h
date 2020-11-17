@@ -12,6 +12,7 @@
 #include <mutex>
 #include <string>
 
+#include "coxgraph/client/map_server.h"
 #include "coxgraph/common.h"
 #include "coxgraph/utils/msg_converter.h"
 
@@ -34,7 +35,11 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
       LOG(INFO) << "Started Coxgraph Client " << client_id_;
     }
     log_prefix_ = "Client " + std::to_string(client_id_) + ": ";
+
+    map_server_.reset(new MapServer(nh_, nh_private_, submap_config_,
+                                    submap_collection_ptr_));
   }
+
   ~CoxgraphClient() = default;
 
   inline const CliId& getClientId() const { return client_id_; }
@@ -55,6 +60,7 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
 
  private:
   using VoxgraphMapper = voxgraph::VoxgraphMapper;
+  using MapServer = client::MapServer;
   typedef std::map<CliSmId, Transformation> SmIdTfMap;
 
   void publishTimeLine();
@@ -73,6 +79,8 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
   SmIdTfMap ser_sm_id_pose_map_;
 
   std::timed_mutex submap_proc_mutex_;
+
+  MapServer::Ptr map_server_;
 };
 
 }  // namespace coxgraph

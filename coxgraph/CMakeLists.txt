@@ -8,6 +8,7 @@ catkin_simple(ALL_DEPS_REQUIRED)
 
 cs_add_library(${PROJECT_NAME}
     src/client/coxgraph_client.cpp
+    src/client/map_server.cpp
     src/server/coxgraph_server.cpp
     src/server/client_handler.cpp
     src/server/pose_graph_interface.cpp
