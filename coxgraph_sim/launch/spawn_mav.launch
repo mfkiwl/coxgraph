@@ -69,6 +69,6 @@
         
     <!-- TFs -->
     <node pkg="tf" type="static_transform_publisher" name="agent_$(arg id)_vi_broadcaster"
-          args="0.116 0.055 -0.025 -0.524 0.524 -0.474 0.474 agent_$(arg id) $(arg mav_name)_$(arg id)/vi_sensor/camera_depth_optical_center_link 100" />
+          args="0.116 0.055 -0.025 -0.524 0.524 -0.474 0.474 $(arg mav_name)_$(arg id)/vi_sensor/base_link $(arg mav_name)_$(arg id)/vi_sensor/camera_depth_optical_center_link 100" />
 
 </launch>
