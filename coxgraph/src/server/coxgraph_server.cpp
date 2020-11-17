@@ -94,8 +94,6 @@ void CoxgraphServer::advertiseServices() {
   get_final_global_mesh_srv_ = nh_private_.advertiseService(
       "get_final_global_mesh", &CoxgraphServer::getFinalGlobalMeshCallback,
       this);
-  control_trigger_srv_ = nh_private_.advertiseService(
-      "control_trigger", &CoxgraphServer::ControlTriggerCallback, this);
 }
 
 bool CoxgraphServer::getFinalGlobalMeshCallback(

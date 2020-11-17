@@ -1,1 +1,2 @@
-float32[24] points_data
+float32[3] min
+float32[3] max

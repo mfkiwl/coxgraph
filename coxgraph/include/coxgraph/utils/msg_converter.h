@@ -3,6 +3,7 @@
 
 #include <cblox_msgs/MapLayer.h>
 #include <cblox_ros/submap_conversions.h>
+#include <coxgraph_msgs/BoundingBox.h>
 #include <coxgraph_msgs/ClientSubmap.h>
 #include <coxgraph_msgs/ClientSubmapSrvResponse.h>
 #include <coxgraph_msgs/MapFusion.h>
@@ -125,6 +126,17 @@ inline voxgraph_msgs::LoopClosure fromMapFusionMsg(
   loop_closure_msg.to_timestamp = map_fusion_msg.to_timestamp;
   loop_closure_msg.transform = map_fusion_msg.transform;
   return loop_closure_msg;
+}
+
+inline coxgraph_msgs::BoundingBox msgFromBb(const BoundingBox& bounding_box) {
+  coxgraph_msgs::BoundingBox bb_msg;
+  bb_msg.min[0] = bounding_box.min[0];
+  bb_msg.min[1] = bounding_box.min[1];
+  bb_msg.min[2] = bounding_box.min[2];
+  bb_msg.max[0] = bounding_box.max[0];
+  bb_msg.max[1] = bounding_box.max[1];
+  bb_msg.max[2] = bounding_box.max[2];
+  return bb_msg;
 }
 
 }  // namespace utils

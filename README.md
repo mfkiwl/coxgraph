@@ -57,3 +57,8 @@ using these steps:
 
 ### Gazebo Simulation Experiment
 - WIP
+
+## Service
+
+1. `"coxgraph_server_node/control_trigger"`, see the srv file [ControlTrigger.srv](./coxgraph_msgs/srv/ControlTrigger.srv) for definition.
+2. `"coxgraph_server_node/state_query"`, definition at [StateQuery.srv](./coxgraph_msgs/srv/StateQuery.srv)
