@@ -1,0 +1,1 @@
+float32[24] points_data
