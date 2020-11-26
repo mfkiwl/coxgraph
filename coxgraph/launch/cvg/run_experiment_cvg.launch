@@ -2,5 +2,5 @@
 <launch>
   <include file="$(find coxgraph)/launch/cvg/coxgraph_client0_cvg.launch" />
   <include file="$(find coxgraph)/launch/cvg/coxgraph_client1_cvg.launch" />
-  <include file="$(find coxgraph)/launch/cvg/coxgraph_server.launch" />
+  <include file="$(find coxgraph)/launch/coxgraph_server.launch" />
 </launch>

@@ -107,6 +107,7 @@ void CoxgraphClient::submapCallback(
   if (submap_collection_ptr_->size()) {
     publishTimeLine();
     publishMapPoseUpdates();
+    map_server_->updatePastTsdf();
   }
 }
 
