@@ -81,7 +81,7 @@ class DistributionController {
     response.n_submaps = submap_collection_ptr_->getSubmapPtrs().size();
     for (auto const& submap_ptr : submap_collection_ptr_->getSubmapPtrs()) {
       response.bb.emplace_back(
-          utils::msgFromBb(submap_ptr->getMissionFrameSurfaceAabb()));
+          utils::msgFromBb(submap_ptr->getOdomFrameSurfaceAabb()));
     }
     return true;
   }

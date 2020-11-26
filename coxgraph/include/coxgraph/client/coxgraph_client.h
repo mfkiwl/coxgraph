@@ -26,7 +26,6 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
     int client_id;
     nh_private.param<int>("client_id", client_id, -1);
     client_id_ = static_cast<CliId>(client_id);
-    subscribeClientTopics();
     advertiseClientTopics();
     advertiseClientServices();
     if (client_id_ < 0) {
@@ -44,7 +43,6 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
 
   inline const CliId& getClientId() const { return client_id_; }
 
-  void subscribeClientTopics();
   void advertiseClientTopics();
   void advertiseClientServices();
 
@@ -56,7 +54,7 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
       coxgraph_msgs::SubmapsSrv::Request& request,     // NOLINT
       coxgraph_msgs::SubmapsSrv::Response& response);  // NOLINT
 
-  void submapCallback(const voxblox_msgs::LayerWithTrajectory& submap_msg);
+  bool submapCallback(const voxblox_msgs::LayerWithTrajectory& submap_msg);
 
  private:
   using VoxgraphMapper = voxgraph::VoxgraphMapper;

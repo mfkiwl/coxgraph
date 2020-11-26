@@ -20,7 +20,7 @@ void PoseGraphInterface::optimize(bool enable_registration) {
 
   // Publish debug visuals
   if (pose_graph_pub_.getNumSubscribers() > 0) {
-    pose_graph_vis_.publishPoseGraph(pose_graph_, visualization_mission_frame_,
+    pose_graph_vis_.publishPoseGraph(pose_graph_, visualization_odom_frame_,
                                      "optimized", pose_graph_pub_);
   }
 }
