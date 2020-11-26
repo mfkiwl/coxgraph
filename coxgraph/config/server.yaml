@@ -18,9 +18,10 @@ refuse_interval: 2.0
 
 output_mission_frame: "mission"
 
-mesh_min_weight: 2.0
+mesh_min_weight: 1.0
+mesh_use_color: true
 submap_mesh_color_mode: "lambert_color"
-combined_mesh_color_mode: "normals"
+combined_mesh_color_mode: "color"
 
 global_tf_controller:
   init_cli_map_dist: 10

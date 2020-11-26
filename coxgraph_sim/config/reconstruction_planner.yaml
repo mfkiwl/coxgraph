@@ -1,6 +1,6 @@
 #Config for 3D Reconstruction Planner
-replan_pos_threshold: 0.15
-replan_yaw_threshold: 0.15
+replan_pos_threshold: 0.5
+replan_yaw_threshold: 0.5
 
 max_new_segments: 0
 min_new_segments: 0
@@ -18,11 +18,11 @@ map:
   type: "VoxbloxMap"
 
 system_constraints:
-  v_max: 0.2
-  a_max: 0.2
+  v_max: 0.5
+  a_max: 0.5
   yaw_rate_max: 1.6
   yaw_accel_max: 1.6
-  collision_radius: 0.3
+  collision_radius: 0.1
 
 trajectory_generator:
   collision_optimistic: false
@@ -33,8 +33,8 @@ trajectory_generator:
   all_semgents_feasible: false
   crop_segments: true
   crop_margin: 0.3
-  crop_min_length: 0.5
-  min_path_length: 0.5
+  crop_min_length: 0.2
+  min_path_length: 0.2
   max_extension_range: 1.5
   maximum_tries: 1000
   sampling_rate: 20.0
@@ -43,7 +43,7 @@ trajectory_generator:
   sampling_mode: "semilocal"
   semilocal_sampling_count: 10
   semilocal_sampling_radius_max: 1.5
-  semilocal_sampling_radius_min: 1.5
+  semilocal_sampling_radius_min: 0.2
 
   rewire_root: true
   rewire_intermediate: true

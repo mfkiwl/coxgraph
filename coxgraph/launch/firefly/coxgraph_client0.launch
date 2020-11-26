@@ -9,9 +9,6 @@
   <arg name="show_rviz" default="false" doc="Automatically launch Rviz." />
   <arg name="verbose" default="false"/>
 
-  <node pkg="tf" type="static_transform_publisher" name="mission0_to_map0" args="0 0 0 0 0 0 1 mission_0 map_0 100"/>
-  <node pkg="tf" type="static_transform_publisher" name="map0_to_odom0" args="0 0 0 0 0 0 1 map_0 odom_0 100"/>
-
   <group ns="coxgraph">
     <arg unless="$(arg debug_cg)" name="launch_prefix" value="" />
     <arg if="$(arg debug_cg)" name="launch_prefix" value="xterm -e gdb --args" />
