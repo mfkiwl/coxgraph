@@ -9,12 +9,6 @@
 
 namespace coxgraph {
 
-void CoxgraphClient::subscribeClientTopics() {
-  submap_subscriber_.shutdown();
-  submap_subscriber_ = nh_.subscribe(submap_topic_, submap_topic_queue_length_,
-                                     &CoxgraphClient::submapCallback, this);
-}
-
 void CoxgraphClient::advertiseClientTopics() {
   time_line_pub_ = nh_private_.advertise<coxgraph_msgs::TimeLine>(
       "time_line", publisher_queue_length_, true);
@@ -52,7 +46,7 @@ bool CoxgraphClient::getClientSubmapCallback(
       tf::transformKindrToMsg(T_submap_t.cast<double>(), &response.transform);
       if (!ser_sm_id_pose_map_.count(submap_id)) {
         response.submap =
-            utils::msgFromCliSubmap(submap, frame_names_.output_mission_frame);
+            utils::msgFromCliSubmap(submap, frame_names_.output_odom_frame);
         ser_sm_id_pose_map_.emplace(submap_id, submap.getPose());
         LOG(INFO) << log_prefix_ << " Submap " << submap_id
                   << " is successfully sent to server";
@@ -91,8 +85,8 @@ bool CoxgraphClient::getAllClientSubmapsCallback(
 
   for (auto const& submap_ptr : submap_collection_ptr_->getSubmapPtrs()) {
     if (ser_sm_id_pose_map_.count(submap_ptr->getID())) continue;
-    response.submaps.emplace_back(utils::msgFromCliSubmap(
-        *submap_ptr, frame_names_.output_mission_frame));
+    response.submaps.emplace_back(
+        utils::msgFromCliSubmap(*submap_ptr, frame_names_.output_odom_frame));
   }
 
   submap_proc_mutex_.unlock();
@@ -100,15 +94,16 @@ bool CoxgraphClient::getAllClientSubmapsCallback(
   return true;
 }
 
-void CoxgraphClient::submapCallback(
+bool CoxgraphClient::submapCallback(
     const voxblox_msgs::LayerWithTrajectory& submap_msg) {
   std::lock_guard<std::timed_mutex> submap_proc_lock(submap_proc_mutex_);
-  VoxgraphMapper::submapCallback(submap_msg);
+  if (!VoxgraphMapper::submapCallback(submap_msg)) return false;
   if (submap_collection_ptr_->size()) {
     publishTimeLine();
     publishMapPoseUpdates();
     map_server_->updatePastTsdf();
   }
+  return true;
 }
 
 void CoxgraphClient::publishTimeLine() {
