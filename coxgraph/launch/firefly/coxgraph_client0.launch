@@ -14,16 +14,18 @@
     <arg if="$(arg debug_cg)" name="launch_prefix" value="xterm -e gdb --args" />
 
     <node name="coxgraph_client_0" pkg="coxgraph" type="coxgraph_client_node" output="screen" launch-prefix="$(arg launch_prefix)" args="-alsologtostderr">
+      <remap from="~active_tsdf_in" to="/tsdf_client/label_tsdf_client_0/active_tsdf_out"/>
       <rosparam file="$(find voxgraph)/config/voxgraph_mapper.yaml" />
       <rosparam file="$(find coxgraph)/config/coxgraph_client.yaml" />
-      <param name="input_odom_frame" value="map_0"/>
-      <param name="input_base_link_frame" value="agent_0"/>
-      <param name="output_mission_frame" value="mission_0"/>
-      <param name="output_odom_frame" value="map_0"/>
-      <param name="output_base_link_frame" value="agent_0"/>
+      <param name="input_odom_frame" value="world"/>
+      <param name="input_base_link_frame" value="firefly_0/base_link"/>
+      <param name="output_odom_frame" value="world"/>
+      <param name="output_base_link_frame" value="firefly_0/base_link"/>
       <param name="output_sensor_frame" value="sensor_coxgraph_0"/>
       <param name="output_active_submap_frame" value="voxgraph_active_submap_0"/>
       <param name="submap_topic" value="/tsdf_client/label_tsdf_client_0/tsdf_map_out" />
+      <param name="publish_traversable" value="true"/>
+      <param name="traversability_radius" value="true"/>
       <param name="client_id" value="0"/>
     </node>
   </group>

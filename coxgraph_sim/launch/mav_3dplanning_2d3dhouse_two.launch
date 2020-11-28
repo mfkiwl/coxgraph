@@ -31,7 +31,7 @@
   <arg name="visualize" default="true"/>
 
   <!--  Experiment arguments -->
-  <arg name="experiment_config" default="experiment_2d3d.yaml"/>
+  <arg name="experiment_config" default="2d3d.yaml"/>
   <arg name="record_data" default="true"/>
   <arg name="record_visualization" default="true"/>
   <arg name="time_limit" default="30" />
@@ -92,16 +92,25 @@
   </node> -->
 
   <group ns="planner">
+    <node name="voxblox_node" pkg="voxblox_ros" type="esdf_server" output="screen" args="-alsologtostderr">
+      <remap from="~esdf_map_in" to="/coxgraph/coxgraph_client_0/combined_esdf_out" />
+      <remap from="~tsdf_map_in" to="/coxgraph/coxgraph_client_0/combined_tsdf_out" />
+      <param name="publish_traversable" value="true" />
+      <param name="publish_pointclouds" value="true"/>
+      <param name="tsdf_voxel_size" value="0.05"/>
+      <param name="truncation_distance" value="0.15"/>
+      <param name="publish_pointclouds_on_update" value="true"/>
+    </node>
 
     <!-- Planner -->
     <node name="planner_node" pkg="active_3d_planning_app_reconstruction" type="reconstruction_planner_node" output="screen">
-      <remap from="planner_node/esdf_map_in" to="/coxgraph/coxgraph_client_0/esdf_out" />
-      <remap from="planner_node/tsdf_map_in" to="/coxgraph/coxgraph_client_0/tsdf_out" />
+      <remap from="planner_node/esdf_map_in" to="/coxgraph/coxgraph_client_0/combined_esdf_out" />
+      <remap from="planner_node/tsdf_map_in" to="/coxgraph/coxgraph_client_0/combined_tsdf_out" />
       <param name="use_tf_transforms" value="false" />
       <param name="tsdf_voxel_size" value="$(arg voxel_size)" />
       <param name="tsdf_voxels_per_side" value="$(arg voxels_per_side)" />
       <param name="update_mesh_every_n_sec" value="0.0" />
-      <param name="publish_traversable" value="false" />
+      <param name="publish_traversable" value="true" />
 
       <remap from="odometry" to="/$(arg mav_name)_0/ground_truth/odometry" />
       <remap from="command/trajectory" to="/$(arg mav_name)_0/command/trajectory" />

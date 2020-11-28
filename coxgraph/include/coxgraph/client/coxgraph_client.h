@@ -21,8 +21,7 @@ namespace coxgraph {
 class CoxgraphClient : public voxgraph::VoxgraphMapper {
  public:
   CoxgraphClient(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private)
-      : VoxgraphMapper(nh, nh_private),
-        frame_names_(FrameNames::fromRosParams(nh_private)) {
+      : VoxgraphMapper(nh, nh_private) {
     int client_id;
     nh_private.param<int>("client_id", client_id, -1);
     client_id_ = static_cast<CliId>(client_id);
@@ -36,7 +35,7 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
     log_prefix_ = "Client " + std::to_string(client_id_) + ": ";
 
     map_server_.reset(new MapServer(nh_, nh_private_, submap_config_,
-                                    submap_collection_ptr_));
+                                    frame_names_, submap_collection_ptr_));
   }
 
   ~CoxgraphClient() = default;
@@ -66,8 +65,6 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
 
   CliId client_id_;
   std::string log_prefix_;
-
-  FrameNames frame_names_;
 
   ros::Publisher time_line_pub_;
   ros::Publisher map_pose_pub_;

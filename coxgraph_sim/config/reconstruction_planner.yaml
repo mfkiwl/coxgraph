@@ -27,7 +27,7 @@ system_constraints:
 trajectory_generator:
   collision_optimistic: false
   bounding_volume_args: "/map_bounding_volume"
-  clearing_radius: 0.0
+  clearing_radius: 5.0
 
   type: "RRTStar"
   all_semgents_feasible: false
