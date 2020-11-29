@@ -14,8 +14,9 @@
     <arg unless="$(arg debug)" name="launch_prefix" value=" " />
     <arg if="$(arg debug)" name="launch_prefix" value="xterm -e gdb --args" />
 
-    <node name="label_tsdf_client_0" pkg="maskgraph" type="label_tsdf_server" output="screen" args="-alsologtostderr" clear_params="true" launch-prefix="$(arg launch_prefix)">
+    <node name="label_tsdf_client_0" pkg="maskgraph" type="label_tsdf_server" output="log" args="-alsologtostderr" clear_params="true" launch-prefix="$(arg launch_prefix)">
       <remap from="~active_tsdf_out" to="/coxgraph/coxgraph_client_0/combined_tsdf_out"/>
+      <remap from="~active_esdf_out" to="/coxgraph/coxgraph_client_0/combined_esdf_out"/>
       <remap from="pointcloud" to="$(arg pointcloud_topic)"/>
       <rosparam file="$(find coxgraph)/config/tsdf_server.yaml"/>
       <rosparam file="$(find maskgraph)/config/segment_map.yaml"/>
@@ -34,6 +35,7 @@
       <param name="traversability_radius " value="4.0"/>
       <param name="update_esdf_every_n_sec " value="1.0"/>
       <param name="min_ray_length_m " value="0.5"/>
+      <param name="publish_active_tsdf_every_n_sec " value="0.5"/>
     </node>
 
   </group>

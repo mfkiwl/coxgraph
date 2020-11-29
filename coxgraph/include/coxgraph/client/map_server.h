@@ -22,10 +22,12 @@ class MapServer {
  public:
   struct Config {
     Config()
-        : publish_combined_maps_every_n_sec(1.0),
+        : publish_combined_maps_every_n_sec(0.0),
+          publish_on_update(true),
           publish_traversable(false),
           traversability_radius(1.0) {}
     float publish_combined_maps_every_n_sec;
+    bool publish_on_update;
     bool publish_traversable;
     float traversability_radius;
 
@@ -34,6 +36,10 @@ class MapServer {
         << "Map Server using Config:" << std::endl
         << "  Publish maps every: " << v.publish_combined_maps_every_n_sec
         << "s" << std::endl
+        << "  Publish maps on update: "
+        << static_cast<std::string>(v.publish_on_update ? "enabled"
+                                                        : "disabled")
+        << std::endl
         << "  Publish traversable: "
         << static_cast<std::string>(v.publish_traversable ? "enabled"
                                                           : "disabled")
@@ -69,10 +75,6 @@ class MapServer {
         config_(getConfigFromRosParam(nh_private)),
         frame_names_(frame_names),
         submap_collection_ptr_(submap_collection_ptr) {
-    past_tsdf_layer_ = new voxblox::Layer<voxblox::TsdfVoxel>(
-        map_config.tsdf_voxel_size, map_config.tsdf_voxels_per_side);
-    active_tsdf_layer_ = new voxblox::Layer<voxblox::TsdfVoxel>(
-        map_config.tsdf_voxel_size, map_config.tsdf_voxels_per_side);
     tsdf_map_.reset(new voxblox::TsdfMap(
         static_cast<voxblox::TsdfMap::Config>(map_config)));
     esdf_map_.reset(new voxblox::EsdfMap(
@@ -94,8 +96,8 @@ class MapServer {
   void subscribeTopics();
   void advertiseTopics();
 
-  void activeTsdfCallback(const voxblox_msgs::Layer& layer_msg);
-  void publishMap(const ros::TimerEvent& event);
+  void publishMapEvent(const ros::TimerEvent& event);
+  void publishMap();
   void mergeTsdfs();
   void publishTsdf();
   void publishEsdf();
@@ -114,12 +116,8 @@ class MapServer {
   ros::Publisher tsdf_pub_;
   ros::Publisher esdf_pub_;
   ros::Publisher traversable_pub_;
-  ros::Subscriber active_tsdf_sub_;
-  ros::Subscriber active_esdf_sub_;
 
   voxblox::TsdfMap::Ptr tsdf_map_;
-  voxblox::Layer<voxblox::TsdfVoxel>* active_tsdf_layer_;
-  voxblox::Layer<voxblox::TsdfVoxel>* past_tsdf_layer_;
   std::mutex tsdf_layer_update_mutex_;
 
   voxblox::EsdfMap::Ptr esdf_map_;

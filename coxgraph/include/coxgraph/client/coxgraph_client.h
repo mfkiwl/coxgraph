@@ -53,7 +53,8 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
       coxgraph_msgs::SubmapsSrv::Request& request,     // NOLINT
       coxgraph_msgs::SubmapsSrv::Response& response);  // NOLINT
 
-  bool submapCallback(const voxblox_msgs::LayerWithTrajectory& submap_msg);
+  bool submapCallback(
+      const voxblox_msgs::LayerWithTrajectory& submap_msg) override;
 
  private:
   using VoxgraphMapper = voxgraph::VoxgraphMapper;

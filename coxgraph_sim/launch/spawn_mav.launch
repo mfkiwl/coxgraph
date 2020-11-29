@@ -32,18 +32,6 @@
       <arg name="z" value="$(arg z)"/>
     </include>
 
-    <!-- Start GPS converter -->
-    <node name="set_gps_reference_node" pkg="geodetic_utils" type="set_gps_reference_node" clear_params="true" output="screen" args="10">
-      <remap from="gps" to="fix" />
-    </node>
-
-    <node name="gps_to_pose_conversion_node" pkg="geodetic_utils" type="gps_to_pose_conversion_node" clear_params="true" output="screen">
-      <remap from="gps" to="fix" />
-      <remap from="imu" to="raw_imu" />
-      <param name="is_sim" value="true" />
-      <rosparam file="$(find geodetic_utils)/parameters/gps_pose_covariance.yaml"/>
-    </node>
-
     <!-- Start controller -->
     <node name="mav_nonlinear_mpc" pkg="mav_nonlinear_mpc" type="nonlinear_mpc_node" respawn="true" clear_params="true" output="screen">
       <remap from="odometry" to="/$(arg mav_name)_$(arg id)/ground_truth/odometry" />
