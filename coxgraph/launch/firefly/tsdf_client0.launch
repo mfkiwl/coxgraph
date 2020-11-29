@@ -18,9 +18,9 @@
       <remap from="~active_tsdf_out" to="/coxgraph/coxgraph_client_0/combined_tsdf_out"/>
       <remap from="~active_esdf_out" to="/coxgraph/coxgraph_client_0/combined_esdf_out"/>
       <remap from="pointcloud" to="$(arg pointcloud_topic)"/>
-      <rosparam file="$(find coxgraph)/config/tsdf_server.yaml"/>
       <rosparam file="$(find maskgraph)/config/segment_map.yaml"/>
       <rosparam file="$(find maskgraph)/config/$(arg scene_name).yaml"/>
+      <rosparam file="$(find coxgraph)/config/tsdf_server.yaml"/>
       <param name="meshing/visualize" value="$(arg visualize)" />
       <param name="enable_segment_map" value="false" />
       <param name="enable_local_segment_map" value="false" />
@@ -32,7 +32,6 @@
       <param name="publish_slices" value="true" />
       <param name="publish_pointclouds" value="true" />
       <param name="publish_traversable" value="true"/>
-      <param name="traversability_radius " value="4.0"/>
       <param name="update_esdf_every_n_sec " value="1.0"/>
       <param name="min_ray_length_m " value="0.5"/>
       <param name="publish_active_tsdf_every_n_sec " value="0.5"/>

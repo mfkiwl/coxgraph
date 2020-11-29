@@ -91,18 +91,6 @@
     <rosparam file="$(find coxgraph_sim)/config/parameters.yaml"/>
   </node> -->
 
-  <group ns="planner">
-    <!-- <node name="voxblox_node" pkg="voxblox_ros" type="esdf_server" output="screen" args="-alsologtostderr">
-      <remap from="~esdf_map_in" to="/coxgraph/coxgraph_client_0/combined_esdf_out" />
-      <remap from="~tsdf_map_in" to="/coxgraph/coxgraph_client_0/combined_tsdf_out" />
-      <param name="publish_traversable" value="true" />
-      <param name="publish_pointclouds" value="true"/>
-      <param name="tsdf_voxel_size" value="0.05"/>
-      <param name="truncation_distance" value="0.15"/>
-      <param name="publish_pointclouds_on_update" value="true"/>
-      <param name="update_esdf_every_n_sec" value="1"/>
-    </node> -->
-
     <!-- Planner -->
     <node name="planner_node" pkg="active_3d_planning_app_reconstruction" type="reconstruction_planner_node" output="screen" args="-alsologtostderr">
       <remap from="planner_node/esdf_map_in" to="/coxgraph/coxgraph_client_0/combined_esdf_out" />
@@ -114,7 +102,6 @@
       <param name="publish_traversable" value="true" />
       <param name="publish_slices" value="true" />
       <param name="publish_pointclouds_on_update" value="true" />
-      <param name="traversability_radius" value="0.5" />
 
       <remap from="odometry" to="/$(arg mav_name)_0/ground_truth/odometry" />
       <remap from="command/trajectory" to="/$(arg mav_name)_0/command/trajectory" />
