@@ -32,8 +32,8 @@
       <param name="publish_slices" value="true" />
       <param name="publish_pointclouds" value="true" />
       <param name="publish_traversable" value="true"/>
-      <param name="update_esdf_every_n_sec " value="1.0"/>
-      <param name="min_ray_length_m " value="0.5"/>
+      <param name="update_esdf_every_n_sec " value="0.5"/>
+      <param name="min_ray_length_m " value="0.2"/>
       <param name="publish_active_tsdf_every_n_sec " value="0.5"/>
     </node>
 

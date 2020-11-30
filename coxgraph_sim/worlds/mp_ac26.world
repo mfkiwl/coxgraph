@@ -93,11 +93,11 @@
       <real_time>378 894974746</real_time>
       <wall_time>1604995698 509473306</wall_time>
       <iterations>377219</iterations>
-      <model name='2d3d_house'>
-        <pose>-6.66401 4.62678 -0.93004 0 -0 0</pose>
+      <model name='house'>
+        <pose>0.442683 0.584627 0.275635 -1.5708 0 0</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose>-6.66401 4.62678 0.06996 0 -0 0</pose>
+          <pose>0.442683 0.584627 0.275635 -1.5708 0 0</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 0 0 -0 0</acceleration>
           <wrench>0 0 0 0 -0 0</wrench>
@@ -117,14 +117,14 @@
         <pose>0 0 10 0 -0 0</pose>
       </light>
     </state>
-    <model name='2d3d_house'>
+    <model name='house'>
       <static>1</static>
       <link name='link'>
         <pose>0 0 1 0 -0 0</pose>
         <collision name='collision1'>
           <geometry>
             <mesh>
-              <uri>model://mp_17DRP5/meshes/house.dae</uri>
+              <uri>model://mp_ac26ZM/meshes/house.dae</uri>
             </mesh>
           </geometry>
           <surface>
@@ -144,7 +144,7 @@
         <visual name='visual1'>
           <geometry>
             <mesh>
-              <uri>model://mp_17DRP5/meshes/house.dae</uri>
+              <uri>model://mp_ac26ZM/meshes/house.dae</uri>
               <scale>1 1 1</scale>
             </mesh>
           </geometry>
@@ -153,7 +153,7 @@
         <enable_wind>0</enable_wind>
         <kinematic>0</kinematic>
       </link>
-      <pose>-7.00995 2.17515 0 0 -0 0</pose>
+      <pose>-5.47788 1.95837 0 0 -0 0</pose>
     </model>
     <gui fullscreen='0'>
       <camera name='user_camera'>

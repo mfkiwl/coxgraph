@@ -50,7 +50,7 @@
   <arg name="enable_ground_truth" default="true"/>
   <arg name="log_file" default="$(arg mav_name)"/>
   <arg name="run_gazebo_gui" default="true"/>
-  <arg name="world" default="stanford_2d3d"/>
+  <arg name="world" default="mp_ac26"/>
 
   <!-- *** Experiment Execution *** -->
 
@@ -66,7 +66,7 @@
 
   <group ns="$(arg mav_name)_0">
     <!-- Setup a mav -->
-    <include file="$(find coxgraph_sim)/launch/spawn_mav.launch">
+    <include file="$(find coxgraph_sim)/launch/utils/spawn_mav.launch">
       <arg name="mav_name" value="$(arg mav_name)" />
       <arg name="id" value="0" />
       <arg name="enable_logging" value="$(arg enable_logging)" />
@@ -91,6 +91,7 @@
     <rosparam file="$(find coxgraph_sim)/config/parameters.yaml"/>
   </node> -->
 
+  <group ns="planner">
     <!-- Planner -->
     <node name="planner_node" pkg="active_3d_planning_app_reconstruction" type="reconstruction_planner_node" output="screen" args="-alsologtostderr">
       <remap from="planner_node/esdf_map_in" to="/coxgraph/coxgraph_client_0/combined_esdf_out" />
