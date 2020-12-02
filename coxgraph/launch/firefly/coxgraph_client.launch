@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<launch>
+  <param name="use_sim_time" value="true" />
+  <arg name="id" default="0"/>
+
+  <arg name="sensor" default="firefly"/>
+  <arg name="pointcloud_topic" doc="ROS topic for pointcloud input" default="/firefly_$(arg id)/vi_sensor/camera_depth/depth/points"/>
+  <arg name="debug_cg" default="false" doc="Run the coxgraph client in debug mode." />
+  <arg name="debug_tsdf" default="false" doc="Run the tsdf client in debug mode." />
+  <arg name="show_rviz" default="false" doc="Automatically launch Rviz." />
+  <arg name="verbose" default="false"/>
+
+  <group ns="coxgraph">
+    <arg unless="$(arg debug_cg)" name="launch_prefix" value="" />
+    <arg if="$(arg debug_cg)" name="launch_prefix" value="xterm -e gdb --args" />
+
+    <node name="coxgraph_client_$(arg id)" pkg="coxgraph" type="coxgraph_client_node" output="screen" launch-prefix="$(arg launch_prefix)" args="-alsologtostderr">
+      <!-- <remap from="~combined_tsdf_out" to="/tsdf_out"/> -->
+      <rosparam file="$(find voxgraph)/config/voxgraph_mapper.yaml" />
+      <rosparam file="$(find coxgraph)/config/coxgraph_client.yaml" />
+      <param name="input_odom_frame" value="map_$(arg id)"/>
+      <param name="input_base_link_frame" value="firefly_$(arg id)/base_link"/>
+      <param name="output_odom_frame" value="map_$(arg id)"/>
+      <param name="output_base_link_frame" value="firefly_$(arg id)/base_link"/>
+      <param name="output_sensor_frame" value="sensor_coxgraph_$(arg id)"/>
+      <param name="output_active_submap_frame" value="voxgraph_active_submap_$(arg id)"/>
+      <param name="submap_topic" value="/tsdf_client/label_tsdf_client_$(arg id)/tsdf_map_out" />
+      <param name="publish_traversable" value="true"/>
+      <param name="client_id" value="$(arg id)"/>
+    </node>
+  </group>
+
+  <group ns="tsdf_client">
+    <include file="$(find coxgraph)/launch/firefly/tsdf_client.launch">
+      <arg name="debug" default="$(arg debug_tsdf)"/>
+      <arg name="verbose" default="$(arg verbose)"/>
+      <arg name="sensor_name" default="$(arg sensor)"/>
+      <arg name="id" default="$(arg id)"/>
+    </include>
+  </group>
+
+</launch>

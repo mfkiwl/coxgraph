@@ -19,19 +19,20 @@ GlobalTfController::Config GlobalTfController::getConfigFromRosParam(
 }
 
 void GlobalTfController::initCliMapPose() {
-  int8_t tf_grid_dim = static_cast<int8_t>(floor(sqrt(client_number_)));
   for (int i = 0; i < client_number_; i++) {
     cli_mission_frames_.emplace_back(config_.map_frame_prefix + "_" +
                                      std::to_string(i));
-    int8_t cli_row = static_cast<int>(i / tf_grid_dim);
-    int8_t cli_col = static_cast<int>(i % tf_grid_dim);
     client_tf_optimizer_.addClient(i, Transformation());
-    T_G_CLI_opt_.emplace_back(tf::StampedTransform(
-        tf::Transform(tf::Quaternion(0, 0, 0, 1),
-                      tf::Vector3(cli_row * config_.init_cli_map_dist,
-                                  cli_col * config_.init_cli_map_dist, 0)),
-        ros::Time::now(), global_mission_frame_, cli_mission_frames_[i]));
+    tf::Transform identity;
+    identity.setOrigin(tf::Vector3(0, 0, 0));
+    identity.setRotation(tf::Quaternion(0, 0, 0, 1));
+    T_G_CLI_opt_.emplace_back(tf::StampedTransform(identity, ros::Time::now(),
+                                                   global_mission_frame_,
+                                                   cli_mission_frames_[i]));
   }
+
+  cli_tf_fused_.resize(4, false);
+  cli_tf_fused_[0] = true;
 
   tf_pub_timer_ =
       nh_private_.createTimer(ros::Duration(1 / kTfPubFreq),
@@ -42,7 +43,9 @@ void GlobalTfController::initCliMapPose() {
 void GlobalTfController::pubCliTfCallback(const ros::TimerEvent& event) {
   if (!inControl()) return;
   updateCliMapPose();
-  tf_boardcaster_.sendTransform(T_G_CLI_opt_);
+  for (int i = 0; i < T_G_CLI_opt_.size(); i++) {
+    if (cli_tf_fused_[i]) tf_boardcaster_.sendTransform(T_G_CLI_opt_[i]);
+  }
 }
 
 void GlobalTfController::addCliMapRelativePose(const CliId& first_cid,
@@ -60,6 +63,7 @@ void GlobalTfController::updateCliMapPose() {
     PoseMap new_cli_map_poses = client_tf_optimizer_.getClientMapTfs();
     CHECK(new_cli_map_poses[0] == Transformation());
     for (auto const& cli_map_pose_kv : new_cli_map_poses) {
+      cli_tf_fused_[cli_map_pose_kv.first] = true;
       tf::Transform pose;
       tf::transformKindrToTF(cli_map_pose_kv.second.cast<double>(), &pose);
       T_G_CLI_opt_[cli_map_pose_kv.first] = tf::StampedTransform(

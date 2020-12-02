@@ -1,5 +1,6 @@
 <launch>
   <param name="use_sim_time" value="true" />
+  <arg name="id" default=""/>
 
   <!-- User supplied arguments -->
   <arg name="show_rviz" default="false" doc="Automatically launch Rviz." />
@@ -8,25 +9,24 @@
   <arg name="visualize" default="false" />
   <arg name="verbose" default="true"/>
   <arg name="debug" default="false" />
-  <arg name="pointcloud_topic" doc="ROS topic for pointcloud input" default="/firefly_0/vi_sensor/camera_depth/depth/points"/>
+  <arg name="pointcloud_topic" doc="ROS topic for pointcloud input" default="/firefly_$(arg id)/vi_sensor/camera_depth/depth/points"/>
 
   <group>
     <arg unless="$(arg debug)" name="launch_prefix" value=" " />
     <arg if="$(arg debug)" name="launch_prefix" value="xterm -e gdb --args" />
 
-    <node name="label_tsdf_client_0" pkg="maskgraph" type="label_tsdf_server" output="log" args="-alsologtostderr" clear_params="true" launch-prefix="$(arg launch_prefix)">
-      <remap from="~active_tsdf_out" to="/coxgraph/coxgraph_client_0/combined_tsdf_out"/>
-      <remap from="~active_esdf_out" to="/coxgraph/coxgraph_client_0/combined_esdf_out"/>
+    <node name="label_tsdf_client_$(arg id)" pkg="maskgraph" type="label_tsdf_server" output="log" args="-alsologtostderr" clear_params="true" launch-prefix="$(arg launch_prefix)">
+      <!-- <remap from="~active_tsdf_out" to="/tsdf_out"/> -->
+      <remap from="~active_esdf_out" to="/coxgraph/coxgraph_client_$(arg id)/combined_esdf_out"/>
+      <remap from="~active_tsdf_out" to="/coxgraph/coxgraph_client_$(arg id)/combined_tsdf_out"/>
       <remap from="pointcloud" to="$(arg pointcloud_topic)"/>
       <rosparam file="$(find maskgraph)/config/segment_map.yaml"/>
       <rosparam file="$(find maskgraph)/config/$(arg scene_name).yaml"/>
-      <rosparam file="$(find coxgraph)/config/tsdf_server.yaml"/>
+      <rosparam file="$(find coxgraph)/config/tsdf_server_default.yaml"/>
       <param name="meshing/visualize" value="$(arg visualize)" />
       <param name="enable_segment_map" value="false" />
       <param name="enable_local_segment_map" value="false" />
       <param name="verbose" value="$(arg verbose)" />
-      <param name="world_frame" value="world"/>
-      <param name="mission_frame" value="world"/>
       <param name="publish_tsdf_map" value="true" />
       <param name="publish_esdf_map" value="true" />
       <param name="publish_slices" value="true" />
@@ -34,6 +34,7 @@
       <param name="publish_traversable" value="true"/>
       <param name="update_esdf_every_n_sec " value="0.5"/>
       <param name="publish_active_tsdf_every_n_sec " value="0.5"/>
+      <param name="world_frame" value="map_$(arg id)"/>
     </node>
 
   </group>
