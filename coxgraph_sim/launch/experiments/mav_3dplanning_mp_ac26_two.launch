@@ -31,7 +31,7 @@
   <arg name="visualize" default="true"/>
 
   <!--  Experiment arguments -->
-  <arg name="experiment_config" default="2d3d.yaml"/>
+  <arg name="experiment_config" default="mp_ac26.yaml"/>
   <arg name="record_data" default="true"/>
   <arg name="record_visualization" default="true"/>
   <arg name="time_limit" default="30" />
@@ -45,6 +45,16 @@
   <arg name="y_ctrl_0" default="0.0"/>
   <arg name="z_ctrl_0" default="1"/>
   <arg name="yaw_ctrl_0" default="0"/>
+
+  <!-- Initial pose and control commands -->
+  <arg name="x_1" default="5.0"/>
+  <arg name="y_1" default="5.0"/>
+  <arg name="z_1" default="1.5"/>
+
+  <arg name="x_ctrl_1" default="5.0"/>
+  <arg name="y_ctrl_1" default="5.0"/>
+  <arg name="z_ctrl_1" default="1"/>
+  <arg name="yaw_ctrl_1" default="0"/>
 
   <arg name="enable_logging" default="false"/>
   <arg name="enable_ground_truth" default="true"/>
@@ -85,41 +95,41 @@
     </include>
   </group>
 
-  <include file="$(find coxgraph)/launch/firefly/coxgraph_client0.launch" />
+  <group ns="$(arg mav_name)_1">
+    <!-- Setup a mav -->
+    <include file="$(find coxgraph_sim)/launch/utils/spawn_mav.launch">
+      <arg name="mav_name" value="$(arg mav_name)" />
+      <arg name="id" value="1" />
+      <arg name="enable_logging" value="$(arg enable_logging)" />
+      <arg name="enable_ground_truth" value="$(arg enable_ground_truth)" />
+      <arg name="log_file" value="$(arg log_file)"/>
+      <arg name="hover" default="true"/>
 
-  <!-- <node name="odometry_transform_publisher" pkg="multi_robot_simulation" type="odometry_transform_publisher_node" respawn="false" clear_params="true" output="screen">
-    <rosparam file="$(find coxgraph_sim)/config/parameters.yaml"/>
-  </node> -->
+      <arg name="x" value="$(arg x_1)"/>
+      <arg name="y" value="$(arg y_1)"/>
+      <arg name="z" value="$(arg z_1)"/>
 
-  <group ns="planner">
-    <!-- Planner -->
-    <node name="planner_node" pkg="active_3d_planning_app_reconstruction" type="reconstruction_planner_node" output="screen" args="-alsologtostderr">
-      <remap from="planner_node/esdf_map_in" to="/coxgraph/coxgraph_client_0/combined_esdf_out" />
-      <remap from="planner_node/tsdf_map_in" to="/coxgraph/coxgraph_client_0/combined_tsdf_out" />
-      <param name="use_tf_transforms" value="false" />
-      <param name="tsdf_voxel_size" value="$(arg voxel_size)" />
-      <param name="tsdf_voxels_per_side" value="$(arg voxels_per_side)" />
-      <param name="update_mesh_every_n_sec" value="0.0" />
-      <param name="publish_traversable" value="true" />
-      <param name="publish_slices" value="true" />
-      <param name="publish_pointclouds_on_update" value="true" />
-
-      <remap from="odometry" to="/$(arg mav_name)_0/ground_truth/odometry" />
-      <remap from="command/trajectory" to="/$(arg mav_name)_0/command/trajectory" />
-      <param name="verbose" value="$(arg verbose_planner)" />
-      <param name="visualize" value="$(arg visualize)" />
-      <param name="log_performance" value="$(arg record_data)" />
-
-      <!-- Experiment dependent -->
-      <param name="trajectory_evaluator/bounding_volume_args" value="/target_bounding_volume" />
-      <param name="trajectory_generator/bounding_volume_args" value="/map_bounding_volume" />
-
-      <!-- Modular Config -->
-      <rosparam command="load" file="$(find coxgraph_sim)/config/$(arg planner_config)"/>
-    </node>
-
+      <arg name="x_ctrl" value="$(arg x_ctrl_1)"/>
+      <arg name="y_ctrl" value="$(arg y_ctrl_1)"/>
+      <arg name="z_ctrl" value="$(arg z_ctrl_1)"/>
+      <arg name="yaw_ctrl" value="$(arg yaw_ctrl_1)"/>
+    </include>
   </group>
 
-  <!-- RVIZ Visualization -->
-  <node type="rviz" name="rviz_experiment" pkg="rviz" args="-d $(find active_3d_planning_app_reconstruction)/cfg/experiments/experiment_visualization.rviz" if="$(arg visualize)"/>
+  <include file="$(find coxgraph)/launch/firefly/coxgraph_client.launch">
+    <arg name="id" default="0"/>
+  </include>
+
+  <include file="$(find coxgraph)/launch/firefly/coxgraph_client.launch">
+    <arg name="id" default="1"/>
+  </include>
+
+  <include file="$(find coxgraph_sim)/launch/utils/start_planner.launch" pass_all_args="true">
+    <arg name="id" default="0"/>
+  </include>
+
+  <include file="$(find coxgraph_sim)/launch/utils/start_planner.launch" pass_all_args="true">
+    <arg name="id" default="1"/>
+  </include>
+
 </launch>

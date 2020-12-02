@@ -1,0 +1,82 @@
+<launch>
+  <!-- Gazebo arguments -->
+  <arg name="mav_name" default="firefly"/>
+  <arg name="id" default="0"/>
+  <arg name="verbose_gazebo" default="false"/>
+
+  <!-- Voxblox arguments -->
+  <arg name="voxel_size" default="0.10"/>
+  <arg name="voxels_per_side" default="16"/>
+  <arg name="ray_length" default="5.0"/>
+  <arg name="method" default="merged"/>
+  <arg name="verbose_voxblox" default="false"/>
+
+  <!-- Unreal Routine arguments -->
+  <arg name="uecv_mode" default="fast"/>
+  <arg name="slowdown" default="0.0"/>
+  <arg name="delay" default="3.0"/>
+
+  <!-- Unreal Sensor arguments (ground_truth, kinect, gaussian_depth_noise)-->
+  <arg name="model_type" default="gaussian_depth_noise"/>
+  <arg name="flatten_distance" default="6.0"/>
+  <arg name="maximum_distance" default="0.0"/>
+
+  <!-- Odometry  arguments (random_walk, ground_truth)-->
+  <arg name="use_rovio" default="false"/>
+  <arg name="odom_noise_model" default="random_walk"/>
+
+  <!--  Planner arguments (can use a single config or compose the planner)-->
+  <arg name="use_separate_configs" default="false"/>
+  <arg name="planner_config" default="reconstruction_planner.yaml"/>
+  <arg name="verbose_planner" default="true"/>
+  <arg name="visualize" default="true"/>
+
+  <!--  Experiment arguments -->
+  <arg name="experiment_config" default="2d3d.yaml"/>
+  <arg name="record_data" default="true"/>
+  <arg name="record_visualization" default="true"/>
+  <arg name="time_limit" default="30" />
+
+  <arg name="enable_logging" default="false"/>
+  <arg name="enable_ground_truth" default="true"/>
+  <arg name="log_file" default="$(arg mav_name)"/>
+  <arg name="run_gazebo_gui" default="true"/>
+  <arg name="world" default="mp_ac26"/>
+
+  <!-- *** Experiment Execution *** -->
+
+  <!-- Setup experiment params, data, nodes -->
+  <rosparam command="load" file="$(find coxgraph_sim)/config/$(arg experiment_config)"/>
+
+  <group ns="planner_$(arg id)">
+    <!-- Planner -->
+    <node name="planner_node" pkg="active_3d_planning_app_reconstruction" type="reconstruction_planner_node" output="screen" args="-alsologtostderr">
+      <remap from="planner_node/esdf_map_in" to="/coxgraph/coxgraph_client_$(arg id)/combined_esdf_out" />
+      <remap from="planner_node/tsdf_map_in" to="/tsdf_out" />
+      <param name="use_tf_transforms" value="false" />
+      <param name="tsdf_voxel_size" value="$(arg voxel_size)" />
+      <param name="tsdf_voxels_per_side" value="$(arg voxels_per_side)" />
+      <param name="update_mesh_every_n_sec" value="0.0" />
+      <param name="publish_traversable" value="true" />
+      <param name="publish_slices" value="true" />
+      <param name="publish_pointclouds_on_update" value="true" />
+
+      <remap from="odometry" to="/$(arg mav_name)_$(arg id)/ground_truth/odometry" />
+      <remap from="command/trajectory" to="/$(arg mav_name)_$(arg id)/command/trajectory" />
+      <param name="verbose" value="$(arg verbose_planner)" />
+      <param name="visualize" value="$(arg visualize)" />
+      <param name="log_performance" value="$(arg record_data)" />
+
+      <!-- Experiment dependent -->
+      <param name="trajectory_evaluator/bounding_volume_args" value="/target_bounding_volume" />
+      <param name="trajectory_generator/bounding_volume_args" value="/map_bounding_volume" />
+
+      <!-- Modular Config -->
+      <rosparam command="load" file="$(find coxgraph_sim)/config/$(arg planner_config)"/>
+    </node>
+
+  </group>
+
+  <!-- RVIZ Visualization -->
+  <node type="rviz" name="rviz_experiment_$(arg id)" pkg="rviz" args="-d $(find active_3d_planning_app_reconstruction)/cfg/experiments/experiment_visualization.rviz" if="$(arg visualize)"/>
+</launch>

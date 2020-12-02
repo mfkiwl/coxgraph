@@ -16,7 +16,7 @@ client_handler:
 fixed_map_client_id: 0
 refuse_interval: 2.0
 
-output_mission_frame: "mission"
+output_mission_frame: "map"
 
 mesh_min_weight: 1.0
 mesh_use_color: true
@@ -25,7 +25,7 @@ combined_mesh_color_mode: "color"
 
 global_tf_controller:
   init_cli_map_dist: 10
-  map_frame_prefix: "mission"
+  map_frame_prefix: "map"
 
 submap_registration:
   enabled: true
