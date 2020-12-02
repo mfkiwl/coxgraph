@@ -23,11 +23,15 @@ void GlobalTfController::initCliMapPose() {
     cli_mission_frames_.emplace_back(config_.map_frame_prefix + "_" +
                                      std::to_string(i));
     client_tf_optimizer_.addClient(i, Transformation());
-    T_G_CLI_opt_.emplace_back(
-        tf::StampedTransform(tf::Transform(), ros::Time::now(),
-                             global_mission_frame_, cli_mission_frames_[i]));
+    tf::Transform identity;
+    identity.setOrigin(tf::Vector3(0, 0, 0));
+    identity.setRotation(tf::Quaternion(0, 0, 0, 1));
+    T_G_CLI_opt_.emplace_back(tf::StampedTransform(identity, ros::Time::now(),
+                                                   global_mission_frame_,
+                                                   cli_mission_frames_[i]));
   }
 
+  cli_tf_fused_.resize(4, false);
   cli_tf_fused_[0] = true;
 
   tf_pub_timer_ =

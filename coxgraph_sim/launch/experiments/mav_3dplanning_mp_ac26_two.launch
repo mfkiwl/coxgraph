@@ -131,7 +131,9 @@
     <arg name="id" default="1"/>
   </include>
 
-  <include file="$(find coxgraph)/launch/coxgraph_server.launch" />
+  <include file="$(find coxgraph)/launch/coxgraph_server.launch">
+    <arg name="debug" default="false"/>
+  </include>
 
   <include file="$(find coxgraph_sim)/launch/utils/start_planner.launch" pass_all_args="true">
     <arg name="id" default="0"/>

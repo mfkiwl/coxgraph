@@ -53,8 +53,13 @@ void ClientHandler::advertiseTopics() {
 }
 
 void ClientHandler::subscribeToServices() {
+  LOG(INFO) << log_prefix_ << "Subscribed to service: "
+            << client_node_name_ + "/get_client_submap";
   pub_client_submap_client_ = nh_.serviceClient<coxgraph_msgs::ClientSubmapSrv>(
       client_node_name_ + "/get_client_submap");
+
+  LOG(INFO) << log_prefix_ << "Subscribed to service: "
+            << client_node_name_ + "/get_all_submaps";
   get_all_submaps_client_ = nh_.serviceClient<coxgraph_msgs::SubmapsSrv>(
       client_node_name_ + "/get_all_submaps");
 }

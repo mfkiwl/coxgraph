@@ -18,9 +18,9 @@ map:
   type: "VoxbloxMap"
 
 system_constraints:
-  v_max: 0.1
-  a_max: 0.1
-  yaw_rate_max: 0.3
+  v_max: 0.3
+  a_max: 0.3
+  yaw_rate_max: 0.5
   yaw_accel_max: 1.0
   collision_radius: 0.5
 
