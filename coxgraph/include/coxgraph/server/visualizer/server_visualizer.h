@@ -40,7 +40,7 @@ class ServerVisualizer {
 
   /**
    * @brief Get the Final Global Mesh object, other submaps will be added to
-   * submap_collectinon and pose graph to optimize, then removed, so
+   * submap_collection and pose graph to optimize, then removed, so
    * submap_collection and pose graph will not be changed.
    *
    * @param submap_collection_ptr

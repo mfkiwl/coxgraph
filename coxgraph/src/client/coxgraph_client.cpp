@@ -27,15 +27,6 @@ void CoxgraphClient::advertiseClientServices() {
 bool CoxgraphClient::getClientSubmapCallback(
     coxgraph_msgs::ClientSubmapSrv::Request& request,
     coxgraph_msgs::ClientSubmapSrv::Response& response) {
-  // if (optimization_async_handle_.valid() &&
-  //     optimization_async_handle_.wait_for(std::chrono::milliseconds(100)) !=
-  //         std::future_status::ready) {
-  //   ROS_WARN(
-  //       "Previous pose graph optimization still not complete. Client submap "
-  //       "request ignored");
-  //   return false;
-  // }
-
   CliSmId submap_id;
   if (submap_collection_ptr_->lookupActiveSubmapByTime(request.timestamp,
                                                        &submap_id)) {

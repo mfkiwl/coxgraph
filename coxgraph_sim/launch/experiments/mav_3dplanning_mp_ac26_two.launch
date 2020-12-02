@@ -4,7 +4,7 @@
   <arg name="verbose_gazebo" default="false"/>
 
   <!-- Voxblox arguments -->
-  <arg name="voxel_size" default="0.05"/>
+  <arg name="voxel_size" default="0.10"/>
   <arg name="voxels_per_side" default="16"/>
   <arg name="ray_length" default="5.0"/>
   <arg name="method" default="merged"/>
@@ -31,11 +31,9 @@
   <arg name="visualize" default="true"/>
 
   <!--  Experiment arguments -->
-  <arg name="experiment_config" default="experiment_2d3d.yaml"/>
+  <arg name="experiment_config" default="2d3d.yaml"/>
   <arg name="record_data" default="true"/>
   <arg name="record_visualization" default="true"/>
-  <arg name="data_directory" default="/home/user/Documents/Data"/>
-  <arg name="data_frequency" default="30.0" />
   <arg name="time_limit" default="30" />
 
   <!-- Initial pose and control commands -->
@@ -45,14 +43,14 @@
 
   <arg name="x_ctrl_0" default="0.0"/>
   <arg name="y_ctrl_0" default="0.0"/>
-  <arg name="z_ctrl_0" default="0"/>
+  <arg name="z_ctrl_0" default="1"/>
   <arg name="yaw_ctrl_0" default="0"/>
 
   <arg name="enable_logging" default="false"/>
   <arg name="enable_ground_truth" default="true"/>
   <arg name="log_file" default="$(arg mav_name)"/>
   <arg name="run_gazebo_gui" default="true"/>
-  <arg name="world" default="stanford_2d3d"/>
+  <arg name="world" default="mp_ac26"/>
 
   <!-- *** Experiment Execution *** -->
 
@@ -68,13 +66,13 @@
 
   <group ns="$(arg mav_name)_0">
     <!-- Setup a mav -->
-    <include file="$(find coxgraph_sim)/launch/spawn_mav.launch">
+    <include file="$(find coxgraph_sim)/launch/utils/spawn_mav.launch">
       <arg name="mav_name" value="$(arg mav_name)" />
       <arg name="id" value="0" />
       <arg name="enable_logging" value="$(arg enable_logging)" />
       <arg name="enable_ground_truth" value="$(arg enable_ground_truth)" />
       <arg name="log_file" value="$(arg log_file)"/>
-      <arg name="hover" default="false"/>
+      <arg name="hover" default="true"/>
 
       <arg name="x" value="$(arg x_0)"/>
       <arg name="y" value="$(arg y_0)"/>
@@ -89,21 +87,22 @@
 
   <include file="$(find coxgraph)/launch/firefly/coxgraph_client0.launch" />
 
-  <node name="odometry_transform_publisher" pkg="multi_robot_simulation" type="odometry_transform_publisher_node" respawn="false" clear_params="true" output="screen">
+  <!-- <node name="odometry_transform_publisher" pkg="multi_robot_simulation" type="odometry_transform_publisher_node" respawn="false" clear_params="true" output="screen">
     <rosparam file="$(find coxgraph_sim)/config/parameters.yaml"/>
-  </node>
+  </node> -->
 
   <group ns="planner">
-
     <!-- Planner -->
-    <node name="planner_node" pkg="active_3d_planning_app_reconstruction" type="reconstruction_planner_node" output="screen">
-      <remap from="planner_node/esdf_map_in" to="/tsdf_client/label_tsdf_client_0/esdf_map_out" />
-      <remap from="planner_node/tsdf_map_in" to="/tsdf_client/label_tsdf_client_0/tsdf_map_out" />
+    <node name="planner_node" pkg="active_3d_planning_app_reconstruction" type="reconstruction_planner_node" output="screen" args="-alsologtostderr">
+      <remap from="planner_node/esdf_map_in" to="/coxgraph/coxgraph_client_0/combined_esdf_out" />
+      <remap from="planner_node/tsdf_map_in" to="/coxgraph/coxgraph_client_0/combined_tsdf_out" />
       <param name="use_tf_transforms" value="false" />
       <param name="tsdf_voxel_size" value="$(arg voxel_size)" />
       <param name="tsdf_voxels_per_side" value="$(arg voxels_per_side)" />
       <param name="update_mesh_every_n_sec" value="0.0" />
-      <param name="publish_traversable" value="false" />
+      <param name="publish_traversable" value="true" />
+      <param name="publish_slices" value="true" />
+      <param name="publish_pointclouds_on_update" value="true" />
 
       <remap from="odometry" to="/$(arg mav_name)_0/ground_truth/odometry" />
       <remap from="command/trajectory" to="/$(arg mav_name)_0/command/trajectory" />
