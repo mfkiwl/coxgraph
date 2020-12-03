@@ -24,19 +24,16 @@ class TfPublisher {
  public:
   typedef std::shared_ptr<TfPublisher> Ptr;
 
-  TfPublisher(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private,
-              int client_id)
+  TfPublisher(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private)
       : nh_(nh), nh_private_(nh_private), current_time_(ros::Time::now()) {
-    tf_timer_ =
-        nh_.createTimer(ros::Duration(0.01),
-                        &TfPublisher::PublishPositionAsTransformCallback, this);
+    nh_private_.param<std::string>("map_frame", map_frame_, "map");
+    nh_private_.param<std::string>("sensor_frame", camera_frame_, "base_link");
     odom_pub_ = nh_.advertise<nav_msgs::Odometry>("odometry", 10, true);
-    nh_private_.param<std::string>(
-        "map_frame", map_frame_,
-        "map_" + static_cast<std::string>(std::to_string(client_id)));
-    nh_private_.param<std::string>(
-        "camera_frame", camera_frame_,
-        "robot_base_" + static_cast<std::string>(std::to_string(client_id)));
+    float tf_pub_freq = 100.0;
+    nh_private_.param<float>("tf_pub_freq", tf_pub_freq, tf_pub_freq);
+    tf_timer_ =
+        nh_.createTimer(ros::Duration(1.0 / tf_pub_freq),
+                        &TfPublisher::PublishPositionAsTransformCallback, this);
   }
   ~TfPublisher() = default;
 

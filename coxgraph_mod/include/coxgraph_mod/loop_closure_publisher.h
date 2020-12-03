@@ -27,14 +27,15 @@ class LoopClosurePublisher {
   typedef std::shared_ptr<LoopClosurePublisher> Ptr;
 
   LoopClosurePublisher(const ros::NodeHandle& nh,
-                       const ros::NodeHandle& nh_private, int client_id = -1)
-      : nh_(nh), nh_private_(nh_private), client_id_(client_id) {
-    if (client_id >= 0)
-      loop_closure_pub_ = nh_private_.advertise<coxgraph_msgs::LoopClosure>(
-          "loop_closure", 10, true);
-    else
+                       const ros::NodeHandle& nh_private,
+                       bool server_mode = false)
+      : nh_(nh), nh_private_(nh_private), server_mode_(server_mode) {
+    if (server_mode_)
       loop_closure_pub_ = nh_private_.advertise<coxgraph_msgs::MapFusion>(
           "map_fusion", 10, true);
+    else
+      loop_closure_pub_ = nh_private_.advertise<coxgraph_msgs::LoopClosure>(
+          "loop_closure", 10, true);
   }
   ~LoopClosurePublisher() = default;
 
@@ -85,9 +86,9 @@ class LoopClosurePublisher {
     loop_closure_msg.transform.translation.z = T_A_B(2, 3);
     loop_closure_pub_.publish(loop_closure_msg);
     ROS_INFO(
-        "Loop Closure Message Published, from client %d time %d, to "
+        "Loop Closure Message Published from time %d, to "
         "time %d",
-        client_id_, static_cast<int>(loop_closure_msg.from_timestamp.toSec()),
+        static_cast<int>(loop_closure_msg.from_timestamp.toSec()),
         static_cast<int>(loop_closure_msg.to_timestamp.toSec()));
 
     return true;
@@ -97,7 +98,7 @@ class LoopClosurePublisher {
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
 
-  int client_id_;
+  bool server_mode_;
 
   ros::Publisher loop_closure_pub_;
 };

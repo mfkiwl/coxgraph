@@ -12,11 +12,16 @@ namespace mod {
 
 class VIOInterface {
  public:
+  VIOInterface() {
+    bool server_mode = false;
+    nh_private_.param<bool>("is_server", server_mode, server_mode);
+    VIOInterface(ros::NodeHandle(), ros::NodeHandle("~"), server_mode);
+  }
+
   VIOInterface(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private,
-               int client_id = -1)
-      : client_id_(client_id) {
-    if (client_id >= 0)
-      tf_pub_.reset(new TfPublisher(nh_, nh_private_, client_id));
+               bool server_mode = false)
+      : server_mode(server_mode) {
+    if (!server_mode) tf_pub_.reset(new TfPublisher(nh_, nh_private_));
     loop_closure_pub_.reset(new LoopClosurePublisher(nh_, nh_private_));
   }
   ~VIOInterface() = default;
@@ -26,9 +31,9 @@ class VIOInterface {
     tf_pub_->updatePose(pose, timestamp);
   }
 
-  void publishMapFusion(size_t from_client_id, double from_timestamp,
-                        size_t to_client_id, double to_timestamp,
-                        Eigen::Matrix4d T_A_B) {
+  void publishLoopClosure(size_t from_client_id, double from_timestamp,
+                          size_t to_client_id, double to_timestamp,
+                          Eigen::Matrix4d T_A_B) {
     loop_closure_pub_->publishLoopClosure(from_client_id, from_timestamp,
                                           to_client_id, to_timestamp, T_A_B);
   }
@@ -42,7 +47,7 @@ class VIOInterface {
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
 
-  int client_id_;
+  bool server_mode;
 
   TfPublisher::Ptr tf_pub_;
   LoopClosurePublisher::Ptr loop_closure_pub_;
