@@ -33,6 +33,5 @@
 
 TaskList.md
 
-coxgraph/.cache
-coxgraph_sim/.cache
-coxgraph/compile_commands.json
+.cache
+compile_commands.json
