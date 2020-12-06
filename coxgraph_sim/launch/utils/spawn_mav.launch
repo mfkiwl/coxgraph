@@ -13,12 +13,17 @@
   <arg name="z_ctrl" />
   <arg name="yaw_ctrl" />
 
+  <arg name="use_vins" default="true"/>
+
   <!-- Default arguments -->
   <arg name="enable_logging" default="false"/>
   <arg name="enable_ground_truth" default="true"/>
   <arg name="enable_gazebo_tf" default="true"/>
   <arg name="log_file" default="$(arg mav_name)"/>
   <arg name="hover" default="true"/>
+
+  <arg name="odom_topic" default="/$(arg mav_name)_$(arg id)/repub/odometry" unless="$(arg enable_gazebo_tf)" />
+  <arg name="odom_topic" default="/$(arg mav_name)_$(arg id)/ground_truth/odometry" if="$(arg enable_gazebo_tf)"/>
 
   <!-- Spawn MAV -->
   <include file="$(find rotors_gazebo)/launch/spawn_mav.launch">
@@ -35,8 +40,7 @@
 
   <!-- Start controller -->
   <node name="mav_nonlinear_mpc" pkg="mav_nonlinear_mpc" type="nonlinear_mpc_node" respawn="true" clear_params="true" output="screen">
-    <remap from="odometry" to="/$(arg mav_name)_$(arg id)/ground_truth/odometry" if="$(arg enable_gazebo_tf)" />
-    <remap from="odometry" to="/$(arg mav_name)_$(arg id)/repub/odometry" unless="$(arg enable_gazebo_tf)" />
+    <remap from="odometry" to="$(arg odom_topic)"/>
     <rosparam file="$(find mav_nonlinear_mpc)/resources/nonlinear_mpc_$(arg mav_name).yaml" />
     <rosparam file="$(find mav_disturbance_observer)/resources/disturbance_observer_$(arg mav_name).yaml"/>
     <param name="use_rc_teleop" value="false"/>
@@ -47,32 +51,34 @@
   </node>
 
   <node name="PID_attitude_controller" pkg="mav_lowlevel_attitude_controller" type="mav_pid_attitude_controller_node" respawn="true" clear_params="true" output="screen">
-    <remap from="odometry" to="/$(arg mav_name)_$(arg id)/ground_truth/odometry" if="$(arg enable_gazebo_tf)" />
-    <remap from="odometry" to="/$(arg mav_name)_$(arg id)/repub/odometry" unless="$(arg enable_gazebo_tf)" />
+    <remap from="odometry" to="/$(arg mav_name)_$(arg id)/ground_truth/odometry"/>
     <rosparam file="$(find mav_lowlevel_attitude_controller)/resources/PID_attitude_$(arg mav_name).yaml" />
   </node>
 
   <!-- Hovering -->
   <node name="hovering_example" pkg="rotors_gazebo" type="hovering_example" output="screen" if="$(arg hover)">
-    <param name="x" value="0"/>
-    <param name="y" value="0"/>
+    <param name="x" value="$(arg x_ctrl)"/>
+    <param name="y" value="$(arg y_ctrl)"/>
     <param name="z" value="$(arg z_ctrl)"/>
     <param name="yaw" value="$(arg yaw_ctrl)"/>
   </node>
 
   <!-- TFs -->
   <node pkg="tf" type="static_transform_publisher" name="agent_$(arg id)_vi_broadcaster" args="0.116 0.055 -0.025 -0.524 0.524 -0.474 0.474 $(arg mav_name)_$(arg id)/base_link $(arg mav_name)_$(arg id)/vi_sensor/camera_depth_optical_center_link 100" />
+  <node pkg="tf" type="static_transform_publisher" name="agent_$(arg id)_imu_to_bl" args="-0.117 0.000 0.009 0.000 -0.050 0.000 0.999 imu_$(arg id) $(arg mav_name)_$(arg id)/base_link 100" />
+  <node pkg="tf" type="static_transform_publisher" name="map_to_odom_$(arg id)" args="0 0 0 0 0 0 1 map_$(arg id) odom_$(arg id) 100" />
 
   <group unless="$(arg enable_gazebo_tf)">
     <node pkg="coxgraph_sim" type="odometry_transform_publisher_node" name="odom_tf_publisher" args="-alsologtostderr">
       <remap from="~odom_groundtruth" to="/$(arg mav_name)_$(arg id)/ground_truth/odometry" />
       <remap from="~odom_repub" to="/$(arg mav_name)_$(arg id)/repub/odometry"/>
-      <param name="odom_frame" value="map_$(arg id)"/>
+      <param name="odom_frame" value="odom_$(arg id)"/>
       <param name="base_link_frame" value="$(arg mav_name)_$(arg id)/base_link"/>
       <param name="tf_pub_frequency" value="100"/>
-      <param name="origin_x" value="$(arg x_ctrl)"/>
-      <param name="origin_y" value="$(arg y_ctrl)"/>
-      <param name="origin_z" value="0"/>
+      <param name="publish_tf" value="true" unless="$(arg use_vins)"/>
+      <param name="origin_x" value="$(arg x)"/>
+      <param name="origin_y" value="$(arg y)"/>
+      <param name="origin_z" value="$(arg z)"/>
       <param name="origin_yaw" value="0"/>
     </node>
   </group>

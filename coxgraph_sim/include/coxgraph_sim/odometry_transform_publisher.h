@@ -18,7 +18,7 @@ class OdometryTransformPublisher {
     Config()
         : odom_frame("odom"),
           base_link_frame("base_link"),
-          tf_pub_frequency(100.0),
+          tf_pub_frequency(0.0),
           origin_pos(3, 0),
           origin_yaw(0) {}
     std::string odom_frame;
@@ -81,7 +81,6 @@ class OdometryTransformPublisher {
   bool initialized_;
   TransformationD T_G_O_;
   TransformationD T_O_B_;
-  nav_msgs::Odometry odom_msg_o_b_;
 
   std::mutex pose_update_mutex_;
 };

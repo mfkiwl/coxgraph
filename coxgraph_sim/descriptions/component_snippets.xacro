@@ -660,8 +660,8 @@
           <horizontal_fov>2</horizontal_fov>
           <image>
             <format>L8</format>
-            <width>640</width> <!-- 640 -->
-            <height>480</height> <!-- 480 -->
+            <width>376</width> <!-- 640 -->
+            <height>240</height> <!-- 480 -->
           </image>
           <clip>
             <near>0.01</near>

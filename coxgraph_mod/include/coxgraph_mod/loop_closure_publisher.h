@@ -58,13 +58,23 @@ class LoopClosurePublisher {
     map_fusion_msg.transform.translation.y = T_A_B(1, 3);
     map_fusion_msg.transform.translation.z = T_A_B(2, 3);
     loop_closure_pub_.publish(map_fusion_msg);
-    ROS_INFO(
-        "Map Fusion Message Published, from client %d time %d, to client "
-        "%d time %d ",
-        static_cast<int>(from_client_id),
-        static_cast<int>(map_fusion_msg.from_timestamp.toSec()),
-        static_cast<int>(to_client_id),
-        static_cast<int>(map_fusion_msg.to_timestamp.toSec()));
+
+    if (from_client_id != to_client_id)
+      ROS_FATAL(
+          "Map Fusion Message Published, from client %d time %d, to client "
+          "%d time %d ",
+          static_cast<int>(from_client_id),
+          static_cast<int>(map_fusion_msg.from_timestamp.toSec()),
+          static_cast<int>(to_client_id),
+          static_cast<int>(map_fusion_msg.to_timestamp.toSec()));
+    else
+      ROS_INFO(
+          "Loop Closure Message Published, from client %d time %d, to client "
+          "%d time %d ",
+          static_cast<int>(from_client_id),
+          static_cast<int>(map_fusion_msg.from_timestamp.toSec()),
+          static_cast<int>(to_client_id),
+          static_cast<int>(map_fusion_msg.to_timestamp.toSec()));
 
     return true;
   }

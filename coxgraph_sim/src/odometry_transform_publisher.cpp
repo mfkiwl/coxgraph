@@ -52,9 +52,10 @@ void OdometryTransformPublisher::advertiseTopics() {
 }
 
 void OdometryTransformPublisher::advertiseTf() {
-  tf_pub_timer_ = nh_private_.createTimer(
-      ros::Duration(1.0 / config_.tf_pub_frequency),
-      std::bind(&OdometryTransformPublisher::publishTfEvent, this));
+  if (config_.tf_pub_frequency > 0.0)
+    tf_pub_timer_ = nh_private_.createTimer(
+        ros::Duration(1.0 / config_.tf_pub_frequency),
+        std::bind(&OdometryTransformPublisher::publishTfEvent, this));
 }
 
 void OdometryTransformPublisher::odomCallback(
@@ -67,8 +68,9 @@ void OdometryTransformPublisher::odomCallback(
   tf::poseMsgToKindr(odom_msg.pose.pose, &T_G_B);
   T_O_B_ = T_G_O_.inverse() * T_G_B;
 
-  odom_msg_o_b_ = odom_msg;
-  tf::poseKindrToMsg(T_O_B_, &odom_msg_o_b_.pose.pose);
+  nav_msgs::Odometry odom_msg_o_b;
+  odom_msg_o_b = odom_msg;
+  tf::poseKindrToMsg(T_O_B_, &odom_msg_o_b.pose.pose);
 
   Eigen::Vector3d linear_velocity(odom_msg.twist.twist.linear.x,
                                   odom_msg.twist.twist.linear.y,
@@ -76,22 +78,24 @@ void OdometryTransformPublisher::odomCallback(
   Eigen::Vector3d angular_velocity(odom_msg.twist.twist.angular.x,
                                    odom_msg.twist.twist.angular.y,
                                    odom_msg.twist.twist.angular.z);
-
-  Eigen::Vector3d transformed_lin_vel(T_G_O_.getRotationMatrix().transpose() *
+  Eigen::Vector3d transformed_lin_vel(T_G_O_.getRotationMatrix().inverse() *
                                       linear_velocity);
-  Eigen::Vector3d transformed_ang_vel(T_G_O_.getRotationMatrix().transpose() *
+  Eigen::Vector3d transformed_ang_vel(T_G_O_.getRotationMatrix().inverse() *
                                       angular_velocity);
 
-  odom_msg_o_b_.twist.twist.linear.x = transformed_lin_vel.x();
-  odom_msg_o_b_.twist.twist.linear.y = transformed_lin_vel.y();
-  odom_msg_o_b_.twist.twist.linear.z = transformed_lin_vel.z();
+  odom_msg_o_b.twist.twist.linear.x = transformed_lin_vel.x();
+  odom_msg_o_b.twist.twist.linear.y = transformed_lin_vel.y();
+  odom_msg_o_b.twist.twist.linear.z = transformed_lin_vel.z();
 
-  odom_msg_o_b_.twist.twist.angular.x = transformed_ang_vel.x();
-  odom_msg_o_b_.twist.twist.angular.y = transformed_ang_vel.y();
-  odom_msg_o_b_.twist.twist.angular.z = transformed_ang_vel.z();
+  odom_msg_o_b.twist.twist.angular.x = transformed_ang_vel.x();
+  odom_msg_o_b.twist.twist.angular.y = transformed_ang_vel.y();
+  odom_msg_o_b.twist.twist.angular.z = transformed_ang_vel.z();
 
-  odom_msg_o_b_.child_frame_id = config_.base_link_frame;
-  odom_msg_o_b_.header.frame_id = config_.odom_frame;
+  odom_msg_o_b.child_frame_id = config_.base_link_frame;
+  odom_msg_o_b.header.frame_id = config_.odom_frame;
+
+  odom_msg_o_b.header.stamp = ros::Time::now();
+  fk_odom_pub_.publish(odom_msg_o_b);
 }
 
 void OdometryTransformPublisher::publishTfEvent() { publishTf(); }
@@ -103,9 +107,6 @@ void OdometryTransformPublisher::publishTf() {
   tf_pub_.sendTransform(tf::StampedTransform(T_O_B_msg, ros::Time::now(),
                                              config_.odom_frame,
                                              config_.base_link_frame));
-
-  odom_msg_o_b_.header.stamp = ros::Time::now();
-  fk_odom_pub_.publish(odom_msg_o_b_);
 }
 
 }  // namespace coxgraph

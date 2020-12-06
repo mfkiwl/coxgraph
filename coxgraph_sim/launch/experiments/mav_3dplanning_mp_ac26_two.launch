@@ -21,7 +21,7 @@
   <arg name="maximum_distance" default="0.0"/>
 
   <!-- Odometry  arguments (random_walk, ground_truth)-->
-  <arg name="use_rovio" default="false"/>
+  <arg name="use_vins" default="true"/>
   <arg name="odom_noise_model" default="random_walk"/>
 
   <!--  Planner arguments (can use a single config or compose the planner)-->
@@ -37,25 +37,24 @@
   <arg name="time_limit" default="30" />
 
   <!-- Initial pose and control commands -->
-  <arg name="x_0" default="0.0"/>
-  <arg name="y_0" default="0.0"/>
-  <arg name="z_0" default="1.0"/>
-
-  <arg name="x_ctrl_0" default="0.0"/>
-  <arg name="y_ctrl_0" default="0.0"/>
-  <arg name="z_ctrl_0" default="1"/>
-  <arg name="yaw_ctrl_0" default="0"/>
-
-  <!-- Initial pose and control commands -->
-  <arg name="x_1" default="0.5"/>
-  <arg name="y_1" default="0.0"/>
-  <arg name="z_1" default="1.0"/>
-
-  <arg name="x_ctrl_1" default="1.0"/>
-  <arg name="y_ctrl_1" default="0.0"/>
-  <arg name="z_ctrl_1" default="1.0"/>
-  <arg name="yaw_ctrl_1" default="0"/>
-
+  <arg name="x_0"        default="-5.0"/>
+  <arg name="y_0"        default="1.0"/>
+  <arg name="z_0"        default="2.0"/>
+  
+  <arg name="x_ctrl_0"   default="0.0"/>
+  <arg name="y_ctrl_0"   default="0.0"/>
+  <arg name="z_ctrl_0"   default="2.0"/>
+  <arg name="yaw_ctrl_0" default="0.0"/>
+    
+  <arg name="x_1"        default="-5.0"/>
+  <arg name="y_1"        default="0.0"/>
+  <arg name="z_1"        default="2.0"/>
+    
+  <arg name="x_ctrl_1"   default="0.0"/>
+  <arg name="y_ctrl_1"   default="0.0"/>
+  <arg name="z_ctrl_1"   default="2.0"/>
+  <arg name="yaw_ctrl_1" default="0.0"/>
+    
   <arg name="enable_logging" default="false"/>
   <arg name="enable_ground_truth" default="true"/>
   <arg name="enable_gazebo_tf" default="false"/>
@@ -69,11 +68,12 @@
   <rosparam command="load" file="$(find coxgraph_sim)/config/$(arg experiment_config)"/>
 
   <group>
-    <remap from="tf" to="tf_old" />
+    <remap from="tf" to="tf_old" unless="$(arg enable_gazebo_tf)"/>
 
     <!-- Setup empty gazebo world for physics-->
     <include file="$(find gazebo_ros)/launch/empty_world.launch">
-      <arg name="world_name" value="$(find coxgraph_sim)/worlds/$(arg world).world"/>
+      <!-- <arg name="world_name" value="$(find coxgraph_sim)/worlds/$(arg world).world"/> -->
+      <arg name="world_name" value="$(find multi_robot_simulation)/worlds/chemical-plant.world"/>
       <arg name="paused" value="false" />
       <arg name="gui" value="$(arg run_gazebo_gui)" />
     </include>
@@ -81,7 +81,7 @@
 
   <group ns="$(arg mav_name)_0">
     <!-- Setup a mav -->
-    <include file="$(find coxgraph_sim)/launch/utils/spawn_mav.launch">
+    <include file="$(find coxgraph_sim)/launch/utils/spawn_mav.launch" pass_all_args="true">
       <arg name="mav_name" value="$(arg mav_name)" />
       <arg name="id" value="0" />
       <arg name="enable_logging" value="$(arg enable_logging)" />
@@ -103,7 +103,7 @@
 
   <group ns="$(arg mav_name)_1">
     <!-- Setup a mav -->
-    <include file="$(find coxgraph_sim)/launch/utils/spawn_mav.launch">
+    <include file="$(find coxgraph_sim)/launch/utils/spawn_mav.launch" pass_all_args="true">
       <arg name="mav_name" value="$(arg mav_name)" />
       <arg name="id" value="1" />
       <arg name="enable_logging" value="$(arg enable_logging)" />
@@ -123,24 +123,42 @@
     </include>
   </group>
 
+  <group if="$(arg use_vins)">
+    <include file="$(find coxgraph_sim)/launch/utils/vins_sim.launch" >
+      <arg name="id" value="0"/>
+      <arg name="mav_name" value="$(arg mav_name)"/>
+      <arg name="enable_gazebo_tf" value="$(arg enable_gazebo_tf)"/>
+    </include>
+
+    <include file="$(find coxgraph_sim)/launch/utils/vins_sim.launch" >
+      <arg name="id" value="1"/>
+      <arg name="mav_name" value="$(arg mav_name)"/>
+      <arg name="enable_gazebo_tf" value="$(arg enable_gazebo_tf)"/>
+    </include>
+
+    <!-- <include file="$(find coxgraph_sim)/launch/utils/pose_graph_backend.launch">
+      <arg name="num_agents" default="2"/>
+    </include> -->
+  </group>
+
   <include file="$(find coxgraph)/launch/firefly/coxgraph_client.launch">
-    <arg name="id" default="0"/>
+    <arg name="id" value="0"/>
   </include>
 
   <include file="$(find coxgraph)/launch/firefly/coxgraph_client.launch">
-    <arg name="id" default="1"/>
+    <arg name="id" value="1"/>
   </include>
 
   <include file="$(find coxgraph)/launch/coxgraph_server.launch">
-    <arg name="debug" default="false"/>
+    <arg name="debug" value="false"/>
   </include>
 
   <include file="$(find coxgraph_sim)/launch/utils/start_planner.launch" pass_all_args="true">
-    <arg name="id" default="0"/>
+    <arg name="id" value="0"/>
   </include>
 
   <include file="$(find coxgraph_sim)/launch/utils/start_planner.launch" pass_all_args="true">
-    <arg name="id" default="1"/>
+    <arg name="id" value="1"/>
   </include>
 
 </launch>

@@ -22,7 +22,7 @@
   <arg name="maximum_distance" default="0.0"/>
 
   <!-- Odometry  arguments (random_walk, ground_truth)-->
-  <arg name="use_rovio" default="false"/>
+  <arg name="use_vins" default="false"/>
   <arg name="odom_noise_model" default="random_walk"/>
 
   <!--  Planner arguments (can use a single config or compose the planner)-->
@@ -44,8 +44,10 @@
   <arg name="run_gazebo_gui" default="true"/>
   <arg name="world" default="mp_ac26"/>
 
-  <!-- *** Experiment Execution *** -->
+  <arg name="odom_topic" default="/$(arg mav_name)_$(arg id)/repub/odometry" unless="$(arg enable_gazebo_tf)" />
+  <arg name="odom_topic" default="/$(arg mav_name)_$(arg id)/ground_truth/odometry" if="$(arg enable_gazebo_tf)"/>
 
+  <!-- *** Experiment Execution *** -->
   <!-- Setup experiment params, data, nodes -->
   <rosparam command="load" file="$(find coxgraph_sim)/config/$(arg experiment_config)"/>
 
@@ -63,8 +65,7 @@
       <param name="publish_pointclouds_on_update" value="true" />
       <param name="world_frame" value="map_$(arg id)"/>
 
-      <remap from="odometry" to="/$(arg mav_name)_$(arg id)/repub/odometry" unless="$(arg enable_gazebo_tf)" />
-      <remap from="odometry" to="/$(arg mav_name)_$(arg id)/groundtruth/odometry" if="$(arg enable_gazebo_tf)" />
+      <remap from="odometry" to="$(arg odom_topic)" />
       <remap from="command/trajectory" to="/$(arg mav_name)_$(arg id)/command/trajectory" />
       <param name="verbose" value="$(arg verbose_planner)" />
       <param name="visualize" value="$(arg visualize)" />
