@@ -446,31 +446,16 @@ CoxgraphServer::OptState CoxgraphServer::optimizePoseGraph(
 
   TransformationVector submap_poses;
   submap_collection_ptr_->getSubmapPoses(&submap_poses);
-  LOG(INFO) << "before optimize";
-  for (int i = 0; i < submap_poses.size(); i++) {
-    LOG(INFO) << i << std::endl << submap_poses[i];
-  }
 
   pose_graph_interface_.optimize(enable_registration);
 
   auto pose_map = pose_graph_interface_.getPoseMap();
-  LOG(INFO) << "pose graph results";
-  for (auto const& pose_kv : pose_map)
-    LOG(INFO) << pose_kv.first << std::endl << pose_kv.second;
 
   if (verbose_) evaluateResiduals();
-
-  // Update the submap poses
-  // TODO(mikexyl) deprecate this
-  // pose_graph_interface_.updateSubmapCollectionPoses();
 
   submap_collection_ptr_->getPosesUpdateMutex()->unlock();
 
   updateCliMapRelativePose();
-
-  // TODO(mikexyl): make this a service to generate global mesh
-  // Publish Optimized Maps
-  // publishMaps();
 
   // Report successful completion
   return OptState::OK;

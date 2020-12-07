@@ -7,6 +7,28 @@
 namespace coxgraph {
 namespace server {
 
+void PoseGraphInterface::addSubmap(SerSmId submap_id) {
+  if (robocentric_) {
+    voxgraph::PoseGraphInterface::addSubmap(submap_id);
+  } else {
+    // non-robocentric
+    // Configure the submap node and add it to the pose graph
+    voxgraph::SubmapNode::Config node_config = node_templates_.submap;
+    node_config.submap_id = submap_id;
+    CHECK(submap_collection_ptr_->getSubmapPose(submap_id,
+                                                &node_config.T_I_node_initial));
+    if (submap_id == 0) {
+      ROS_INFO("Setting pose of submap 0 to constant");
+      node_config.set_constant = true;
+    } else {
+      node_config.set_constant = false;
+    }
+    pose_graph_.addSubmapNode(node_config);
+    ROS_INFO_STREAM_COND(verbose_,
+                         "Added node to graph for submap: " << submap_id);
+  }
+}
+
 void PoseGraphInterface::optimize(bool enable_registration) {
   pose_graph_.optimize(true);
 

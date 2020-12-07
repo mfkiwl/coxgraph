@@ -28,12 +28,13 @@ class PoseGraphInterface : public voxgraph::PoseGraphInterface {
                      const SubmapCollection::Ptr& submap_collection_ptr,
                      const MeshIntegratorConfig& mesh_config,
                      const std::string& visualizations_mission_frame,
-                     bool verbose = false)
+                     bool robocentric, bool verbose = false)
       : voxgraph::PoseGraphInterface(
             nh_private,
             static_cast<VoxgraphSubmapCollection::Ptr>(submap_collection_ptr),
             mesh_config, visualizations_mission_frame, verbose),
-        cox_submap_collection_ptr_(submap_collection_ptr) {
+        cox_submap_collection_ptr_(submap_collection_ptr),
+        robocentric_(robocentric) {
     utils::setInformationMatrixFromRosParams(
         ros::NodeHandle(nh_private, "submap_relative_pose/information_matrix"),
         &sm_rp_info_matrix_);
@@ -53,6 +54,8 @@ class PoseGraphInterface : public voxgraph::PoseGraphInterface {
   }
 
   ~PoseGraphInterface() = default;
+
+  void addSubmap(SerSmId submap_id);
 
   void optimize(bool enable_registration);
 
@@ -79,6 +82,8 @@ class PoseGraphInterface : public voxgraph::PoseGraphInterface {
   }
 
  private:
+  bool robocentric_;
+
   SubmapCollection::Ptr cox_submap_collection_ptr_;
   InformationMatrix sm_rp_info_matrix_;
 };

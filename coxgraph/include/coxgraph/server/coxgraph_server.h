@@ -118,7 +118,7 @@ class CoxgraphServer {
         submap_collection_ptr_(std::make_shared<SubmapCollection>(
             submap_config_, config.client_number)),
         pose_graph_interface_(nh_private, submap_collection_ptr_, mesh_config,
-                              config.output_mission_frame),
+                              config.output_mission_frame, false),
         server_vis_(submap_config, mesh_config) {
     nh_private_.param<bool>("verbose", verbose_, verbose_);
     LOG(INFO) << "Verbose: " << verbose_;
