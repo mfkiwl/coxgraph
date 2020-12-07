@@ -63,7 +63,7 @@
   <!-- Node that performs the movements to initialize VINS-Mono -->
   <node name="vins_initializer_node_$(arg id)" pkg="multi_robot_simulation" type="vins_initializer_node" output="screen" args="$(arg id)">
     <param name="n_sec_wait" value="5.0"/>
-    <param name="hovering_height" value="1.4"/>
+    <param name="hovering_height" value="2"/>
     <param name="delta_d" value="0.5"/>
     <param name="delta_h" value="0.3"/>
     <param name="delta_yaw" value="10.0"/>

@@ -16,9 +16,6 @@
     <arg if="$(arg debug)" name="launch_prefix" value="xterm -e gdb --args" />
 
     <node name="label_tsdf_client_$(arg id)" pkg="maskgraph" type="label_tsdf_server" output="log" args="-alsologtostderr" clear_params="true" launch-prefix="$(arg launch_prefix)">
-      <!-- <remap from="~active_tsdf_out" to="/tsdf_out"/> -->
-      <remap from="~active_esdf_out" to="/coxgraph/coxgraph_client_$(arg id)/combined_esdf_out"/>
-      <remap from="~active_tsdf_out" to="/coxgraph/coxgraph_client_$(arg id)/combined_tsdf_out"/>
       <remap from="pointcloud" to="$(arg pointcloud_topic)"/>
       <rosparam file="$(find maskgraph)/config/segment_map.yaml"/>
       <rosparam file="$(find maskgraph)/config/$(arg scene_name).yaml"/>

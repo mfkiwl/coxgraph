@@ -54,8 +54,16 @@
   <group ns="planner_$(arg id)">
     <!-- Planner -->
     <node name="planner_node" pkg="active_3d_planning_app_reconstruction" type="reconstruction_planner_node" output="screen" args="-alsologtostderr">
-      <remap from="planner_node/esdf_map_in" to="/coxgraph/coxgraph_client_$(arg id)/combined_esdf_out" />
-      <remap from="planner_node/tsdf_map_in" to="/coxgraph/coxgraph_client_$(arg id)/combined_tsdf_out" />
+      <remap from="planner_node/tsdf_map_in" to="/tsdf_client/label_tsdf_client_$(arg id)/active_tsdf_out" />
+      <remap from="planner_node/esdf_map_in" to="/tsdf_client/label_tsdf_client_$(arg id)/active_esdf_out" />
+      <remap from="planner_node/optimized_tsdf_map_in" to="/coxgraph/coxgraph_client_$(arg id)/combined_tsdf_out" />
+      <remap from="planner_node/optimized_esdf_map_in" to="/coxgraph/coxgraph_client_$(arg id)/combined_esdf_out" />
+      <param name="client_number" value="2"/>
+      <param name="client_id" value="$(arg id)"/>
+      <remap from="planner_node/client_tsdf_map_in_0" to="/coxgraph/coxgraph_client_0/combined_tsdf_out"/>
+      <remap from="planner_node/client_tsdf_map_in_1" to="/coxgraph/coxgraph_client_1/combined_tsdf_out"/>
+      <remap from="planner_node/client_tsdf_map_in_2" to="/coxgraph/coxgraph_client_2/combined_tsdf_out"/>
+      <remap from="planner_node/client_tsdf_map_in_3" to="/coxgraph/coxgraph_client_3/combined_tsdf_out"/>
       <param name="use_tf_transforms" value="false" />
       <param name="tsdf_voxel_size" value="$(arg voxel_size)" />
       <param name="tsdf_voxels_per_side" value="$(arg voxels_per_side)" />
