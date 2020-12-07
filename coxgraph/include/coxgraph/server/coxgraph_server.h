@@ -20,6 +20,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "coxgraph/common.h"
@@ -37,7 +38,6 @@ class CoxgraphServer {
   struct Config {
     Config()
         : client_number(0),
-          map_fusion_topic("map_fusion_in"),
           map_fusion_queue_size(10),
           refuse_interval(ros::Duration(2)),
           fixed_map_client_id(0),
@@ -50,7 +50,6 @@ class CoxgraphServer {
           combined_mesh_color_mode("normals"),
           enable_submap_relative_pose_constraints(true) {}
     int32_t client_number;
-    std::string map_fusion_topic;
     int32_t map_fusion_queue_size;
     ros::Duration refuse_interval;
     int32_t fixed_map_client_id;
@@ -68,7 +67,6 @@ class CoxgraphServer {
       s << std::endl
         << "Coxgraph Server using Config:" << std::endl
         << "  Client Number: " << v.client_number << std::endl
-        << "  Map Fusion Topic: " << v.map_fusion_topic << std::endl
         << "  Map Fusion Queue Size: " << v.map_fusion_queue_size << std::endl
         << "  Client Map Refusion Interval: " << v.refuse_interval << " s"
         << std::endl
@@ -151,9 +149,10 @@ class CoxgraphServer {
     server_vis_.setCombinedMeshColorMode(
         voxblox::getColorModeFromString(config_.combined_mesh_color_mode));
 
-    future_msg_proc_timer_ =
-        nh_.createTimer(ros::Duration(kFutureMFProcInterval),
-                        &CoxgraphServer::futureMFProcCallback, this);
+    // TODO(mikexyl): make a param for future mf proc timer
+    // future_msg_proc_timer_ =
+    //     nh_.createTimer(ros::Duration(kFutureMFProcInterval),
+    //                     &CoxgraphServer::futureMFProcCallback, this);
   }
 
   ~CoxgraphServer() = default;
@@ -190,6 +189,7 @@ class CoxgraphServer {
                          bool future = false);
   void addToMFFuture(const coxgraph_msgs::MapFusion& map_fusion_msg);
   void processMFFuture();
+  void timeLineUpdateCallback() { processMFFuture(); }
   bool needRefuse(const CliId& cid_a, const ros::Time& time_a,
                   const CliId& cid_b, const ros::Time& time_b);
   bool updateNeedRefuse(const CliId& cid_a, const ros::Time& time_a,
@@ -254,7 +254,7 @@ class CoxgraphServer {
   std::vector<ClientHandler::Ptr> client_handlers_;
 
   // Map fusion msg process related
-  std::deque<coxgraph_msgs::MapFusion> map_fusion_msgs_future_;
+  std::deque<std::pair<coxgraph_msgs::MapFusion, int>> map_fusion_msgs_future_;
   std::vector<bool> force_fuse_;
   std::vector<TimeLine> fused_time_line_;
   std::map<SerSmId, SerSmId> fused_ser_sm_id_pair;
@@ -280,6 +280,7 @@ class CoxgraphServer {
   constexpr static uint8_t kMaxClientNum = 2;
   constexpr static uint8_t kPoseUpdateWaitMs = 100;
   constexpr static float kFutureMFProcInterval = 1.0;
+  constexpr static int kMaxFutureUncatchedN = 4;
 };
 
 }  // namespace coxgraph

@@ -41,6 +41,7 @@ void ClientHandler::subscribeToTopics() {
 void ClientHandler::timeLineCallback(
     const coxgraph_msgs::TimeLine& time_line_msg) {
   updateTimeLine(time_line_msg.start, time_line_msg.end);
+  time_line_update_callback_();
 }
 
 void ClientHandler::advertiseTopics() {

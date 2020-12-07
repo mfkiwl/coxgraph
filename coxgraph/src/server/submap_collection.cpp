@@ -13,6 +13,8 @@ Transformation SubmapCollection::addSubmap(const CliSm::Ptr& submap_ptr,
   CHECK(submap_ptr != nullptr);
   LOG(INFO) << "debug: adding submap (sid, cid, csmid) " << submap_ptr->getID()
             << " " << static_cast<int>(cid) << " " << cli_sm_id;
+  LOG(INFO) << "debug: submap pose history size: "
+            << submap_ptr->getPoseHistory().size();
   voxgraph::VoxgraphSubmapCollection::addSubmap(submap_ptr);
   sm_cli_id_map_.emplace(submap_ptr->getID(), CliIdSmIdPair(cid, cli_sm_id));
   if (!cli_ser_sm_id_map_.count(submap_ptr->getID())) {

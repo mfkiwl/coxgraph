@@ -3,8 +3,7 @@ client_number: 2
 
 tsdf_voxel_size: 0.10
 
-map_fusion_topic: "map_fusion_in"
-map_fusion_queue_size: 10
+map_fusion_queue_size: 100
 
 client_handler:
   client_name_prefix: "coxgraph_client"

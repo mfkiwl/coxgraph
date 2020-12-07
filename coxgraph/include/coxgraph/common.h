@@ -76,6 +76,9 @@ struct TimeLine {
     return true;
   }
 };
+
+typedef std::function<void()> TimeLineUpdateCallback;
+
 }  // namespace coxgraph
 
 #endif  // COXGRAPH_COMMON_H_

@@ -53,14 +53,16 @@ class ClientHandler {
   ClientHandler() : client_id_(-1) {}
   ClientHandler(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private,
                 const CliId& client_id, const CliSmConfig& submap_config,
-                const SubmapCollection::Ptr& submap_collection_ptr)
+                const SubmapCollection::Ptr& submap_collection_ptr,
+                TimeLineUpdateCallback time_line_callback)
       : ClientHandler(nh, nh_private, client_id, submap_config,
-                      getConfigFromRosParam(nh_private),
-                      submap_collection_ptr) {}
+                      getConfigFromRosParam(nh_private), submap_collection_ptr,
+                      time_line_callback) {}
   ClientHandler(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private,
                 const CliId& client_id, const CliSmConfig& submap_config,
                 const Config& config,
-                const SubmapCollection::Ptr& submap_collection_ptr)
+                const SubmapCollection::Ptr& submap_collection_ptr,
+                TimeLineUpdateCallback time_line_callback)
       : client_id_(client_id),
         nh_(nh),
         nh_private_(nh_private),
@@ -70,7 +72,8 @@ class ClientHandler {
                           std::to_string(client_id_)),
         log_prefix_("CH " + std::to_string(static_cast<int>(client_id_)) +
                     ": "),
-        submap_collection_ptr_(submap_collection_ptr) {
+        submap_collection_ptr_(submap_collection_ptr),
+        time_line_update_callback_(time_line_callback) {
     subscribeToTopics();
     advertiseTopics();
     subscribeToServices();
@@ -81,7 +84,7 @@ class ClientHandler {
 
   static Config getConfigFromRosParam(const ros::NodeHandle& nh_private);
 
-  enum ReqState { FAILED = 0, FUTURE, SUCCESS };
+  enum ReqState { NONINIT = 0, FAILED, FUTURE, SUCCESS };
   ReqState requestSubmapByTime(const ros::Time& timestamp,
                                const SerSmId& ser_sm_id, CliSmId* cli_sm_id,
                                CliSm::Ptr* submap, Transformation* T_submap_t);
@@ -145,6 +148,8 @@ class ClientHandler {
   SubmapCollection::Ptr submap_collection_ptr_;
 
   std::mutex submap_request_mutex_;
+
+  TimeLineUpdateCallback time_line_update_callback_;
 
   constexpr static int8_t kSubQueueSize = 10;
 };

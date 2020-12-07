@@ -24,6 +24,7 @@ void CoxgraphClient::advertiseClientServices() {
 }
 
 // TODO(mikexyl): add locks here, if optimizing is running, wait
+// TODO(mikexyl): move these to map server
 bool CoxgraphClient::getClientSubmapCallback(
     coxgraph_msgs::ClientSubmapSrv::Request& request,
     coxgraph_msgs::ClientSubmapSrv::Response& response) {

@@ -150,7 +150,7 @@
   </include>
 
   <include file="$(find coxgraph)/launch/coxgraph_server.launch">
-    <arg name="debug" value="false"/>
+    <arg name="debug" value="true"/>
   </include>
 
   <include file="$(find coxgraph_sim)/launch/utils/start_planner.launch" pass_all_args="true">

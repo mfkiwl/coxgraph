@@ -29,8 +29,6 @@ CoxgraphServer::Config CoxgraphServer::getConfigFromRosParam(
          "now. Given: "
       << config.client_number;
 
-  nh_private.param<std::string>("map_fusion_topic", config.map_fusion_topic,
-                                config.map_fusion_topic);
   nh_private.param<int>("map_fusion_queue_size", config.map_fusion_queue_size,
                         config.map_fusion_queue_size);
   float refuse_interval;
@@ -70,7 +68,9 @@ void CoxgraphServer::initClientHandlers(const ros::NodeHandle& nh,
   CHECK_LT(config_.fixed_map_client_id, kMaxClientNum);
   for (int i = 0; i < config_.client_number; i++) {
     client_handlers_.emplace_back(new ClientHandler(
-        nh, nh_private, i, submap_config_, submap_collection_ptr_));
+        nh, nh_private, i, submap_config_, submap_collection_ptr_,
+        std::bind(&CoxgraphServer::timeLineUpdateCallback, this)));
+
     force_fuse_.emplace_back(true);
     fused_time_line_.emplace_back(TimeLine());
   }
@@ -79,7 +79,7 @@ void CoxgraphServer::initClientHandlers(const ros::NodeHandle& nh,
 
 void CoxgraphServer::subscribeTopics() {
   map_fusion_sub_ =
-      nh_.subscribe(config_.map_fusion_topic, config_.map_fusion_queue_size,
+      nh_.subscribe("map_fusion_in", config_.map_fusion_queue_size,
                     &CoxgraphServer::mapFusionMsgCallback, this);
 }
 
@@ -162,6 +162,7 @@ void CoxgraphServer::loopClosureCallback(
     client_handlers_[client_id]->pubLoopClosureMsg(loop_closure_msg);
 }
 
+// TODO(mikexyl): logics here really messed up, clean it
 bool CoxgraphServer::mapFusionCallback(
     const coxgraph_msgs::MapFusion& map_fusion_msg, bool future) {
   std::lock_guard<std::timed_mutex> map_fusion_proc_lock(final_mesh_gen_mutex_);
@@ -183,9 +184,21 @@ bool CoxgraphServer::mapFusionCallback(
   CHECK((!fused_time_line_[cid_a].hasTime(t1)) ||
         (!fused_time_line_[cid_b].hasTime(t2)));
 
+  LOG(INFO) << "Processing mf from " << map_fusion_msg.from_client_id << " "
+            << map_fusion_msg.from_timestamp << " to "
+            << map_fusion_msg.to_client_id << " "
+            << map_fusion_msg.to_timestamp;
   ReqState ok_a, ok_b;
   bool has_time_a = client_handlers_[cid_a]->hasTime(t1);
   bool has_time_b = client_handlers_[cid_b]->hasTime(t2);
+
+  LOG(INFO) << "future? "
+            << static_cast<std::string>(future ? "true" : "false");
+  LOG(INFO) << "has time a? "
+            << static_cast<std::string>(has_time_a ? "true" : "false")
+            << " has time b? "
+            << static_cast<std::string>(has_time_b ? "true" : "false");
+
   if (has_time_a && has_time_b) {
     // TODO(mikexyl): add a service to request submap id, publish submap only if
     // submap id not requested before
@@ -222,16 +235,16 @@ bool CoxgraphServer::mapFusionCallback(
         << "Received submap from Client " << map_fusion_msg.to_client_id
         << " with layer memory "
         << submap_b->getTsdfMapPtr()->getTsdfLayerPtr()->getMemorySize();
-  }
 
-  if (ok_a != ReqState::SUCCESS || ok_b != ReqState::SUCCESS) {
-    if (ok_a == ReqState::SUCCESS) {
-      addSubmap(submap_a, cid_a, cli_sm_id_a);
+    if (ok_a != ReqState::SUCCESS || ok_b != ReqState::SUCCESS) {
+      if (ok_a == ReqState::SUCCESS) {
+        addSubmap(submap_a, cid_a, cli_sm_id_a);
+      }
+      if (ok_b == ReqState::SUCCESS) {
+        addSubmap(submap_b, cid_b, cli_sm_id_b);
+      }
+      return false;
     }
-    if (ok_b == ReqState::SUCCESS) {
-      addSubmap(submap_b, cid_b, cli_sm_id_b);
-    }
-    return false;
   }
 
   bool fused_any = false;
@@ -268,7 +281,7 @@ void CoxgraphServer::addToMFFuture(
     const coxgraph_msgs::MapFusion& map_fusion_msg) {
   std::lock_guard<std::mutex> future_mf_queue_lock(future_mf_queue_mutex_);
   if (map_fusion_msgs_future_.size() < config_.map_fusion_queue_size)
-    map_fusion_msgs_future_.emplace_back(map_fusion_msg);
+    map_fusion_msgs_future_.emplace_back(map_fusion_msg, 0);
 }
 
 void CoxgraphServer::processMFFuture() {
@@ -276,7 +289,7 @@ void CoxgraphServer::processMFFuture() {
   bool processed_any = false;
   for (auto it = map_fusion_msgs_future_.begin();
        it != map_fusion_msgs_future_.end(); it++) {
-    coxgraph_msgs::MapFusion map_fusion_msg = *it;
+    coxgraph_msgs::MapFusion map_fusion_msg = it->first;
     const CliId& cid_a = map_fusion_msg.from_client_id;
     const CliId& cid_b = map_fusion_msg.to_client_id;
     const ros::Time& t1 = map_fusion_msg.from_timestamp;
@@ -285,16 +298,20 @@ void CoxgraphServer::processMFFuture() {
         client_handlers_[cid_b]->hasTime(t2)) {
       if (mapFusionCallback(map_fusion_msg, true)) {
         processed_any = true;
+        break;
         map_fusion_msgs_future_.erase(it--);
       }
     }
+
+    if (it->second >= kMaxFutureUncatchedN) {
+      map_fusion_msgs_future_.erase(it--);
+    } else {
+      it->second++;
+    }
   }
-  // Reset timeline update flag, and clear all future map fusion to avoid
-  // unnecessary computation
+
   if (processed_any) {
-    // LOG_IF(INFO, verbose_)
-    // << "Successfully processed a MF msg, clearing MF msg queue";
-    // map_fusion_msgs_future_.clear();
+    map_fusion_msgs_future_.clear();
   }
 }
 
