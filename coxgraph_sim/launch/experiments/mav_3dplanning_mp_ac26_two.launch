@@ -1,6 +1,7 @@
 <launch>
   <!-- Gazebo arguments -->
   <arg name="mav_name" default="firefly"/>
+  <arg name="client_number" default="2"/>
   <arg name="verbose_gazebo" default="false"/>
 
   <!-- Voxblox arguments -->
@@ -37,9 +38,10 @@
   <arg name="time_limit" default="30" />
 
   <!-- Initial pose and control commands -->
+  <!-- <arg name="x_0"        default="-5.0"/> -->
   <arg name="x_0"        default="-5.0"/>
-  <arg name="y_0"        default="1.0"/>
-  <arg name="z_0"        default="2.0"/>
+  <arg name="y_0"        default="0.0"/>
+  <arg name="z_0"        default="1.0"/>
   
   <arg name="x_ctrl_0"   default="0.0"/>
   <arg name="y_ctrl_0"   default="0.0"/>
@@ -47,8 +49,8 @@
   <arg name="yaw_ctrl_0" default="0.0"/>
     
   <arg name="x_1"        default="-5.0"/>
-  <arg name="y_1"        default="0.0"/>
-  <arg name="z_1"        default="2.0"/>
+  <arg name="y_1"        default="2.0"/>
+  <arg name="z_1"        default="1.0"/>
     
   <arg name="x_ctrl_1"   default="0.0"/>
   <arg name="y_ctrl_1"   default="0.0"/>
@@ -60,7 +62,7 @@
   <arg name="enable_gazebo_tf" default="false"/>
   <arg name="log_file" default="$(arg mav_name)"/>
   <arg name="run_gazebo_gui" default="true"/>
-  <arg name="world" default="mp_ac26"/>
+  <arg name="world" default="chemical-plant"/>
 
   <!-- *** Experiment Execution *** -->
 
@@ -72,8 +74,7 @@
 
     <!-- Setup empty gazebo world for physics-->
     <include file="$(find gazebo_ros)/launch/empty_world.launch">
-      <!-- <arg name="world_name" value="$(find coxgraph_sim)/worlds/$(arg world).world"/> -->
-      <arg name="world_name" value="$(find multi_robot_simulation)/worlds/chemical-plant.world"/>
+      <arg name="world_name" value="$(find coxgraph_sim)/worlds/$(arg world).world"/>
       <arg name="paused" value="false" />
       <arg name="gui" value="$(arg run_gazebo_gui)" />
     </include>
@@ -143,10 +144,14 @@
 
   <include file="$(find coxgraph)/launch/firefly/coxgraph_client.launch">
     <arg name="id" value="0"/>
+    <arg name="client_number" value="$(arg client_number)"/>
+    <arg name="robot_namespace" value="$(arg mav_name)"/>
   </include>
 
   <include file="$(find coxgraph)/launch/firefly/coxgraph_client.launch">
     <arg name="id" value="1"/>
+    <arg name="client_number" value="$(arg client_number)"/>
+    <arg name="robot_namespace" value="$(arg mav_name)"/>
   </include>
 
   <include file="$(find coxgraph)/launch/coxgraph_server.launch">

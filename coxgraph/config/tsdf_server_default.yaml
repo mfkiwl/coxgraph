@@ -14,7 +14,7 @@ truncation_distance: 0.30
 # max_weight: 1000
 pointcloud_queue_size: 10
 max_ray_length_m: 10 # 14 or 16m would be better, but for that we need better odometry. Otherwise the surface get too damaged.
-min_ray_length_m: 0.3
+min_ray_length_m: 1.0
 allow_clear: true
 # max_consecutive_ray_collisions: 10
 use_const_weight: true

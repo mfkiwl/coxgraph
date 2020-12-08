@@ -93,7 +93,6 @@ void ClientHandler::submapPoseUpdatesCallback(
   submap_collection_ptr_->getPosesUpdateMutex()->lock();
   {
     for (int i = 0; i < map_pose_updates_msg.submap_id.size(); i++) {
-      // TODO(mikexyl): don't need to transform submap?
       SerSmId ser_sm_id;
       CHECK(submap_collection_ptr_->getSerSmIdByCliSmId(
           client_id_, map_pose_updates_msg.submap_id[i], &ser_sm_id));

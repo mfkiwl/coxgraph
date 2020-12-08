@@ -1,6 +1,8 @@
 <launch>
   <param name="use_sim_time" value="true" />
   <arg name="id" default=""/>
+  <arg name="client_number" default="2"/>
+  <arg name="robot_namespace" default="firefly"/>
 
   <!-- User supplied arguments -->
   <arg name="show_rviz" default="false" doc="Automatically launch Rviz." />
@@ -32,6 +34,10 @@
       <param name="update_esdf_every_n_sec " value="0.5"/>
       <param name="publish_active_tsdf_every_n_sec " value="0.5"/>
       <param name="world_frame" value="map_$(arg id)"/>
+      <param name="client_number" value="$(arg client_number)"/>
+      <param name="client_id" value="$(arg id)"/>
+      <param name="robot_namespace" value="$(arg robot_namespace)"/>
+      <param name="baselink_frame" value="base_link"/>
     </node>
 
   </group>

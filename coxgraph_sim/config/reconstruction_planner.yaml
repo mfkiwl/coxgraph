@@ -18,9 +18,9 @@ map:
   type: "VoxbloxMap"
 
 system_constraints:
-  v_max: 1.5
-  a_max: 1
-  yaw_rate_max: 1.6
+  v_max: 1
+  a_max: 0.5
+  yaw_rate_max: 0.5
   yaw_accel_max: 0.5
   collision_radius: 2.0
 
@@ -34,8 +34,9 @@ trajectory_generator:
   crop_segments: true
   crop_margin: 0.3
   crop_min_length: 0.5
-  min_path_length: 5
-  max_extension_range: 5
+  min_path_length: 0.5
+  max_path_length: 10
+  max_extension_range: 1.5
   maximum_tries: 1000
   sampling_rate: 20.0
   sample_yaw: true

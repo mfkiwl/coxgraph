@@ -57,4 +57,4 @@ client_map_relative_pose:
     z_z: 250.0
     yaw_yaw: 250.0
 
-enable_client_loop_closure: true
+enable_client_loop_closure: false
