@@ -48,8 +48,8 @@
   <arg name="z_ctrl_0"   default="2.0"/>
   <arg name="yaw_ctrl_0" default="0.0"/>
     
-  <arg name="x_1"        default="-5.0"/>
-  <arg name="y_1"        default="2.0"/>
+  <arg name="x_1"        default="-6.0"/>
+  <arg name="y_1"        default="0.0"/>
   <arg name="z_1"        default="1.0"/>
     
   <arg name="x_ctrl_1"   default="0.0"/>

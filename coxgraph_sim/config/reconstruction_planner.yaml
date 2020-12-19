@@ -27,7 +27,7 @@ system_constraints:
 trajectory_generator:
   collision_optimistic: false
   bounding_volume_args: "/map_bounding_volume"
-  clearing_radius: 1.0
+  clearing_radius: 0
 
   type: "RRTStar"
   all_semgents_feasible: false
@@ -91,7 +91,7 @@ trajectory_evaluator:
         downsampling_factor: 5.0
 
       cost_computer:
-        type: "SegmentTime"
+        type: "InteragentDistanceROS"
 
       value_computer:
         type: "GlobalNormalizedGain"

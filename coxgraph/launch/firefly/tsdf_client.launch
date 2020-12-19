@@ -38,6 +38,7 @@
       <param name="client_id" value="$(arg id)"/>
       <param name="robot_namespace" value="$(arg robot_namespace)"/>
       <param name="baselink_frame" value="base_link"/>
+      <param name="collision_radius" value="10.0"/>
     </node>
 
   </group>
