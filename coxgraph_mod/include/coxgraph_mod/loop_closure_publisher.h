@@ -159,6 +159,7 @@ class LoopClosurePublisher {
 
   ros::Publisher loop_closure_pub_;
 };
+
 }  // namespace mod
 }  // namespace coxgraph
 

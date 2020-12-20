@@ -1,6 +1,7 @@
 #ifndef COXGRAPH_MOD_TF_PUBLISHER_H_
 #define COXGRAPH_MOD_TF_PUBLISHER_H_
 
+#include <glog/logging.h>
 #include <nav_msgs/Odometry.h>
 #include <ros/ros.h>
 #include <tf/tf.h>
@@ -10,6 +11,7 @@
 #include <tf2/LinearMath/Vector3.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <Eigen/Dense>
+#include <opencv2/opencv.hpp>
 
 #include <memory>
 #include <mutex>
@@ -29,15 +31,23 @@ class TfPublisher {
     nh_private_.param<std::string>("map_frame", map_frame_, "map");
     nh_private_.param<std::string>("sensor_frame", camera_frame_, "base_link");
     odom_pub_ = nh_.advertise<nav_msgs::Odometry>("odometry", 10, true);
-    float tf_pub_freq = 100.0;
-    nh_private_.param<float>("tf_pub_freq", tf_pub_freq, tf_pub_freq);
+    float tf_pub_period_ms = 10.0;
+    nh_private_.param<float>("tf_pub_period_ms", tf_pub_period_ms,
+                             tf_pub_period_ms);
     tf_timer_ =
-        nh_.createTimer(ros::Duration(1.0 / tf_pub_freq),
+        nh_.createTimer(ros::Duration(tf_pub_period_ms / 1000),
                         &TfPublisher::PublishPositionAsTransformCallback, this);
   }
   ~TfPublisher() = default;
 
   void updatePose(Eigen::Matrix4d pose, double timestamp) {
+    std::lock_guard<std::mutex> pose_update_lock(pose_update_mutex_);
+    current_position_ = TransformFromMat(pose);
+    current_time_.fromSec(timestamp);
+  }
+
+  void updatePose(cv::Mat pose, double timestamp) {
+    if (pose.empty()) return;
     std::lock_guard<std::mutex> pose_update_lock(pose_update_mutex_);
     current_position_ = TransformFromMat(pose);
     current_time_.fromSec(timestamp);
@@ -76,34 +86,78 @@ class TfPublisher {
 
   std::mutex pose_update_mutex_;
 
+  bool tfFromEigen(cv::Mat position, tf::Matrix3x3* rotation,
+                   tf::Vector3* translation) {
+    CHECK(rotation != nullptr);
+    CHECK(translation != nullptr);
+    *rotation =
+        tf::Matrix3x3(position.at<float>(0, 0), position.at<float>(0, 1),
+                      position.at<float>(0, 2), position.at<float>(1, 0),
+                      position.at<float>(1, 1), position.at<float>(1, 2),
+                      position.at<float>(2, 0), position.at<float>(2, 1),
+                      position.at<float>(2, 2));
+
+    *translation =
+        tf::Vector3(position.at<float>(0, 3), position.at<float>(1, 3),
+                    position.at<float>(2, 3));
+
+    return true;
+  }
+
+  bool tfFromEigen(Eigen::Matrix4d position, tf::Matrix3x3* rotation,
+                   tf::Vector3* translation) {
+    CHECK(rotation != nullptr);
+    CHECK(translation != nullptr);
+    *rotation = tf::Matrix3x3(position(0, 0), position(0, 1), position(0, 2),
+                              position(1, 0), position(1, 1), position(1, 2),
+                              position(2, 0), position(2, 1), position(2, 2));
+
+    *translation = tf::Vector3(position(0, 3), position(1, 3), position(2, 3));
+
+    return true;
+  }
+
   tf::Transform TransformFromMat(Eigen::Matrix4d position_mat) {
-    tf::Matrix3x3 tf_camera_rotation(
-        position_mat(0, 0), position_mat(0, 1), position_mat(0, 2),
-        position_mat(1, 0), position_mat(1, 1), position_mat(1, 2),
-        position_mat(2, 0), position_mat(2, 1), position_mat(2, 2));
+    tf::Matrix3x3 tf_camera_rotation;
 
-    tf::Vector3 tf_camera_translation(position_mat(0, 3), position_mat(1, 3),
-                                      position_mat(2, 3));
+    tf::Vector3 tf_camera_translation;
 
+    tfFromEigen(position_mat, &tf_camera_rotation, &tf_camera_translation);
+
+    return TransformFromTf(tf_camera_rotation, tf_camera_translation);
+  }
+
+  tf::Transform TransformFromMat(cv::Mat position_mat) {
+    tf::Matrix3x3 tf_camera_rotation;
+
+    tf::Vector3 tf_camera_translation;
+
+    tfFromEigen(position_mat, &tf_camera_rotation, &tf_camera_translation);
+
+    return TransformFromTf(tf_camera_rotation, tf_camera_translation);
+  }
+
+  tf::Transform TransformFromTf(tf::Matrix3x3 rotation,
+                                tf::Vector3 translation) {
     // Coordinate transformation matrix from orb coordinate system to ros
     // coordinate system
     const tf::Matrix3x3 tf_orb_to_ros(0, 0, 1, -1, 0, 0, 0, -1, 0);
 
     // Transform from orb coordinate system to ros coordinate system on camera
     // coordinates
-    tf_camera_rotation = tf_orb_to_ros * tf_camera_rotation;
-    tf_camera_translation = tf_orb_to_ros * tf_camera_translation;
+    rotation = tf_orb_to_ros * rotation;
+    translation = tf_orb_to_ros * translation;
 
     // Inverse matrix
-    tf_camera_rotation = tf_camera_rotation.transpose();
-    tf_camera_translation = -(tf_camera_rotation * tf_camera_translation);
+    rotation = rotation.transpose();
+    translation = -(rotation * translation);
 
     // Transform from orb coordinate system to ros coordinate system on map
     // coordinates
-    tf_camera_rotation = tf_orb_to_ros * tf_camera_rotation;
-    tf_camera_translation = tf_orb_to_ros * tf_camera_translation;
+    rotation = tf_orb_to_ros * rotation;
+    translation = tf_orb_to_ros * translation;
 
-    return tf::Transform(tf_camera_rotation, tf_camera_translation);
+    return tf::Transform(rotation, translation);
   }
 };
 
