@@ -16,6 +16,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <vector>
 
 #include "coxgraph_mod/common.h"
 
@@ -28,8 +29,8 @@ class TfPublisher {
 
   TfPublisher(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private)
       : nh_(nh), nh_private_(nh_private), current_time_(ros::Time::now()) {
-    nh_private_.param<std::string>("map_frame", map_frame_, "map");
-    nh_private_.param<std::string>("sensor_frame", camera_frame_, "base_link");
+    nh_private_.param<std::string>("odom_frame", odom_frame_, "odom");
+    nh_private_.param<std::string>("sensor_frame", sensor_frame_, "cam");
     odom_pub_ = nh_.advertise<nav_msgs::Odometry>("odometry", 10, true);
     float tf_pub_period_ms = 10.0;
     nh_private_.param<float>("tf_pub_period_ms", tf_pub_period_ms,
@@ -37,37 +38,55 @@ class TfPublisher {
     tf_timer_ =
         nh_.createTimer(ros::Duration(tf_pub_period_ms / 1000),
                         &TfPublisher::PublishPositionAsTransformCallback, this);
+
+    nh_private_.param<std::string>("imu_frame", imu_frame_, imu_frame_);
+    if (imu_frame_.size()) {
+      std::vector<float> T_I_S_vec;
+      nh_private_.param<std::vector<float>>("T_I_S", T_I_S_vec, T_I_S_vec);
+      tf::Matrix3x3 rotation;
+      tf::Vector3 translation;
+      tfFromStdVector(T_I_S_vec, &rotation, &translation);
+      T_I_S_ = TransformFromTf(rotation, translation);
+    }
   }
   ~TfPublisher() = default;
 
   void updatePose(Eigen::Matrix4d pose, double timestamp) {
     std::lock_guard<std::mutex> pose_update_lock(pose_update_mutex_);
-    current_position_ = TransformFromMat(pose);
+    T_O_S_ = TransformFromEigen(pose);
     current_time_.fromSec(timestamp);
   }
 
   void updatePose(cv::Mat pose, double timestamp) {
     if (pose.empty()) return;
     std::lock_guard<std::mutex> pose_update_lock(pose_update_mutex_);
-    current_position_ = TransformFromMat(pose);
+    T_O_S_ = TransformFromCvMat(pose);
     current_time_.fromSec(timestamp);
   }
 
   void PublishPositionAsTransformCallback(const ros::TimerEvent& event) {
     std::lock_guard<std::mutex> pose_update_lock(pose_update_mutex_);
-    tf_broadcaster_.sendTransform(tf::StampedTransform(
-        current_position_, current_time_, map_frame_, camera_frame_));
+    if (imu_frame_.empty()) {
+      tf_broadcaster_.sendTransform(tf::StampedTransform(
+          T_O_S_, current_time_, odom_frame_, sensor_frame_));
+    } else {
+      tf::Transform T_O_I = T_O_S_ * T_I_S_.inverse();
+      tf_broadcaster_.sendTransform(
+          tf::StampedTransform(T_O_I, current_time_, odom_frame_, imu_frame_));
+      tf_broadcaster_.sendTransform(tf::StampedTransform(
+          T_I_S_, current_time_, imu_frame_, sensor_frame_));
+    }
     nav_msgs::Odometry odom_msg;
     odom_msg.header.stamp = current_time_;
-    odom_msg.header.frame_id = map_frame_;
-    odom_msg.child_frame_id = camera_frame_;
-    odom_msg.pose.pose.position.x = current_position_.getOrigin().x();
-    odom_msg.pose.pose.position.y = current_position_.getOrigin().y();
-    odom_msg.pose.pose.position.z = current_position_.getOrigin().z();
-    odom_msg.pose.pose.orientation.w = current_position_.getRotation().w();
-    odom_msg.pose.pose.orientation.x = current_position_.getRotation().x();
-    odom_msg.pose.pose.orientation.y = current_position_.getRotation().y();
-    odom_msg.pose.pose.orientation.z = current_position_.getRotation().z();
+    odom_msg.header.frame_id = odom_frame_;
+    odom_msg.child_frame_id = sensor_frame_;
+    odom_msg.pose.pose.position.x = T_O_S_.getOrigin().x();
+    odom_msg.pose.pose.position.y = T_O_S_.getOrigin().y();
+    odom_msg.pose.pose.position.z = T_O_S_.getOrigin().z();
+    odom_msg.pose.pose.orientation.w = T_O_S_.getRotation().w();
+    odom_msg.pose.pose.orientation.x = T_O_S_.getRotation().x();
+    odom_msg.pose.pose.orientation.y = T_O_S_.getRotation().y();
+    odom_msg.pose.pose.orientation.z = T_O_S_.getRotation().z();
     odom_pub_.publish(odom_msg);
   }
 
@@ -75,9 +94,11 @@ class TfPublisher {
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
   ros::Time current_time_;
-  tf::Transform current_position_;
-  std::string map_frame_;
-  std::string camera_frame_;
+  tf::Transform T_O_S_;
+  std::string odom_frame_;
+  std::string sensor_frame_;
+  std::string imu_frame_;
+  tf::Transform T_I_S_;
 
   tf::TransformBroadcaster tf_broadcaster_;
   ros::Publisher odom_pub_;
@@ -86,7 +107,7 @@ class TfPublisher {
 
   std::mutex pose_update_mutex_;
 
-  bool tfFromEigen(cv::Mat position, tf::Matrix3x3* rotation,
+  bool tfFromCvMat(cv::Mat position, tf::Matrix3x3* rotation,
                    tf::Vector3* translation) {
     CHECK(rotation != nullptr);
     CHECK(translation != nullptr);
@@ -104,6 +125,19 @@ class TfPublisher {
     return true;
   }
 
+  bool tfFromStdVector(std::vector<float> position, tf::Matrix3x3* rotation,
+                       tf::Vector3* translation) {
+    CHECK(rotation != nullptr);
+    CHECK(translation != nullptr);
+    *rotation = tf::Matrix3x3(position[0], position[1], position[2],
+                              position[4], position[5], position[6],
+                              position[8], position[9], position[10]);
+
+    *translation = tf::Vector3(position[3], position[7], position[11]);
+
+    return true;
+  }
+
   bool tfFromEigen(Eigen::Matrix4d position, tf::Matrix3x3* rotation,
                    tf::Vector3* translation) {
     CHECK(rotation != nullptr);
@@ -117,7 +151,7 @@ class TfPublisher {
     return true;
   }
 
-  tf::Transform TransformFromMat(Eigen::Matrix4d position_mat) {
+  tf::Transform TransformFromEigen(Eigen::Matrix4d position_mat) {
     tf::Matrix3x3 tf_camera_rotation;
 
     tf::Vector3 tf_camera_translation;
@@ -127,12 +161,12 @@ class TfPublisher {
     return TransformFromTf(tf_camera_rotation, tf_camera_translation);
   }
 
-  tf::Transform TransformFromMat(cv::Mat position_mat) {
+  tf::Transform TransformFromCvMat(cv::Mat position_mat) {
     tf::Matrix3x3 tf_camera_rotation;
 
     tf::Vector3 tf_camera_translation;
 
-    tfFromEigen(position_mat, &tf_camera_rotation, &tf_camera_translation);
+    tfFromCvMat(position_mat, &tf_camera_rotation, &tf_camera_translation);
 
     return TransformFromTf(tf_camera_rotation, tf_camera_translation);
   }

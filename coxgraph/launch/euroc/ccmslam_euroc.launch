@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<launch>
+  <param name="use_sim_time" value="true"/>
+
+  <arg name="dist" default="0"/>
+  <arg name="id" default="0"/>
+  <arg name="cam" default="$(find ccmslam)/conf/euroc.yaml"/>
+  <arg name="camera_calibration_file_path" default = "$(find ccmslam)/conf/euroc_camchain.yaml"/>
+
+  <group ns="ccmslam">
+
+    <node pkg="tf" type="static_transform_publisher" name="linkC0_broadcaster" args="-100 300 5 -1.571 0 -2 world odomC0 100" />
+
+    <node pkg="ccmslam" type="ccmslamClientNode" name="ccmslamClientNode0" args="$(find ccmslam)/conf/ORBvoc.txt $(arg cam) " output="screen" >
+
+      <!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->
+      <!-- Agent Specific Params - !!!MUST BE ADJUSTED!!! -->
+
+      <param name="~FrameId" type="string" value="odomC0" />
+      <param name="~ClientId" type="int" value="0" />
+      <param name="~Sensor" value="Stereo"/>
+
+      <param name="~do_rectify" value="true"/>
+      <param name="~TopicNameCamSub" type="string" value="/cam0/image_raw" />
+      <param name="~RightTopicName" type="string" value="/cam1/image_raw" />
+
+      <param name="~MapInTopicName" type="string" value="MapOutServer0" unless="$(arg dist)" />
+      <param name="~MapInTopicName" type="string" value="MapOutServer0Disturbed" if="$(arg dist)" />
+
+      <param name="server_mode" value="false"/>
+      <param name="odom_frame" value="odom_$(arg id)"/>
+      <param name="imu_frame" value="imu_$(arg id)"/>
+      <param name="sensor_frame" value="cam_$(arg id)"/>
+      <param name="tf_pub_period_ms" value="10"/>
+      <rosparam file="$(find coxgraph)/config/euroc/imu_to_camera.yaml" command="load"/>
+    </node>
+
+  </group>
+
+</launch> 

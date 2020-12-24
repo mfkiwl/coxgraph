@@ -3,26 +3,6 @@
 
 <arg name="id" default="0"/>
 
-  <group ns="firefly_$(arg id)">
-    
-  <node name="dense_stereo" pkg="image_undistort" type="dense_stereo_node">
-    <param name="input_camera_info_from_ros_params" value = "true"/>
-    <param name="first_camera_namespace" value="cam0"/>
-    <param name="second_camera_namespace" value="cam1"/>
-    <param name="first_output_frame" value="cam0"/>
-    <param name="second_output_frame" value="cam1"/>
-    <param name="scale" value="$(arg scale)"/>
-    <param name="process_every_nth_frame" value="$(arg process_every_nth_frame)"/>
-
-    <rosparam file="$(find voxblox_ros)/cfg/calibrations/euroc_camchain.yaml"/>
-
-    <remap from="raw/first/image" to="cam0/image_raw"/>
-    <remap from="raw/second/image" to="cam1/image_raw"/>
-    <remap from="raw/first/camera_info" to="cam0/camera_info"/>
-    <remap from="raw/second/camera_info" to="cam1/camera_info"/>
-  </node>
-
-  </group>
 
   <include file="$(find coxgraph)/launch/firefly/coxgraph_client.launch" >
     <arg name="id" value="$(arg id)"/>
