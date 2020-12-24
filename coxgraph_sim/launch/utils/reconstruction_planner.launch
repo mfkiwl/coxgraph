@@ -72,6 +72,8 @@
       <param name="publish_slices" value="true" />
       <param name="publish_pointclouds_on_update" value="true" />
       <param name="world_frame" value="map_$(arg id)"/>
+      <param name="baselink_frame" value="base_link"/>
+      <param name="robot_namespace" value="$(arg mav_name)"/>
 
       <remap from="odometry" to="$(arg odom_topic)" />
       <remap from="command/trajectory" to="/$(arg mav_name)_$(arg id)/command/trajectory" />

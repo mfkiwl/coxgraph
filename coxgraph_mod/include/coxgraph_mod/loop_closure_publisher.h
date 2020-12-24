@@ -15,6 +15,7 @@
 #include <tf2/LinearMath/Vector3.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <Eigen/Dense>
+#include <opencv2/opencv.hpp>
 
 #include <memory>
 
@@ -41,22 +42,15 @@ class LoopClosurePublisher {
 
   bool publishLoopClosure(size_t from_client_id, double from_timestamp,
                           size_t to_client_id, double to_timestamp,
-                          Eigen::Matrix4d T_A_B) {
-    tf2::Matrix3x3 tf2_rot(T_A_B(0, 0), T_A_B(0, 1), T_A_B(0, 2), T_A_B(1, 0),
-                           T_A_B(1, 1), T_A_B(1, 2), T_A_B(2, 0), T_A_B(2, 1),
-                           T_A_B(2, 2));
-    tf2::Quaternion tf2_quaternion;
-    tf2_rot.getRotation(tf2_quaternion);
-
+                          geometry_msgs::Quaternion rotation,
+                          geometry_msgs::Vector3 transform) {
     coxgraph_msgs::MapFusion map_fusion_msg;
     map_fusion_msg.from_client_id = from_client_id;
     map_fusion_msg.from_timestamp = ros::Time(from_timestamp);
     map_fusion_msg.to_client_id = to_client_id;
     map_fusion_msg.to_timestamp = ros::Time(to_timestamp);
-    map_fusion_msg.transform.rotation = tf2::toMsg(tf2_quaternion);
-    map_fusion_msg.transform.translation.x = T_A_B(0, 3);
-    map_fusion_msg.transform.translation.y = T_A_B(1, 3);
-    map_fusion_msg.transform.translation.z = T_A_B(2, 3);
+    map_fusion_msg.transform.rotation = rotation;
+    map_fusion_msg.transform.translation = transform;
     loop_closure_pub_.publish(map_fusion_msg);
 
     if (from_client_id != to_client_id)
@@ -78,22 +72,28 @@ class LoopClosurePublisher {
 
     return true;
   }
+  bool publishLoopClosure(size_t from_client_id, double from_timestamp,
+                          size_t to_client_id, double to_timestamp,
+                          Eigen::Matrix4d T_A_B) {
+    return publishLoopClosure(from_client_id, from_timestamp, to_client_id,
+                              to_timestamp, toGeoQuat(T_A_B), toGeoVec3(T_A_B));
+  }
 
-  bool publishLoopClosure(const double& from_timestamp,
-                          const double& to_timestamp, Eigen::Matrix4d T_A_B) {
-    tf2::Matrix3x3 tf2_rot(T_A_B(0, 0), T_A_B(0, 1), T_A_B(0, 2), T_A_B(1, 0),
-                           T_A_B(1, 1), T_A_B(1, 2), T_A_B(2, 0), T_A_B(2, 1),
-                           T_A_B(2, 2));
-    tf2::Quaternion tf2_quaternion;
-    tf2_rot.getRotation(tf2_quaternion);
+  bool publishLoopClosure(size_t from_client_id, double from_timestamp,
+                          size_t to_client_id, double to_timestamp, cv::Mat R,
+                          cv::Mat t) {
+    return publishLoopClosure(from_client_id, from_timestamp, to_client_id,
+                              to_timestamp, toGeoQuat(R), toGeoVec3(t));
+  }
 
+  bool publishLoopClosure(double from_timestamp, double to_timestamp,
+                          geometry_msgs::Quaternion rotation,
+                          geometry_msgs::Vector3 transform) {
     coxgraph_msgs::LoopClosure loop_closure_msg;
     loop_closure_msg.from_timestamp = ros::Time(from_timestamp);
     loop_closure_msg.to_timestamp = ros::Time(to_timestamp);
-    loop_closure_msg.transform.rotation = tf2::toMsg(tf2_quaternion);
-    loop_closure_msg.transform.translation.x = T_A_B(0, 3);
-    loop_closure_msg.transform.translation.y = T_A_B(1, 3);
-    loop_closure_msg.transform.translation.z = T_A_B(2, 3);
+    loop_closure_msg.transform.rotation = rotation;
+    loop_closure_msg.transform.translation = transform;
     loop_closure_pub_.publish(loop_closure_msg);
     ROS_INFO(
         "Loop Closure Message Published from time %d, to "
@@ -104,7 +104,54 @@ class LoopClosurePublisher {
     return true;
   }
 
+  bool publishLoopClosure(const double& from_timestamp,
+                          const double& to_timestamp, Eigen::Matrix4d T_A_B) {
+    return publishLoopClosure(from_timestamp, to_timestamp, toGeoQuat(T_A_B),
+                              toGeoVec3(T_A_B));
+  }
+
+  bool publishLoopClosure(const double& from_timestamp,
+                          const double& to_timestamp, cv::Mat R, cv::Mat t) {
+    return publishLoopClosure(from_timestamp, to_timestamp, toGeoQuat(R),
+                              toGeoVec3(t));
+  }
+
  private:
+  geometry_msgs::Quaternion toGeoQuat(cv::Mat R) {
+    tf2::Matrix3x3 tf2_rot(
+        R.at<float>(0, 0), R.at<float>(0, 1), R.at<float>(0, 2),
+        R.at<float>(1, 0), R.at<float>(1, 1), R.at<float>(1, 2),
+        R.at<float>(2, 0), R.at<float>(2, 1), R.at<float>(2, 2));
+    tf2::Quaternion tf2_quaternion;
+    tf2_rot.getRotation(tf2_quaternion);
+    return tf2::toMsg(tf2_quaternion);
+  }
+
+  geometry_msgs::Quaternion toGeoQuat(Eigen::Matrix4d T_A_B) {
+    tf2::Matrix3x3 tf2_rot(T_A_B(0, 0), T_A_B(0, 1), T_A_B(0, 2), T_A_B(1, 0),
+                           T_A_B(1, 1), T_A_B(1, 2), T_A_B(2, 0), T_A_B(2, 1),
+                           T_A_B(2, 2));
+    tf2::Quaternion tf2_quaternion;
+    tf2_rot.getRotation(tf2_quaternion);
+    return tf2::toMsg(tf2_quaternion);
+  }
+
+  geometry_msgs::Vector3 toGeoVec3(Eigen::Matrix4d T_A_B) {
+    geometry_msgs::Vector3 transform;
+    transform.x = T_A_B(0, 3);
+    transform.y = T_A_B(1, 3);
+    transform.z = T_A_B(2, 3);
+    return transform;
+  }
+
+  geometry_msgs::Vector3 toGeoVec3(cv::Mat t) {
+    geometry_msgs::Vector3 transform;
+    transform.x = t.at<float>(0);
+    transform.y = t.at<float>(1);
+    transform.z = t.at<float>(2);
+    return transform;
+  }
+
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
 
@@ -112,6 +159,7 @@ class LoopClosurePublisher {
 
   ros::Publisher loop_closure_pub_;
 };
+
 }  // namespace mod
 }  // namespace coxgraph
 

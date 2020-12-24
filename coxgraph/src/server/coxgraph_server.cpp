@@ -10,6 +10,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "coxgraph/common.h"
@@ -281,32 +282,35 @@ void CoxgraphServer::addToMFFuture(
     const coxgraph_msgs::MapFusion& map_fusion_msg) {
   std::lock_guard<std::mutex> future_mf_queue_lock(future_mf_queue_mutex_);
   if (map_fusion_msgs_future_.size() < config_.map_fusion_queue_size)
-    map_fusion_msgs_future_.emplace_back(map_fusion_msg, 0);
+    map_fusion_msgs_future_.push_back(
+        std::pair<coxgraph_msgs::MapFusion, int>(map_fusion_msg, 0));
 }
 
 void CoxgraphServer::processMFFuture() {
   std::lock_guard<std::mutex> future_mf_queue_lock(future_mf_queue_mutex_);
   bool processed_any = false;
   for (auto it = map_fusion_msgs_future_.begin();
-       it != map_fusion_msgs_future_.end(); it++) {
+       it != map_fusion_msgs_future_.end();) {
     coxgraph_msgs::MapFusion map_fusion_msg = it->first;
-    const CliId& cid_a = map_fusion_msg.from_client_id;
-    const CliId& cid_b = map_fusion_msg.to_client_id;
-    const ros::Time& t1 = map_fusion_msg.from_timestamp;
-    const ros::Time& t2 = map_fusion_msg.to_timestamp;
+    CliId cid_a = map_fusion_msg.from_client_id;
+    CliId cid_b = map_fusion_msg.to_client_id;
+    ros::Time t1 = map_fusion_msg.from_timestamp;
+    ros::Time t2 = map_fusion_msg.to_timestamp;
+    LOG(INFO) << "debug: processing client " << static_cast<int>(cid_a) << " "
+              << static_cast<int>(cid_b);
     if (client_handlers_[cid_a]->hasTime(t1) &&
         client_handlers_[cid_b]->hasTime(t2)) {
       if (mapFusionCallback(map_fusion_msg, true)) {
         processed_any = true;
         break;
-        map_fusion_msgs_future_.erase(it--);
       }
     }
 
     if (it->second >= kMaxFutureUncatchedN) {
-      map_fusion_msgs_future_.erase(it--);
+      it = map_fusion_msgs_future_.erase(it);
     } else {
       it->second++;
+      ++it;
     }
   }
 

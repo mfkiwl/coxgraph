@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<launch>
+  <include file="$(find coxgraph)/launch/euroc_dataset.launch">
+    <arg name="id" default="0"/>
+  </include>
+
+  <include file="$(find coxgraph)/launch/euroc_dataset.launch">
+    <arg name="id" default="1"/>
+  </include>
+
+  <include file="$(find coxgraoh)/launch/coxgraph_server.launch" />
+</launch>

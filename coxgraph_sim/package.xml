@@ -19,5 +19,7 @@
   <depend>geodetic_utils</depend>
   <depend>active_3d_planning_app_reconstruction</depend>
   <depend>coxgraph</depend>
+  <depend>coxgraph_msgs</depend>
+
 </package>
 

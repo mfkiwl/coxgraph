@@ -60,7 +60,7 @@
     <param name="x" value="$(arg x_ctrl)"/>
     <param name="y" value="$(arg y_ctrl)"/>
     <param name="z" value="$(arg z_ctrl)"/>
-    <param name="yaw" value="$(arg yaw_ctrl)"/>
+    <param name="yaw" value="0"/>
   </node>
 
   <!-- TFs -->
@@ -79,7 +79,7 @@
       <param name="origin_x" value="$(arg x)"/>
       <param name="origin_y" value="$(arg y)"/>
       <param name="origin_z" value="$(arg z)"/>
-      <param name="origin_yaw" value="0"/>
+      <param name="origin_yaw" value="$(arg yaw_ctrl)"/>
     </node>
   </group>
 
