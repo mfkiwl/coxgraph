@@ -57,6 +57,7 @@
 - git:
     local-name: pcl_catkin
     uri: git@github.com:ethz-asl/pcl_catkin.git
+    version: 740e68
 - git:
     local-name: vpp_msgs
     uri: git@github.com:ethz-asl/vpp_msgs.git
@@ -108,3 +109,4 @@
 - git: {local-name: mavros, uri: 'git@github.com:ethz-asl/mavros.git'}
 - git: {local-name: vision_opencv, uri: 'git@github.com:ethz-asl/vision_opencv.git', version: 'kinetic'}
 - git: {local-name: node_evaluator, uri: 'git@github.com:LXYYY/node_evaluator.git', version: 'main'}
+- git: {local-name: image_undistort, uri: 'git@github.com:ethz-asl/image_undistort.git', version: 'master'}

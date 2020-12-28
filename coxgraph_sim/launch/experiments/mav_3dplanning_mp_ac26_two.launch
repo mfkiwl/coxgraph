@@ -1,4 +1,5 @@
 <launch>
+  <param name="use_sim_time" value="true" />
   <!-- Gazebo arguments -->
   <arg name="mav_name" default="firefly"/>
   <arg name="client_number" default="2"/>

@@ -1,6 +1,5 @@
 <?xml version="1.0"?>
 <launch>
-  <param name="use_sim_time" value="true" />
   <arg name="id" default="0"/>
 
   <arg name="robot_namespace" default="firefly"/>
@@ -8,9 +7,8 @@
   <arg name="pointcloud_topic" doc="ROS topic for pointcloud input" default="/firefly_$(arg id)/vi_sensor/camera_depth/depth/points"/>
   <arg name="debug_cg" default="false" doc="Run the coxgraph client in debug mode." />
   <arg name="debug_tsdf" default="false" doc="Run the tsdf client in debug mode." />
-  <arg name="show_rviz" default="false" doc="Automatically launch Rviz." />
   <arg name="verbose" default="false"/>
-  <arg name="client_number" default="2"/>
+  <arg name="client_number" default="3"/>
 
   <group ns="coxgraph">
     <arg unless="$(arg debug_cg)" name="launch_prefix" value="" />
