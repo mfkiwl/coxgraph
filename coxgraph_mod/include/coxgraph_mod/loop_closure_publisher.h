@@ -31,12 +31,8 @@ class LoopClosurePublisher {
                        const ros::NodeHandle& nh_private,
                        bool server_mode = false)
       : nh_(nh), nh_private_(nh_private), server_mode_(server_mode) {
-    if (server_mode_)
       loop_closure_pub_ = nh_private_.advertise<coxgraph_msgs::MapFusion>(
           "map_fusion", 10, true);
-    else
-      loop_closure_pub_ = nh_private_.advertise<coxgraph_msgs::LoopClosure>(
-          "loop_closure", 10, true);
   }
   ~LoopClosurePublisher() = default;
 
