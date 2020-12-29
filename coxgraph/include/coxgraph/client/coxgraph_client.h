@@ -3,6 +3,7 @@
 
 #include <coxgraph_msgs/ClientSubmap.h>
 #include <coxgraph_msgs/ClientSubmapSrv.h>
+#include <coxgraph_msgs/PoseHistorySrv.h>
 #include <coxgraph_msgs/SubmapsSrv.h>
 #include <coxgraph_msgs/TimeLine.h>
 #include <voxgraph/frontend/voxgraph_mapper.h>
@@ -53,6 +54,17 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
       coxgraph_msgs::SubmapsSrv::Request& request,     // NOLINT
       coxgraph_msgs::SubmapsSrv::Response& response);  // NOLINT
 
+  bool getPoseHistory(
+      coxgraph_msgs::PoseHistorySrv::Request& request,      // NOLINT
+      coxgraph_msgs::PoseHistorySrv::Response& response) {  // NOLINT
+    response.pose_history.pose_history =
+        submap_collection_ptr_->getPoseHistory();
+    boost::filesystem::path p(request.file_path);
+    p.append("coxgraph_client_traj_" + std::to_string(client_id_) + ".txt");
+    savePoseHistory(p.string());
+    return true;
+  }
+
   bool submapCallback(
       const voxblox_msgs::LayerWithTrajectory& submap_msg) override;
 
@@ -64,6 +76,8 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
   void publishTimeLine();
   void publishMapPoseUpdates();
 
+  void savePoseHistory(std::string file_path);
+
   CliId client_id_;
   std::string log_prefix_;
 
@@ -71,6 +85,7 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
   ros::Publisher map_pose_pub_;
   ros::ServiceServer get_client_submap_srv_;
   ros::ServiceServer get_all_client_submaps_srv_;
+  ros::ServiceServer get_pose_history_srv_;
 
   SmIdTfMap ser_sm_id_pose_map_;
 

@@ -2,9 +2,9 @@
 #define COXGRAPH_SERVER_COXGRAPH_SERVER_H_
 
 #include <coxgraph_msgs/ControlTrigger.h>
+#include <coxgraph_msgs/FilePath.h>
 #include <coxgraph_msgs/MapFusion.h>
 #include <ros/ros.h>
-#include <voxblox_msgs/FilePath.h>
 #include <voxblox_ros/ros_params.h>
 #include <voxgraph/frontend/pose_graph_interface/pose_graph_interface.h>
 #include <voxgraph/frontend/submap_collection/voxgraph_submap.h>
@@ -164,8 +164,12 @@ class CoxgraphServer {
   void mapFusionMsgCallback(const coxgraph_msgs::MapFusion& map_fusion_msg);
 
   bool getFinalGlobalMeshCallback(
-      voxblox_msgs::FilePath::Request& request,     // NOLINT
-      voxblox_msgs::FilePath::Response& response);  // NOLINT
+      coxgraph_msgs::FilePath::Request& request,     // NOLINT
+      coxgraph_msgs::FilePath::Response& response);  // NOLINT
+
+  bool getPoseHistoryCallback(
+      coxgraph_msgs::FilePath::Request& request,     // NOLINT
+      coxgraph_msgs::FilePath::Response& response);  // NOLINT
 
   void futureMFProcCallback(const ros::TimerEvent& event);
 
@@ -272,6 +276,7 @@ class CoxgraphServer {
   ros::Publisher combined_mesh_pub_;
   ros::Publisher separated_mesh_pub_;
   ros::ServiceServer get_final_global_mesh_srv_;
+  ros::ServiceServer get_pose_history_srv_;
   std::timed_mutex final_mesh_gen_mutex_;
 
   DistributionController::Ptr distrib_ctl_ptr_;

@@ -84,6 +84,8 @@ class ClientHandler {
 
   static Config getConfigFromRosParam(const ros::NodeHandle& nh_private);
 
+  inline const CliId& getCliId() const { return client_id_; }
+
   enum ReqState { NONINIT = 0, FAILED, FUTURE, SUCCESS };
   ReqState requestSubmapByTime(const ros::Time& timestamp,
                                const SerSmId& ser_sm_id, CliSmId* cli_sm_id,
@@ -91,6 +93,9 @@ class ClientHandler {
 
   bool requestAllSubmaps(std::vector<CliSmIdPack>* submap_packs,
                          SerSmId* start_ser_sm_id);
+
+  bool requestPoseHistory(const std::string& file_path,
+                          PoseStampedVector* pose_history);
 
   inline bool hasTime(const ros::Time time) { return time_line_.hasTime(time); }
   inline bool isTimeLineUpdated() const { return time_line_updated_; }
@@ -144,6 +149,7 @@ class ClientHandler {
   ros::Subscriber sm_pose_updates_sub_;
   ros::ServiceClient pub_client_submap_client_;
   ros::ServiceClient get_all_submaps_client_;
+  ros::ServiceClient get_pose_history_client_;
 
   SubmapCollection::Ptr submap_collection_ptr_;
 

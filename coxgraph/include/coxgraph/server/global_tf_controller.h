@@ -82,6 +82,10 @@ class GlobalTfController {
 
   inline bool inControl() const { return distrib_ctl_ptr_->inControl(); }
 
+  inline const tf::StampedTransform& getTGCliOpt(const CliId& cid) const {
+    return T_G_CLI_opt_[cid];
+  }
+
  private:
   void initCliMapPose();
 

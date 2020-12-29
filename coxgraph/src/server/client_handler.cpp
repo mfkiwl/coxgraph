@@ -1,5 +1,6 @@
 #include "coxgraph/server/client_handler.h"
 
+#include <coxgraph_msgs/PoseHistorySrv.h>
 #include <coxgraph_msgs/SubmapsSrv.h>
 #include <coxgraph_msgs/TimeLine.h>
 
@@ -63,6 +64,11 @@ void ClientHandler::subscribeToServices() {
             << client_node_name_ + "/get_all_submaps";
   get_all_submaps_client_ = nh_.serviceClient<coxgraph_msgs::SubmapsSrv>(
       client_node_name_ + "/get_all_submaps");
+
+  LOG(INFO) << log_prefix_ << "Subscribed to service: "
+            << client_node_name_ + "/get_pose_history";
+  get_pose_history_client_ = nh_.serviceClient<coxgraph_msgs::PoseHistorySrv>(
+      client_node_name_ + "/get_pose_history");
 }
 
 ClientHandler::ReqState ClientHandler::requestSubmapByTime(
@@ -131,6 +137,19 @@ bool ClientHandler::requestAllSubmaps(std::vector<CliSmIdPack>* submap_packs,
     return true;
   }
   return false;
+}
+
+bool ClientHandler::requestPoseHistory(const std::string& file_path,
+                                       PoseStampedVector* pose_history) {
+  coxgraph_msgs::PoseHistorySrv pose_history_srv;
+  pose_history_srv.request.file_path = file_path;
+  CHECK(pose_history != nullptr);
+  if (get_pose_history_client_.call(pose_history_srv)) {
+    *pose_history = pose_history_srv.response.pose_history.pose_history;
+    return true;
+  } else {
+    return false;
+  }
 }
 
 }  // namespace server

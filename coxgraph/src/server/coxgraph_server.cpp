@@ -5,6 +5,7 @@
 #include <tf/transform_datatypes.h>
 #include <visualization_msgs/Marker.h>
 #include <voxgraph/frontend/submap_collection/voxgraph_submap_collection.h>
+#include <boost/filesystem.hpp>
 
 #include <chrono>
 #include <memory>
@@ -95,11 +96,13 @@ void CoxgraphServer::advertiseServices() {
   get_final_global_mesh_srv_ = nh_private_.advertiseService(
       "get_final_global_mesh", &CoxgraphServer::getFinalGlobalMeshCallback,
       this);
+  get_pose_history_srv_ = nh_private_.advertiseService(
+      "get_pose_history", &CoxgraphServer::getPoseHistoryCallback, this);
 }
 
 bool CoxgraphServer::getFinalGlobalMeshCallback(
-    voxblox_msgs::FilePath::Request& request,
-    voxblox_msgs::FilePath::Response& response) {
+    coxgraph_msgs::FilePath::Request& request,
+    coxgraph_msgs::FilePath::Response& response) {
   LOG(INFO) << "Service called to get final global mesh, pausing map fusion "
                "process";
 
@@ -134,6 +137,55 @@ bool CoxgraphServer::getFinalGlobalMeshCallback(
   LOG(INFO) << "Global mesh generated, map fusion process unpaused";
 
   final_mesh_gen_mutex_.unlock();
+  std::string ok_str = "Global mesh saved to " + request.file_path;
+  LOG(INFO) << ok_str;
+  response.message = ok_str;
+  return true;
+}
+
+bool CoxgraphServer::getPoseHistoryCallback(
+    coxgraph_msgs::FilePath::Request& request,
+    coxgraph_msgs::FilePath::Response& response) {
+  LOG(INFO) << "Generating pose history for all clients";
+
+  std::vector<PoseStampedVector> pose_histories(config_.client_number);
+  for (auto const& ch : client_handlers_) {
+    if (!ch->requestPoseHistory(request.file_path,
+                                &pose_histories[ch->getCliId()])) {
+      LOG(ERROR) << "Request pose history of Client " << ch->getCliId()
+                 << " failed";
+      return false;
+    }
+  }
+
+  boost::filesystem::path p(request.file_path);
+  p.append("coxgraph_server_traj.txt");
+  std::ofstream f;
+  f.open(p.string());
+  if (!f.is_open()) LOG(ERROR) << "Failed to open file " << request.file_path;
+  f << std::fixed;
+
+  for (int cid = 0; cid < pose_histories.size(); cid++) {
+    TransformationD T_G_Cli;
+    tf::transformTFToKindr(tf_controller_->getTGCliOpt(cid), &T_G_Cli);
+
+    for (auto const& pose : pose_histories[cid]) {
+      TransformationD T_Cli_C;
+      tf::poseMsgToKindr(pose.pose, &T_Cli_C);
+      TransformationD T_G_C = T_G_Cli * T_Cli_C;
+      f << std::setprecision(6) << pose.header.stamp.toSec()
+        << std::setprecision(7) << " " << T_G_C.getPosition().x() << " "
+        << T_G_C.getPosition().y() << " " << T_G_C.getPosition().z() << " "
+        << T_G_C.getRotation().x() << " " << T_G_C.getRotation().y() << " "
+        << T_G_C.getRotation().z() << " " << T_G_C.getRotation().w()
+        << std::endl;
+    }
+  }
+
+  f.close();
+  std::string ok_str = "Pose history saved to " + p.string();
+  LOG(INFO) << ok_str;
+  response.message = ok_str;
   return true;
 }
 

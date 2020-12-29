@@ -2,6 +2,7 @@
 #define COXGRAPH_COMMON_H_
 
 #include <cblox/core/common.h>
+#include <geometry_msgs/PoseStamped.h>
 #include <voxblox/core/common.h>
 #include <voxblox/mesh/mesh_integrator.h>
 #include <voxgraph/backend/constraint/constraint.h>
@@ -11,6 +12,7 @@
 #include <voxgraph/frontend/submap_collection/voxgraph_submap.h>
 
 #include <utility>
+#include <vector>
 
 namespace coxgraph {
 
@@ -79,6 +81,7 @@ struct TimeLine {
 
 typedef std::function<void()> TimeLineUpdateCallback;
 
+typedef std::vector<geometry_msgs::PoseStamped> PoseStampedVector;
 }  // namespace coxgraph
 
 #endif  // COXGRAPH_COMMON_H_

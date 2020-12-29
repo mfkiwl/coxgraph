@@ -4,6 +4,7 @@
 #include <coxgraph_msgs/TimeLine.h>
 
 #include <chrono>
+#include <string>
 
 #include "coxgraph/common.h"
 
@@ -21,6 +22,8 @@ void CoxgraphClient::advertiseClientServices() {
       "get_client_submap", &CoxgraphClient::getClientSubmapCallback, this);
   get_all_client_submaps_srv_ = nh_private_.advertiseService(
       "get_all_submaps", &CoxgraphClient::getAllClientSubmapsCallback, this);
+  get_pose_history_srv_ = nh_private_.advertiseService(
+      "get_pose_history", &CoxgraphClient::getPoseHistory, this);
 }
 
 // TODO(mikexyl): add locks here, if optimizing is running, wait
@@ -131,6 +134,25 @@ void CoxgraphClient::publishMapPoseUpdates() {
   }
   if (map_pose_updates_msg.submap_id.size())
     map_pose_pub_.publish(map_pose_updates_msg);
+}
+
+void CoxgraphClient::savePoseHistory(std::string file_path) {
+  std::ofstream f;
+  f.open(file_path);
+  if (!f.is_open()) LOG(ERROR) << "Failed to open file " << file_path;
+  f << std::fixed;
+
+  for (auto const& pose : submap_collection_ptr_->getPoseHistory()) {
+    f << std::setprecision(6) << pose.header.stamp.toSec()
+      << std::setprecision(7) << " " << pose.pose.position.x << " "
+      << pose.pose.position.y << " " << pose.pose.position.z << " "
+      << pose.pose.orientation.x << " " << pose.pose.orientation.y << " "
+      << pose.pose.orientation.z << " " << pose.pose.orientation.w << std::endl;
+  }
+
+  f.close();
+  std::string ok_str = "Pose history saved to " + file_path;
+  LOG(INFO) << log_prefix_ << ok_str;
 }
 
 }  // namespace coxgraph
