@@ -296,8 +296,6 @@ void CoxgraphServer::processMFFuture() {
     CliId cid_b = map_fusion_msg.to_client_id;
     ros::Time t1 = map_fusion_msg.from_timestamp;
     ros::Time t2 = map_fusion_msg.to_timestamp;
-    LOG(INFO) << "debug: processing client " << static_cast<int>(cid_a) << " "
-              << static_cast<int>(cid_b);
     if (client_handlers_[cid_a]->hasTime(t1) &&
         client_handlers_[cid_b]->hasTime(t2)) {
       if (mapFusionCallback(map_fusion_msg, true)) {

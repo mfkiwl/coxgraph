@@ -28,8 +28,10 @@
     <param name="cam0/rostopic" value="/cam0_$(arg id)/image_raw"/>
     <param name="cam1/rostopic" value="/cam1_$(arg id)/image_raw"/>
     <param name="rename_input_frame" value="true"/>
-    <param name="first_input_frame" value="cam_0"/>
-    <param name="second_input_frame" value="cam_0"/>
+    <param name="first_input_frame" value="cam_$(arg id)"/>
+    <param name="second_input_frame" value="cam_$(arg id)"/>
+    <param name="first_output_frame" value="first_camera_rect_$(arg id)"/>
+    <param name="second_output_frame" value="second_camera_rect_$(arg id)"/>
 
     <remap from="raw/first/image" to="/cam0_$(arg id)/image_raw"/>
     <remap from="raw/second/image" to="/cam1_$(arg id)/image_raw"/>
@@ -37,10 +39,13 @@
     <remap from="rect/first/image" to="/rect_$(arg id)/first/image"/>
     <remap from="rect/second/image" to="/rect_$(arg id)/second/image"/>
 
-    <remap from="pointcloud" to="/pointcloud_$(arg id)"/>
+    <remap from="rect/first/camera_info" to="rect_$(arg id)/first/camera_info"/>
+    <remap from="rect/second/camera_info" to="rect_$(arg id)/second/camera_info"/>
+
+    <remap from="~pointcloud" to="/pointcloud_$(arg id)"/>
   </node>
 
   <node if="$(arg clock)" pkg="rosbag" type="play" name="player_$(arg id)" args="$(arg bag_file) -r $(arg play_speed) -s $(arg skip_seconds) --clock /cam0/image_raw:=/cam0_$(arg id)/image_raw /cam1/image_raw:=/cam1_$(arg id)/image_raw imu0:=/imu0_$(arg id)"/>
-  <node unless="$(arg clock)" pkg="rosbag" type="play" name="player_$(arg id)" args="$(arg bag_file) -d 5 -r $(arg play_speed) -s $(arg skip_seconds) /cam0/image_raw:=/cam0_$(arg id)/image_raw /cam1/image_raw:=/cam1_$(arg id)/image_raw imu0:=/imu0_$(arg id)"/>
+  <node unless="$(arg clock)" pkg="rosbag" type="play" name="player_$(arg id)" args="$(arg bag_file) -r $(arg play_speed) -s $(arg skip_seconds) /cam0/image_raw:=/cam0_$(arg id)/image_raw /cam1/image_raw:=/cam1_$(arg id)/image_raw imu0:=/imu0_$(arg id)"/>
 
 </launch>
