@@ -2,13 +2,13 @@
   <!-- Parameters -->
   <arg name="mav_name" />
   <arg name="id"    default = "0"/>
-  <arg name="config_path" default = "$(find multi_robot_simulation)/cfg/vins/vins_sim_agent_$(arg id).yaml" />
+  <arg name="config_path" default = "$(find coxgraph_sim)/config/vins/vins_sim_agent_$(arg id).yaml" />
   <arg name="vins_path"   default = "$(find feature_tracker)/../config/../" />
 
+  <arg name="start_initializer" default="true"/>
   <arg name="enable_gazebo_tf" default="true"/>
   <arg name="odom_topic" default="/$(arg mav_name)_$(arg id)/repub/odometry" unless="$(arg enable_gazebo_tf)" />
   <arg name="odom_topic" default="/$(arg mav_name)_$(arg id)/ground_truth/odometry" if="$(arg enable_gazebo_tf)"/>
-
 
   <group ns="$(arg mav_name)_$(arg id)">
     <!-- Feature tracker -->
@@ -27,6 +27,8 @@
 
       <remap from="vins_estimator_$(arg id)/features" to="feature_tracker_$(arg id)/feature" />
       <remap from="vins_estimator_$(arg id)/feature_restart" to="feature_tracker_$(arg id)/restart" />
+
+      <param name="toggle_mapping_srv_name" value="/tsdf_client/label_tsdf_client_$(arg id)/toggle_mapping"/>
     </node>
 
     <!-- Pose Graph -->
@@ -61,7 +63,7 @@
   </group>
 
   <!-- Node that performs the movements to initialize VINS-Mono -->
-  <node name="vins_initializer_node_$(arg id)" pkg="multi_robot_simulation" type="vins_initializer_node" output="screen" args="$(arg id)">
+  <node if="$(arg start_initializer)" name="vins_initializer_node_$(arg id)" pkg="multi_robot_simulation" type="vins_initializer_node" output="screen" args="$(arg id)">
     <param name="n_sec_wait" value="5.0"/>
     <param name="hovering_height" value="2"/>
     <param name="delta_d" value="1.0"/>

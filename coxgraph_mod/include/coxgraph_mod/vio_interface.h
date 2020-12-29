@@ -22,6 +22,7 @@ void publishLoopClosure(const double& from_timestamp,
                         const double& to_timestamp, Eigen::Matrix4d T_A_B);
 void publishLoopClosure(const double& from_timestamp,
                         const double& to_timestamp, cv::Mat R, cv::Mat t);
+bool toggleMapping(bool b_mapping);
 }  // namespace mod
 }  // namespace coxgraph
 

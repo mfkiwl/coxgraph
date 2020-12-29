@@ -9,6 +9,10 @@
   <arg name="debug_tsdf" default="false" doc="Run the tsdf client in debug mode." />
   <arg name="verbose" default="false"/>
   <arg name="client_number" default="3"/>
+  <arg name="world_frame_suffix" default="map"/>
+  <arg name="tw_voxblox_config_file" default="$(find coxgraph)/config/tsdf_server_default.yaml"/>
+  <arg name="tsdf_voxel_size" default="0.10"/>
+  <arg name="truncation_distance" default="0.30"/>
 
   <group ns="coxgraph">
     <arg unless="$(arg debug_cg)" name="launch_prefix" value="" />
@@ -18,15 +22,17 @@
       <remap from="/loop_closure_in" to="coxgraph_client_$(arg id)/loop_closure_in"/>
       <rosparam file="$(find voxgraph)/config/voxgraph_mapper.yaml" />
       <rosparam file="$(find coxgraph)/config/coxgraph_client.yaml" />
-      <param name="input_odom_frame" value="map_$(arg id)"/>
+      <param name="input_odom_frame" value="$(arg world_frame_suffix)_$(arg id)"/>
       <param name="input_base_link_frame" value="firefly_$(arg id)/base_link"/>
-      <param name="output_odom_frame" value="map_$(arg id)"/>
+      <param name="output_odom_frame" value="$(arg world_frame_suffix)_$(arg id)"/>
       <param name="output_base_link_frame" value="firefly_$(arg id)/base_link"/>
       <param name="output_sensor_frame" value="sensor_coxgraph_$(arg id)"/>
       <param name="output_active_submap_frame" value="voxgraph_active_submap_$(arg id)"/>
       <param name="submap_topic" value="/tsdf_client/label_tsdf_client_$(arg id)/tsdf_map_out" />
       <param name="publish_traversable" value="true"/>
       <param name="client_id" value="$(arg id)"/>
+      <param name="tsdf_voxel_size" value="$(arg tsdf_voxel_size)"/>
+      <param name="truncation_distance" value="$(arg truncation_distance)"/>
     </node>
   </group>
 
@@ -38,6 +44,11 @@
       <arg name="id" default="$(arg id)"/>
       <arg name="client_number" default="$(arg client_number)"/>
       <arg name="robot_namespace" value="$(arg robot_namespace)"/>
+      <arg name="pointcloud_topic" default="$(arg pointcloud_topic)"/>
+      <arg name="world_frame_suffix" default="$(arg world_frame_suffix)"/>
+      <arg name="tw_voxblox_config_file" value="$(arg tw_voxblox_config_file)"/>
+      <arg name="tsdf_voxel_size" value="$(arg tsdf_voxel_size)"/>
+      <arg name="truncation_distance" value="$(arg truncation_distance)"/>
     </include>
   </group>
 
