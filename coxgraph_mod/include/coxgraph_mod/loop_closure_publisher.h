@@ -1,6 +1,7 @@
 #ifndef COXGRAPH_MOD_LOOP_CLOSURE_PUBLISHER_H_
 #define COXGRAPH_MOD_LOOP_CLOSURE_PUBLISHER_H_
 
+#include <coxgraph/common.h>
 #include <coxgraph_msgs/LoopClosure.h>
 #include <coxgraph_msgs/MapFusion.h>
 #include <eigen_conversions/eigen_msg.h>
@@ -17,12 +18,15 @@
 #include <Eigen/Dense>
 #include <opencv2/opencv.hpp>
 
+#include <map>
 #include <memory>
+#include <string>
 
 #include "coxgraph_mod/common.h"
 
 namespace coxgraph {
 namespace mod {
+
 class LoopClosurePublisher {
  public:
   typedef std::shared_ptr<LoopClosurePublisher> Ptr;
@@ -31,9 +35,13 @@ class LoopClosurePublisher {
                        const ros::NodeHandle& nh_private,
                        bool server_mode = false)
       : nh_(nh), nh_private_(nh_private), server_mode_(server_mode) {
-      loop_closure_pub_ = nh_private_.advertise<coxgraph_msgs::MapFusion>(
-          "map_fusion", 10, true);
+    loop_closure_pub_.emplace(
+        -1, nh_private_.advertise<coxgraph_msgs::MapFusion>("map_fusion", 10,
+                                                            true));
+    loop_closure_topic_ = nh_private_.param<std::string>(
+        "loop_closure_topic_prefix", loop_closure_topic_, "loop_closure_in_");
   }
+
   ~LoopClosurePublisher() = default;
 
   bool publishLoopClosure(size_t from_client_id, double from_timestamp,
@@ -47,9 +55,8 @@ class LoopClosurePublisher {
     map_fusion_msg.to_timestamp = ros::Time(to_timestamp);
     map_fusion_msg.transform.rotation = rotation;
     map_fusion_msg.transform.translation = transform;
-    loop_closure_pub_.publish(map_fusion_msg);
 
-    if (from_client_id != to_client_id)
+    if (from_client_id != to_client_id) {
       ROS_FATAL(
           "Map Fusion Message Published, from client %d time %d, to client "
           "%d time %d ",
@@ -57,7 +64,8 @@ class LoopClosurePublisher {
           static_cast<int>(map_fusion_msg.from_timestamp.toSec()),
           static_cast<int>(to_client_id),
           static_cast<int>(map_fusion_msg.to_timestamp.toSec()));
-    else
+      loop_closure_pub_[-1].publish(map_fusion_msg);
+    } else {
       ROS_INFO(
           "Loop Closure Message Published, from client %d time %d, to client "
           "%d time %d ",
@@ -65,7 +73,9 @@ class LoopClosurePublisher {
           static_cast<int>(map_fusion_msg.from_timestamp.toSec()),
           static_cast<int>(to_client_id),
           static_cast<int>(map_fusion_msg.to_timestamp.toSec()));
-
+      publishLoopClosure(from_client_id, from_timestamp, to_timestamp, rotation,
+                         transform);
+    }
     return true;
   }
   bool publishLoopClosure(size_t from_client_id, double from_timestamp,
@@ -82,7 +92,7 @@ class LoopClosurePublisher {
                               to_timestamp, toGeoQuat(R), toGeoVec3(t));
   }
 
-  bool publishLoopClosure(double from_timestamp, double to_timestamp,
+  bool publishLoopClosure(CliId cid, double from_timestamp, double to_timestamp,
                           geometry_msgs::Quaternion rotation,
                           geometry_msgs::Vector3 transform) {
     coxgraph_msgs::LoopClosure loop_closure_msg;
@@ -90,25 +100,23 @@ class LoopClosurePublisher {
     loop_closure_msg.to_timestamp = ros::Time(to_timestamp);
     loop_closure_msg.transform.rotation = rotation;
     loop_closure_msg.transform.translation = transform;
-    loop_closure_pub_.publish(loop_closure_msg);
-    ROS_INFO(
-        "Loop Closure Message Published from time %d, to "
-        "time %d",
-        static_cast<int>(loop_closure_msg.from_timestamp.toSec()),
-        static_cast<int>(loop_closure_msg.to_timestamp.toSec()));
-
+    if (!loop_closure_pub_.count(cid))
+      loop_closure_pub_.emplace(
+          cid, nh_private_.advertise<coxgraph_msgs::LoopClosure>(
+                   loop_closure_topic_ + std::to_string(cid), 10, true));
+    loop_closure_pub_[cid].publish(loop_closure_msg);
     return true;
   }
 
-  bool publishLoopClosure(const double& from_timestamp,
+  bool publishLoopClosure(CliId cid, const double& from_timestamp,
                           const double& to_timestamp, Eigen::Matrix4d T_A_B) {
-    return publishLoopClosure(from_timestamp, to_timestamp, toGeoQuat(T_A_B),
-                              toGeoVec3(T_A_B));
+    return publishLoopClosure(cid, from_timestamp, to_timestamp,
+                              toGeoQuat(T_A_B), toGeoVec3(T_A_B));
   }
 
-  bool publishLoopClosure(const double& from_timestamp,
+  bool publishLoopClosure(CliId cid, const double& from_timestamp,
                           const double& to_timestamp, cv::Mat R, cv::Mat t) {
-    return publishLoopClosure(from_timestamp, to_timestamp, toGeoQuat(R),
+    return publishLoopClosure(cid, from_timestamp, to_timestamp, toGeoQuat(R),
                               toGeoVec3(t));
   }
 
@@ -153,7 +161,8 @@ class LoopClosurePublisher {
 
   bool server_mode_;
 
-  ros::Publisher loop_closure_pub_;
+  std::string loop_closure_topic_;
+  std::map<int8_t, ros::Publisher> loop_closure_pub_;
 };
 
 }  // namespace mod

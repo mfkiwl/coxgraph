@@ -1,5 +1,6 @@
 #include "coxgraph_mod/vio_interface.h"
 
+#include <coxgraph/common.h>
 #include <std_srvs/SetBool.h>
 
 #include <map>
@@ -47,16 +48,18 @@ class VIOInterface {
                                           to_client_id, to_timestamp, R, t);
   }
 
-  void publishLoopClosure(const double& from_timestamp,
+  void publishLoopClosure(CliId cid, const double& from_timestamp,
                           const double& to_timestamp, Eigen::Matrix4d T_A_B) {
     init(InitModule::lc);
-    loop_closure_pub_->publishLoopClosure(from_timestamp, to_timestamp, T_A_B);
+    loop_closure_pub_->publishLoopClosure(cid, from_timestamp, cid,
+                                          to_timestamp, T_A_B);
   }
 
-  void publishLoopClosure(const double& from_timestamp,
+  void publishLoopClosure(CliId cid, const double& from_timestamp,
                           const double& to_timestamp, cv::Mat R, cv::Mat t) {
     init(InitModule::lc);
-    loop_closure_pub_->publishLoopClosure(from_timestamp, to_timestamp, R, t);
+    loop_closure_pub_->publishLoopClosure(from_timestamp, cid, to_timestamp, R,
+                                          t);
   }
 
   bool toggleMapping(bool b_mapping) {
@@ -138,13 +141,13 @@ void publishLoopClosure(size_t from_client_id, double from_timestamp,
   vio_interface.publishLoopClosure(from_client_id, from_timestamp, to_client_id,
                                    to_timestamp, R, t);
 }
-void publishLoopClosure(const double& from_timestamp,
+void publishLoopClosure(CliId cid, const double& from_timestamp,
                         const double& to_timestamp, Eigen::Matrix4d T_A_B) {
-  vio_interface.publishLoopClosure(from_timestamp, to_timestamp, T_A_B);
+  vio_interface.publishLoopClosure(cid, from_timestamp, to_timestamp, T_A_B);
 }
-void publishLoopClosure(const double& from_timestamp,
+void publishLoopClosure(CliId cid, const double& from_timestamp,
                         const double& to_timestamp, cv::Mat R, cv::Mat t) {
-  vio_interface.publishLoopClosure(from_timestamp, to_timestamp, R, t);
+  vio_interface.publishLoopClosure(cid, from_timestamp, to_timestamp, R, t);
 }
 bool toggleMapping(bool b_mapping) {
   return vio_interface.toggleMapping(b_mapping);
