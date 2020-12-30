@@ -224,7 +224,7 @@ class CoxgraphServer {
       return !isTimeFused(cid, time);
     if (isTimeFused(cid, time)) return false;
     if (time < fused_time_line_[cid].start) {
-      return (fused_time_line_[cid].start - time) > config_.refuse_interval;
+      return false;
     } else if (time > fused_time_line_[cid].end) {
       return (time - fused_time_line_[cid].end) > config_.refuse_interval;
     }
