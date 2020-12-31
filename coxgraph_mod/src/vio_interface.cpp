@@ -77,6 +77,16 @@ class VIOInterface {
     }
   }
 
+  bool needToFuse(CliId cid_a, CliId cid_b) {
+    init(InitModule::lc);
+    return loop_closure_pub_->needToFuseCached(cid_a, cid_b);
+  }
+
+  void updateNeedToFuse() {
+    init(InitModule::lc);
+    loop_closure_pub_->updateNeedToFuse();
+  }
+
  private:
   ros::NodeHandle* nh_;
   ros::NodeHandle* nh_private_;
@@ -152,6 +162,10 @@ void publishLoopClosure(CliId cid, const double& from_timestamp,
 bool toggleMapping(bool b_mapping) {
   return vio_interface.toggleMapping(b_mapping);
 }
+bool needToFuse(CliId cid_a, CliId cid_b) {
+  return vio_interface.needToFuse(cid_a, cid_b);
+}
+void updateNeedToFuse() { vio_interface.updateNeedToFuse(); }
 
 }  // namespace mod
 }  // namespace coxgraph

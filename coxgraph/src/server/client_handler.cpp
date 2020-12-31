@@ -81,8 +81,11 @@ ClientHandler::ReqState ClientHandler::requestSubmapByTime(
   coxgraph_msgs::ClientSubmapSrv cli_submap_srv;
   cli_submap_srv.request.timestamp = timestamp;
   if (pub_client_submap_client_.call(cli_submap_srv)) {
+    eval_data_pub_.publishBandwidth(
+        client_node_name_ + "/client_submap",
+        utils::sizeOfMsg(cli_submap_srv.response.submap),
+        cli_submap_srv.response.pub_time, ros::Time::now());
     *cli_sm_id = cli_submap_srv.response.submap.map_header.id;
-    // TODO(mikexyl): add check if submap is empty
     *submap = utils::cliSubmapFromMsg(
         ser_sm_id, submap_config_, cli_submap_srv.response, &mission_frame_id_);
     tf::transformMsgToKindr<voxblox::FloatingPoint>(

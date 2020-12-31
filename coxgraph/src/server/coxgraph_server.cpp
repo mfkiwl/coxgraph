@@ -98,6 +98,8 @@ void CoxgraphServer::advertiseServices() {
       this);
   get_pose_history_srv_ = nh_private_.advertiseService(
       "get_pose_history", &CoxgraphServer::getPoseHistoryCallback, this);
+  need_to_fuse_srv_ = nh_private_.advertiseService(
+      "need_to_fuse", &CoxgraphServer::needToFuseCallback, this);
 }
 
 bool CoxgraphServer::getFinalGlobalMeshCallback(
@@ -186,6 +188,19 @@ bool CoxgraphServer::getPoseHistoryCallback(
   std::string ok_str = "Pose history saved to " + p.string();
   LOG(INFO) << ok_str;
   response.message = ok_str;
+  return true;
+}
+
+bool CoxgraphServer::needToFuseCallback(
+    coxgraph_msgs::NeedToFuseSrv::Request& request,
+    coxgraph_msgs::NeedToFuseSrv::Response& response) {
+  response.need_to_fuse = needRefuse(
+      request.cid_a, client_handlers_[request.cid_a]->getTimeLine().end,
+      request.cid_b, client_handlers_[request.cid_b]->getTimeLine().end);
+  LOG(INFO) << "need to fuse: " << int(request.cid_a) << " "
+            << int(request.cid_b) << " "
+            << static_cast<std::string>(response.need_to_fuse ? "enabled"
+                                                              : "disabled");
   return true;
 }
 

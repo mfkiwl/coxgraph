@@ -4,6 +4,7 @@
 #include <coxgraph_msgs/ControlTrigger.h>
 #include <coxgraph_msgs/FilePath.h>
 #include <coxgraph_msgs/MapFusion.h>
+#include <coxgraph_msgs/NeedToFuseSrv.h>
 #include <ros/ros.h>
 #include <voxblox_ros/ros_params.h>
 #include <voxgraph/frontend/pose_graph_interface/pose_graph_interface.h>
@@ -171,6 +172,10 @@ class CoxgraphServer {
       coxgraph_msgs::FilePath::Request& request,     // NOLINT
       coxgraph_msgs::FilePath::Response& response);  // NOLINT
 
+  bool needToFuseCallback(
+      coxgraph_msgs::NeedToFuseSrv::Request& request,     // NOLINT
+      coxgraph_msgs::NeedToFuseSrv::Response& response);  // NOLINT
+
   void futureMFProcCallback(const ros::TimerEvent& event);
 
  private:
@@ -277,6 +282,7 @@ class CoxgraphServer {
   ros::Publisher separated_mesh_pub_;
   ros::ServiceServer get_final_global_mesh_srv_;
   ros::ServiceServer get_pose_history_srv_;
+  ros::ServiceServer need_to_fuse_srv_;
   std::timed_mutex final_mesh_gen_mutex_;
 
   DistributionController::Ptr distrib_ctl_ptr_;

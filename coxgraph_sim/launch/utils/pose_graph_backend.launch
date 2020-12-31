@@ -84,7 +84,7 @@
     <remap from="/odometry3" to="/$(arg mav_name)_3/vins_estimator_3/odometry" />
 
     <!-- coxgraph mod params -->
-    <param name="server_mode" value="true"/>
+    <param name="need_to_fuse_srv_name" value="/coxgraph/coxgraph_server_node/need_to_fuse"/>
   </node>
 
 </launch>

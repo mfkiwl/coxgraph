@@ -23,6 +23,8 @@ void publishLoopClosure(const double& from_timestamp,
 void publishLoopClosure(const double& from_timestamp,
                         const double& to_timestamp, cv::Mat R, cv::Mat t);
 bool toggleMapping(bool b_mapping);
+bool needToFuse(CliId cid_a, CliId cid_b);
+void updateNeedToFuse();
 }  // namespace mod
 }  // namespace coxgraph
 

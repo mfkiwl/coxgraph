@@ -17,6 +17,7 @@
 
 #include "coxgraph/common.h"
 #include "coxgraph/server/submap_collection.h"
+#include "coxgraph/utils/eval_data_publisher.h"
 
 namespace coxgraph {
 namespace server {
@@ -50,7 +51,6 @@ class ClientHandler {
 
   typedef std::shared_ptr<ClientHandler> Ptr;
 
-  ClientHandler() : client_id_(-1) {}
   ClientHandler(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private,
                 const CliId& client_id, const CliSmConfig& submap_config,
                 const SubmapCollection::Ptr& submap_collection_ptr,
@@ -73,7 +73,8 @@ class ClientHandler {
         log_prefix_("CH " + std::to_string(static_cast<int>(client_id_)) +
                     ": "),
         submap_collection_ptr_(submap_collection_ptr),
-        time_line_update_callback_(time_line_callback) {
+        time_line_update_callback_(time_line_callback),
+        eval_data_pub_(nh, nh_private) {
     subscribeToTopics();
     advertiseTopics();
     subscribeToServices();
@@ -85,6 +86,8 @@ class ClientHandler {
   static Config getConfigFromRosParam(const ros::NodeHandle& nh_private);
 
   inline const CliId& getCliId() const { return client_id_; }
+
+  inline const TimeLine& getTimeLine() const { return time_line_; }
 
   enum ReqState { NONINIT = 0, FAILED, FUTURE, SUCCESS };
   ReqState requestSubmapByTime(const ros::Time& timestamp,
@@ -156,6 +159,8 @@ class ClientHandler {
   std::mutex submap_request_mutex_;
 
   TimeLineUpdateCallback time_line_update_callback_;
+
+  utils::EvalDataPublisher eval_data_pub_;
 
   constexpr static int8_t kSubQueueSize = 10;
 };

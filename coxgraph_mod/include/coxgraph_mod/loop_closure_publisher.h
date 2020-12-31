@@ -4,6 +4,7 @@
 #include <coxgraph/common.h>
 #include <coxgraph_msgs/LoopClosure.h>
 #include <coxgraph_msgs/MapFusion.h>
+#include <coxgraph_msgs/NeedToFuseSrv.h>
 #include <eigen_conversions/eigen_msg.h>
 #include <message_filters/subscriber.h>
 #include <message_filters/sync_policies/approximate_time.h>
@@ -21,6 +22,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "coxgraph_mod/common.h"
 
@@ -34,12 +36,25 @@ class LoopClosurePublisher {
   LoopClosurePublisher(const ros::NodeHandle& nh,
                        const ros::NodeHandle& nh_private,
                        bool server_mode = false)
-      : nh_(nh), nh_private_(nh_private), server_mode_(server_mode) {
+      : nh_(nh), nh_private_(nh_private) {
+    nh_private_.param("num_agents", client_number_, client_number_);
     loop_closure_pub_.emplace(
         -1, nh_private_.advertise<coxgraph_msgs::MapFusion>("map_fusion", 10,
                                                             true));
-    loop_closure_topic_ = nh_private_.param<std::string>(
-        "loop_closure_topic_prefix", loop_closure_topic_, "loop_closure_in_");
+    nh_private_.param<std::string>("loop_closure_topic_prefix",
+                                   loop_closure_topic_prefix_,
+                                   "loop_closure_out_");
+    nh_private_.param<std::string>("need_to_fuse_srv_name",
+                                   need_to_fuse_srv_name_, "need_to_fuse");
+    need_to_fuse_client_ =
+        nh_private_.serviceClient<coxgraph_msgs::NeedToFuseSrv>(
+            need_to_fuse_srv_name_);
+
+    for (int i = 0; i < client_number_; i++) {
+      for (int j = 0; j < i + 1; j++) {
+        need_to_fuse_map_.emplace(std::make_pair(i, j), true);
+      }
+    }
   }
 
   ~LoopClosurePublisher() = default;
@@ -100,10 +115,11 @@ class LoopClosurePublisher {
     loop_closure_msg.to_timestamp = ros::Time(to_timestamp);
     loop_closure_msg.transform.rotation = rotation;
     loop_closure_msg.transform.translation = transform;
-    if (!loop_closure_pub_.count(cid))
+    if (!loop_closure_pub_.count(cid)) {
       loop_closure_pub_.emplace(
           cid, nh_private_.advertise<coxgraph_msgs::LoopClosure>(
-                   loop_closure_topic_ + std::to_string(cid), 10, true));
+                   loop_closure_topic_prefix_ + std::to_string(cid), 10, true));
+    }
     loop_closure_pub_[cid].publish(loop_closure_msg);
     return true;
   }
@@ -118,6 +134,27 @@ class LoopClosurePublisher {
                           const double& to_timestamp, cv::Mat R, cv::Mat t) {
     return publishLoopClosure(cid, from_timestamp, to_timestamp, toGeoQuat(R),
                               toGeoVec3(t));
+  }
+
+  bool needToFuse(CliId cid_a, CliId cid_b, ros::Time time = ros::Time::now()) {
+    coxgraph_msgs::NeedToFuseSrv need_to_fuse_srv;
+    need_to_fuse_srv.request.cid_a = cid_a;
+    need_to_fuse_srv.request.cid_b = cid_b;
+    need_to_fuse_srv.request.time = time;
+    if (need_to_fuse_client_.call(need_to_fuse_srv))
+      return need_to_fuse_srv.response.need_to_fuse;
+    else
+      return false;
+  }
+
+  bool needToFuseCached(CliId cid_a, CliId cid_b) {
+    return need_to_fuse_map_[std::make_pair(cid_a, cid_b)];
+  }
+
+  void updateNeedToFuse() {
+    for (auto& kv : need_to_fuse_map_) {
+      kv.second = needToFuse(kv.first.first, kv.first.second);
+    }
   }
 
  private:
@@ -159,10 +196,14 @@ class LoopClosurePublisher {
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
 
-  bool server_mode_;
+  int client_number_;
 
-  std::string loop_closure_topic_;
-  std::map<int8_t, ros::Publisher> loop_closure_pub_;
+  std::string loop_closure_topic_prefix_;
+  std::string need_to_fuse_srv_name_;
+  std::map<CliId, ros::Publisher> loop_closure_pub_;
+  ros::ServiceClient need_to_fuse_client_;
+
+  std::map<std::pair<CliId, CliId>, bool> need_to_fuse_map_;
 };
 
 }  // namespace mod

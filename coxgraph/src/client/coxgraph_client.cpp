@@ -49,6 +49,7 @@ bool CoxgraphClient::getClientSubmapCallback(
         LOG(INFO) << log_prefix_ << " Submap " << submap_id
                   << " has already been sent to server";
       }
+      response.pub_time = ros::Time::now();
       return true;
     } else {
       LOG(WARNING) << "Client " << client_id_ << ": Requested time "

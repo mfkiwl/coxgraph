@@ -25,9 +25,9 @@ use_const_weight: true
 # publish_slices: true
 # update_mesh_every_n_sec: 1.0
 
-pointcloud_deintegration_queue_length: 200
+pointcloud_deintegration_queue_length: 100
 
 publish_tsdf_map: true
 publish_esdf_map: true
-publish_map_every_n_sec: 10
+publish_map_every_n_sec: 5
 publish_map_with_trajectory: true
