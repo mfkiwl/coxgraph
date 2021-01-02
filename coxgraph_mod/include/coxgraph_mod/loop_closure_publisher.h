@@ -38,9 +38,7 @@ class LoopClosurePublisher {
                        bool server_mode = false)
       : nh_(nh), nh_private_(nh_private) {
     nh_private_.param("num_agents", client_number_, client_number_);
-    loop_closure_pub_.emplace(
-        -1, nh_private_.advertise<coxgraph_msgs::MapFusion>("map_fusion", 10,
-                                                            true));
+
     nh_private_.param<std::string>("loop_closure_topic_prefix",
                                    loop_closure_topic_prefix_,
                                    "loop_closure_out_");
@@ -79,6 +77,10 @@ class LoopClosurePublisher {
           static_cast<int>(map_fusion_msg.from_timestamp.toSec()),
           static_cast<int>(to_client_id),
           static_cast<int>(map_fusion_msg.to_timestamp.toSec()));
+      if (!loop_closure_pub_.count(-1))
+        loop_closure_pub_.emplace(
+            -1, nh_private_.advertise<coxgraph_msgs::MapFusion>("map_fusion",
+                                                                10, true));
       loop_closure_pub_[-1].publish(map_fusion_msg);
     } else {
       ROS_INFO(
@@ -115,12 +117,22 @@ class LoopClosurePublisher {
     loop_closure_msg.to_timestamp = ros::Time(to_timestamp);
     loop_closure_msg.transform.rotation = rotation;
     loop_closure_msg.transform.translation = transform;
-    if (!loop_closure_pub_.count(cid)) {
-      loop_closure_pub_.emplace(
-          cid, nh_private_.advertise<coxgraph_msgs::LoopClosure>(
-                   loop_closure_topic_prefix_ + std::to_string(cid), 10, true));
+    if (cid > 0) {
+      if (!loop_closure_pub_.count(cid)) {
+        loop_closure_pub_.emplace(
+            cid,
+            nh_private_.advertise<coxgraph_msgs::LoopClosure>(
+                loop_closure_topic_prefix_ + std::to_string(cid), 10, true));
+      }
+      loop_closure_pub_[cid].publish(loop_closure_msg);
+    } else {
+      if (!loop_closure_pub_.count(-1))
+        loop_closure_pub_.emplace(
+            -1, nh_private_.advertise<coxgraph_msgs::LoopClosure>(
+                    "loop_closure_out", 10, true));
+      loop_closure_pub_[-1].publish(loop_closure_msg);
     }
-    loop_closure_pub_[cid].publish(loop_closure_msg);
+
     return true;
   }
 

@@ -197,10 +197,6 @@ bool CoxgraphServer::needToFuseCallback(
   response.need_to_fuse = needRefuse(
       request.cid_a, client_handlers_[request.cid_a]->getTimeLine().end,
       request.cid_b, client_handlers_[request.cid_b]->getTimeLine().end);
-  LOG(INFO) << "need to fuse: " << int(request.cid_a) << " "
-            << int(request.cid_b) << " "
-            << static_cast<std::string>(response.need_to_fuse ? "enabled"
-                                                              : "disabled");
   return true;
 }
 
