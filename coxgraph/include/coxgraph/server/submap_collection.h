@@ -40,15 +40,14 @@ class SubmapCollection : public voxgraph::VoxgraphSubmapCollection {
   Transformation addSubmap(const CliSm::Ptr& submap_ptr, const CliId& cid,
                            const CliSmId& cli_sm_id);
 
-  inline std::timed_mutex* getPosesUpdateMutex() {
-    return &submap_poses_update_mutex;
-  }
-
-  inline std::vector<SerSmId>* getSerSmIdsByCliId(const CliId& cid) {
-    if (cli_ser_sm_id_map_.count(cid))
-      return &cli_ser_sm_id_map_[cid];
-    else
-      return nullptr;
+  inline bool getSerSmIdsByCliId(const CliId& cid,
+                                 std::vector<SerSmId>* ser_sids) {
+    if (cli_ser_sm_id_map_.count(cid)) {
+      *ser_sids = cli_ser_sm_id_map_[cid];
+      return true;
+    } else {
+      return false;
+    }
   }
 
   inline bool getSerSmIdByCliSmId(const CliId& cid, const CliSmId& cli_sm_id,
@@ -63,6 +62,16 @@ class SubmapCollection : public voxgraph::VoxgraphSubmapCollection {
     return false;
   }
 
+  inline bool getCliSmIdsByCliId(const CliId& cid,
+                                 std::vector<CliSmId>* cli_sids) {
+    CHECK(cli_sids != nullptr);
+    cli_sids->clear();
+    for (auto ser_sm_id_v : cli_ser_sm_id_map_[cid]) {
+      cli_sids->emplace_back(sm_cli_id_map_[ser_sm_id_v].second);
+    }
+    return !cli_sids->empty();
+  }
+
   inline void updateOriPose(const SerSmId& ser_sm_id,
                             const Transformation& pose) {
     CHECK(exists(ser_sm_id));
@@ -75,7 +84,7 @@ class SubmapCollection : public voxgraph::VoxgraphSubmapCollection {
 
  private:
   typedef std::pair<CliId, CliId> CliIdPair;
-  typedef std::unordered_map<SerSmId, CliIdSmIdPair> SmCliIdMap;
+  typedef std::unordered_map<SerSmId, CIdCSIdPair> SmCliIdMap;
   typedef std::unordered_map<CliId, std::vector<SerSmId>> CliSerSmIdMap;
 
   Transformation mergeToCliMap(const CliSm::Ptr& submap_ptr);

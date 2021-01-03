@@ -7,6 +7,7 @@
 #include <voxblox_ros/ros_params.h>
 #include <voxgraph/frontend/submap_collection/voxgraph_submap.h>
 #include <voxgraph/frontend/submap_collection/voxgraph_submap_collection.h>
+#include <voxgraph/tools/visualization/submap_visuals.h>
 
 #include <memory>
 #include <mutex>
@@ -56,16 +57,16 @@ class MapServer {
   using VoxgraphSubmapCollection = voxgraph::VoxgraphSubmapCollection;
 
   MapServer(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private,
-            const voxgraph::VoxgraphSubmap::Config& map_config,
+            CliId client_id, const voxgraph::VoxgraphSubmap::Config& map_config,
             const FrameNames& frame_names,
             const VoxgraphSubmapCollection::Ptr& submap_collection_ptr)
-      : MapServer(nh, nh_private, getConfigFromRosParam(nh_private), map_config,
-                  frame_names,
+      : MapServer(nh, nh_private, client_id, getConfigFromRosParam(nh_private),
+                  map_config, frame_names,
                   voxblox::getEsdfIntegratorConfigFromRosParam(nh_private),
                   submap_collection_ptr) {}
 
   MapServer(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private,
-            const Config& config,
+            CliId client_id, const Config& config,
             const voxgraph::VoxgraphSubmap::Config& map_config,
             const FrameNames& frame_names,
             const voxblox::EsdfIntegrator::Config& esdf_integrator_config,
@@ -73,6 +74,7 @@ class MapServer {
       : nh_(nh),
         nh_private_(nh_private),
         config_(getConfigFromRosParam(nh_private)),
+        client_id_(client_id),
         frame_names_(frame_names),
         submap_collection_ptr_(submap_collection_ptr) {
     tsdf_map_.reset(new voxblox::TsdfMap(
@@ -90,6 +92,9 @@ class MapServer {
 
   ~MapServer() = default;
 
+  void publishSubmapMesh(CliSmId csid, std::string world_frame,
+                         const voxgraph::SubmapVisuals& submap_vis);
+
   void updatePastTsdf();
 
  private:
@@ -104,6 +109,8 @@ class MapServer {
   void publishTraversable();
 
   Config config_;
+
+  CliId client_id_;
 
   FrameNames frame_names_;
 
@@ -128,6 +135,8 @@ class MapServer {
       esdf_integrator_->updateFromTsdfLayerBatch();
     }
   }
+
+  ros::Publisher submap_mesh_pub_;
 };
 
 }  // namespace client

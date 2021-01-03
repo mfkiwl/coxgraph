@@ -19,7 +19,7 @@
             <arg if="$(arg debug)" name="launch_prefix" value="xterm -e gdb -ex run --args" />
             <node pkg="coxgraph" type="coxgraph_server_node" name="coxgraph_server_node" output="screen" args="-alsologtostderr" clear_params="true" launch-prefix="$(arg launch_prefix)">
                   <rosparam file="$(find coxgraph)/config/server.yaml"/>
-                  <param name="global_tf_controller/map_frame_prefix" value="$(arg map_frame_prefix)"/>
+                  <param name="map_frame_prefix" value="$(arg map_frame_prefix)"/>
                   <param name="tsdf_voxel_size" value="$(arg tsdf_voxel_size)"/>
                   <param name="truncation_distance" value="$(arg truncation_distance)"/>
             </node>

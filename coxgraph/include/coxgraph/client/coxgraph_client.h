@@ -35,8 +35,9 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
     }
     log_prefix_ = "Client " + std::to_string(client_id_) + ": ";
 
-    map_server_.reset(new MapServer(nh_, nh_private_, submap_config_,
-                                    frame_names_, submap_collection_ptr_));
+    map_server_.reset(new MapServer(nh_, nh_private_, client_id_,
+                                    submap_config_, frame_names_,
+                                    submap_collection_ptr_));
   }
 
   ~CoxgraphClient() = default;
@@ -74,7 +75,7 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
   typedef std::map<CliSmId, Transformation> SmIdTfMap;
 
   void publishTimeLine();
-  void publishMapPoseUpdates();
+  void publishSubmapPoseTFs() override;
 
   void savePoseHistory(std::string file_path);
 
@@ -82,7 +83,7 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
   std::string log_prefix_;
 
   ros::Publisher time_line_pub_;
-  ros::Publisher map_pose_pub_;
+  ros::Publisher submap_mesh_pub_;
   ros::ServiceServer get_client_submap_srv_;
   ros::ServiceServer get_all_client_submaps_srv_;
   ros::ServiceServer get_pose_history_srv_;

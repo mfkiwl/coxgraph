@@ -5,6 +5,7 @@
 #include <coxgraph_msgs/ClientSubmapSrv.h>
 #include <coxgraph_msgs/MapPoseUpdates.h>
 #include <coxgraph_msgs/MapTransform.h>
+#include <coxgraph_msgs/MeshWithTrajectory.h>
 #include <coxgraph_msgs/TimeLine.h>
 #include <ros/ros.h>
 #include <voxgraph_msgs/LoopClosure.h>
@@ -17,6 +18,7 @@
 
 #include "coxgraph/common.h"
 #include "coxgraph/server/submap_collection.h"
+#include "coxgraph/server/visualizer/mesh_collection.h"
 #include "coxgraph/utils/eval_data_publisher.h"
 
 namespace coxgraph {
@@ -52,29 +54,32 @@ class ClientHandler {
   typedef std::shared_ptr<ClientHandler> Ptr;
 
   ClientHandler(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private,
-                const CliId& client_id, const CliSmConfig& submap_config,
-                const SubmapCollection::Ptr& submap_collection_ptr,
+                const CliId& client_id, std::string map_frame_prefix,
+                const CliSmConfig& submap_config,
+                MeshCollection::Ptr mesh_collection_ptr,
                 TimeLineUpdateCallback time_line_callback)
-      : ClientHandler(nh, nh_private, client_id, submap_config,
-                      getConfigFromRosParam(nh_private), submap_collection_ptr,
-                      time_line_callback) {}
+      : ClientHandler(nh, nh_private, client_id, map_frame_prefix,
+                      submap_config, getConfigFromRosParam(nh_private),
+                      mesh_collection_ptr, time_line_callback) {}
   ClientHandler(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private,
-                const CliId& client_id, const CliSmConfig& submap_config,
-                const Config& config,
-                const SubmapCollection::Ptr& submap_collection_ptr,
+                const CliId& client_id, std::string map_frame_prefix,
+                const CliSmConfig& submap_config, const Config& config,
+                MeshCollection::Ptr mesh_collection_ptr,
                 TimeLineUpdateCallback time_line_callback)
       : client_id_(client_id),
         nh_(nh),
         nh_private_(nh_private),
         config_(config),
+        map_frame_id_(map_frame_prefix + "_" + std::to_string(client_id)),
         submap_config_(submap_config),
         client_node_name_(config.client_name_prefix + "_" +
                           std::to_string(client_id_)),
         log_prefix_("CH " + std::to_string(static_cast<int>(client_id_)) +
                     ": "),
-        submap_collection_ptr_(submap_collection_ptr),
+        transformer_(nh, nh_private),
         time_line_update_callback_(time_line_callback),
-        eval_data_pub_(nh, nh_private) {
+        eval_data_pub_(nh, nh_private),
+        mesh_collection_ptr_(mesh_collection_ptr) {
     subscribeToTopics();
     advertiseTopics();
     subscribeToServices();
@@ -91,8 +96,8 @@ class ClientHandler {
 
   enum ReqState { NONINIT = 0, FAILED, FUTURE, SUCCESS };
   ReqState requestSubmapByTime(const ros::Time& timestamp,
-                               const SerSmId& ser_sm_id, CliSmId* cli_sm_id,
-                               CliSm::Ptr* submap, Transformation* T_submap_t);
+                               const SerSmId& ser_sid, CliSmId* cli_sid,
+                               CliSm::Ptr* submap, Transformation* T_Sm_C_t);
 
   bool requestAllSubmaps(std::vector<CliSmIdPack>* submap_packs,
                          SerSmId* start_ser_sm_id);
@@ -114,11 +119,10 @@ class ClientHandler {
     sm_pose_tf_pub_.publish(map_pose_update_msg);
   }
 
+  bool lookUpSubmapPoseFromTf(CliSmId sid, Transformation* T_Cli_Sm);
+
  private:
   void timeLineCallback(const coxgraph_msgs::TimeLine& time_line_msg);
-  void submapPoseUpdatesCallback(
-      const coxgraph_msgs::MapPoseUpdates& map_pose_updates_msg);
-
   inline bool updateTimeLine(const ros::Time& new_start,
                              const ros::Time& new_end) {
     time_line_updated_ = time_line_.update(new_start, new_end);
@@ -135,7 +139,7 @@ class ClientHandler {
   const std::string client_node_name_;
   const std::string log_prefix_;
 
-  std::string mission_frame_id_;
+  std::string map_frame_id_;
 
   Config config_;
   CliSmConfig submap_config_;
@@ -149,18 +153,30 @@ class ClientHandler {
   ros::Publisher loop_closure_pub_;
   ros::Publisher sm_pose_tf_pub_;
   ros::Subscriber time_line_sub_;
-  ros::Subscriber sm_pose_updates_sub_;
   ros::ServiceClient pub_client_submap_client_;
   ros::ServiceClient get_all_submaps_client_;
   ros::ServiceClient get_pose_history_client_;
 
-  SubmapCollection::Ptr submap_collection_ptr_;
+  Transformer transformer_;
 
   std::mutex submap_request_mutex_;
 
   TimeLineUpdateCallback time_line_update_callback_;
 
   utils::EvalDataPublisher eval_data_pub_;
+
+  MeshCollection::Ptr mesh_collection_ptr_;
+  ros::Subscriber submap_mesh_sub_;
+  void submapMeshCallback(
+      const coxgraph_msgs::MeshWithTrajectory& mesh_with_traj) {
+    std::string frame_id = mesh_with_traj.mesh.header.frame_id;
+    frame_id.erase(0, 7);
+    size_t pos = frame_id.find_last_of('_');
+    CliSmId csid = std::stoi(frame_id.substr(0, pos));
+    CliId cid = std::stoi(frame_id.substr(pos + 1, frame_id.size()));
+    CHECK_EQ(cid, client_id_);
+    mesh_collection_ptr_->addSubmapMesh(client_id_, csid, mesh_with_traj);
+  }
 
   constexpr static int8_t kSubQueueSize = 10;
 };

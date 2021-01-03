@@ -38,29 +38,21 @@ CoxgraphServer::Config CoxgraphServer::getConfigFromRosParam(
   config.refuse_interval.fromSec(refuse_interval);
   nh_private.param<int>("fixed_map_client_id", config.fixed_map_client_id,
                         config.fixed_map_client_id);
-  nh_private.param<std::string>("output_mission_frame",
-                                config.output_mission_frame,
-                                config.output_mission_frame);
+  nh_private.param<std::string>("map_frame_prefix", config.map_frame_prefix,
+                                config.map_frame_prefix);
+  nh_private.param<std::string>("output_mission_frame", config.output_map_frame,
+                                config.output_map_frame);
   nh_private.param<bool>("submap_registration/enabled",
                          config.enable_registration_constraints,
                          config.enable_registration_constraints);
   nh_private.param<bool>("loop_closure/enabled",
                          config.enable_map_fusion_constraints,
                          config.enable_map_fusion_constraints);
-  nh_private.param<bool>("submap_relative_pose/enabled",
-                         config.enable_submap_relative_pose_constraints,
-                         config.enable_submap_relative_pose_constraints);
   nh_private.param<bool>("enable_client_loop_closure",
                          config.enable_client_loop_clousure,
                          config.enable_client_loop_clousure);
   nh_private.param<int>("publisher_queue_length", config.publisher_queue_length,
                         config.publisher_queue_length);
-
-  nh_private.param<float>("mesh_opacity", config.mesh_opacity, 1.0);
-  nh_private.param<std::string>("submap_mesh_color_mode",
-                                config.submap_mesh_color_mode, "lambert_color");
-  nh_private.param<std::string>("combined_mesh_color_mode",
-                                config.combined_mesh_color_mode, "normals");
 
   return config;
 }
@@ -70,7 +62,8 @@ void CoxgraphServer::initClientHandlers(const ros::NodeHandle& nh,
   CHECK_LT(config_.fixed_map_client_id, kMaxClientNum);
   for (int i = 0; i < config_.client_number; i++) {
     client_handlers_.emplace_back(new ClientHandler(
-        nh, nh_private, i, submap_config_, submap_collection_ptr_,
+        nh, nh_private, i, config_.map_frame_prefix, submap_config_,
+        server_vis_->getMeshCollectionPtr(),
         std::bind(&CoxgraphServer::timeLineUpdateCallback, this)));
 
     force_fuse_.emplace_back(true);
@@ -85,12 +78,7 @@ void CoxgraphServer::subscribeTopics() {
                     &CoxgraphServer::mapFusionMsgCallback, this);
 }
 
-void CoxgraphServer::advertiseTopics() {
-  combined_mesh_pub_ = nh_private_.advertise<visualization_msgs::Marker>(
-      "combined_mesh", config_.publisher_queue_length, true);
-  separated_mesh_pub_ = nh_private_.advertise<visualization_msgs::Marker>(
-      "separated_mesh", config_.publisher_queue_length, true);
-}
+void CoxgraphServer::advertiseTopics() {}
 
 void CoxgraphServer::advertiseServices() {
   get_final_global_mesh_srv_ = nh_private_.advertiseService(
@@ -102,6 +90,7 @@ void CoxgraphServer::advertiseServices() {
       "need_to_fuse", &CoxgraphServer::needToFuseCallback, this);
 }
 
+// TODO(mikexyl): move this to server_vis
 bool CoxgraphServer::getFinalGlobalMeshCallback(
     coxgraph_msgs::FilePath::Request& request,
     coxgraph_msgs::FilePath::Response& response) {
@@ -131,10 +120,9 @@ bool CoxgraphServer::getFinalGlobalMeshCallback(
                        submaps_in_client.end());
   }
 
-  server_vis_.getFinalGlobalMesh(submap_collection_ptr_, pose_graph_interface_,
-                                 all_submaps,
-                                 tf_controller_->getGlobalMissionFrame(),
-                                 combined_mesh_pub_, mesh_file_path);
+  server_vis_->getFinalGlobalMesh(
+      submap_collection_ptr_, pose_graph_interface_, all_submaps,
+      tf_controller_->getGlobalMissionFrame(), mesh_file_path);
 
   LOG(INFO) << "Global mesh generated, map fusion process unpaused";
 
@@ -203,18 +191,18 @@ bool CoxgraphServer::needToFuseCallback(
 void CoxgraphServer::mapFusionMsgCallback(
     const coxgraph_msgs::MapFusion& map_fusion_msg) {
   if (map_fusion_msg.from_client_id == map_fusion_msg.to_client_id) {
-    LOG(INFO) << "Received loop closure msg in client "
-              << map_fusion_msg.from_client_id << " from "
-              << map_fusion_msg.from_timestamp << " to "
-              << map_fusion_msg.to_timestamp;
+    LOG_IF(INFO, verbose_) << "Received loop closure msg in client "
+                           << map_fusion_msg.from_client_id << " from "
+                           << map_fusion_msg.from_timestamp << " to "
+                           << map_fusion_msg.to_timestamp;
     loopClosureCallback(map_fusion_msg.from_client_id,
                         utils::fromMapFusionMsg(map_fusion_msg));
   } else {
-    LOG(INFO) << "Received map fusion msg from client "
-              << map_fusion_msg.from_client_id << " at "
-              << map_fusion_msg.from_timestamp << " to client "
-              << map_fusion_msg.to_client_id << " at "
-              << map_fusion_msg.to_timestamp;
+    LOG_IF(INFO, verbose_) << "Received map fusion msg from client "
+                           << map_fusion_msg.from_client_id << " at "
+                           << map_fusion_msg.from_timestamp << " to client "
+                           << map_fusion_msg.to_client_id << " at "
+                           << map_fusion_msg.to_timestamp;
     mapFusionCallback(map_fusion_msg);
   }
 }
@@ -248,20 +236,9 @@ bool CoxgraphServer::mapFusionCallback(
   CHECK((!fused_time_line_[cid_a].hasTime(t1)) ||
         (!fused_time_line_[cid_b].hasTime(t2)));
 
-  LOG(INFO) << "Processing mf from " << map_fusion_msg.from_client_id << " "
-            << map_fusion_msg.from_timestamp << " to "
-            << map_fusion_msg.to_client_id << " "
-            << map_fusion_msg.to_timestamp;
   ReqState ok_a, ok_b;
   bool has_time_a = client_handlers_[cid_a]->hasTime(t1);
   bool has_time_b = client_handlers_[cid_b]->hasTime(t2);
-
-  LOG(INFO) << "future? "
-            << static_cast<std::string>(future ? "true" : "false");
-  LOG(INFO) << "has time a? "
-            << static_cast<std::string>(has_time_a ? "true" : "false")
-            << " has time b? "
-            << static_cast<std::string>(has_time_b ? "true" : "false");
 
   if (has_time_a && has_time_b) {
     // TODO(mikexyl): add a service to request submap id, publish submap only if
@@ -479,8 +456,7 @@ bool CoxgraphServer::fuseMap(const CliId& cid_a, const ros::Time& t1,
   pose_graph_interface_.addForceRegistrationConstraint(ser_sm_id_a,
                                                        ser_sm_id_b);
 
-  if (config_.enable_submap_relative_pose_constraints)
-    updateSubmapRPConstraints();
+  updateSubmapRPConstraints();
 
   optimization_async_handle_ =
       std::async(std::launch::async, &CoxgraphServer::optimizePoseGraph, this,
@@ -490,6 +466,22 @@ bool CoxgraphServer::fuseMap(const CliId& cid_a, const ros::Time& t1,
 }
 
 void CoxgraphServer::updateSubmapRPConstraints() {
+  // Update submap poses in collection by looking up tf. Do this here because
+  // it's only needed when adding rp constraints.
+  for (int cid = 0; cid < submap_collection_ptr_->getClientNumber(); cid++) {
+    std::vector<CliSmId> cli_sids;
+    if (!submap_collection_ptr_->getCliSmIdsByCliId(cid, &cli_sids)) continue;
+    for (auto const& cli_sid : cli_sids) {
+      Transformation T_Cli_Sm;
+      if (!client_handlers_[cid]->lookUpSubmapPoseFromTf(cli_sid, &T_Cli_Sm)) {
+        continue;
+      }
+      SerSmId ser_sid;
+      CHECK(
+          submap_collection_ptr_->getSerSmIdByCliSmId(cid, cli_sid, &ser_sid));
+      submap_collection_ptr_->setSubmapPose(ser_sid, T_Cli_Sm);
+    }
+  }
   pose_graph_interface_.updateSubmapRPConstraints();
 }
 
@@ -502,13 +494,6 @@ CoxgraphServer::OptState CoxgraphServer::optimizePoseGraph(
   // Optimize the pose graph
   ROS_INFO("Optimizing the pose graph");
 
-  if (!submap_collection_ptr_->getPosesUpdateMutex()->try_lock_for(
-          std::chrono::milliseconds(kPoseUpdateWaitMs))) {
-    LOG(INFO) << "Waited " << kPoseUpdateWaitMs
-              << "ms, pose update still unfinished, skipped optimization";
-    return OptState::SKIPPED;
-  }
-
   TransformationVector submap_poses;
   submap_collection_ptr_->getSubmapPoses(&submap_poses);
 
@@ -517,8 +502,6 @@ CoxgraphServer::OptState CoxgraphServer::optimizePoseGraph(
   auto pose_map = pose_graph_interface_.getPoseMap();
 
   if (verbose_) evaluateResiduals();
-
-  submap_collection_ptr_->getPosesUpdateMutex()->unlock();
 
   updateCliMapRelativePose();
 
@@ -532,8 +515,7 @@ void CoxgraphServer::evaluateResiduals() {
     pose_graph_interface_.printResiduals(
         PoseGraphInterface::ConstraintType::RelPose);
   }
-  if (config_.enable_submap_relative_pose_constraints &&
-      submap_collection_ptr_->size() > 2) {
+  if (submap_collection_ptr_->size() > 2) {
     LOG(INFO) << "Evaluating Residuals of Submap RelPose Constraints";
     pose_graph_interface_.printResiduals(
         PoseGraphInterface::ConstraintType::SubmapRelPose);
@@ -548,20 +530,18 @@ void CoxgraphServer::updateCliMapRelativePose() {
   tf_controller_->resetCliMapRelativePoses();
   PoseMap pose_map = pose_graph_interface_.getPoseMap();
   TransformationVector submap_poses;
-  // TODO(mikexyl) assume this submap poses vector is sorted by sm id
   submap_collection_ptr_->getSubmapPoses(&submap_poses);
   for (int i = 0; i < config_.client_number; i++) {
-    std::vector<SerSmId>* ser_sm_ids_a =
-        submap_collection_ptr_->getSerSmIdsByCliId(i);
-    if (ser_sm_ids_a == nullptr) continue;
-    for (int j = i + 1; j < config_.client_number; j++) {
-      std::vector<SerSmId>* ser_sm_ids_b =
-          submap_collection_ptr_->getSerSmIdsByCliId(j);
-      if (ser_sm_ids_b == nullptr) continue;
+    std::vector<SerSmId> ser_sm_ids_a;
+    if (!submap_collection_ptr_->getSerSmIdsByCliId(i, &ser_sm_ids_a)) continue;
 
-      // TODO(mikexyl) these traversing add too many constraints
-      for (auto const& sm_id_a : *ser_sm_ids_a) {
-        for (auto const& sm_id_b : *ser_sm_ids_b) {
+    for (int j = i + 1; j < config_.client_number; j++) {
+      std::vector<SerSmId> ser_sm_ids_b;
+      if (!submap_collection_ptr_->getSerSmIdsByCliId(j, &ser_sm_ids_b))
+        continue;
+
+      for (auto const& sm_id_a : ser_sm_ids_a) {
+        for (auto const& sm_id_b : ser_sm_ids_b) {
           Transformation T_CA_SMA = submap_poses[sm_id_a];
           Transformation T_CB_SMB = submap_poses[sm_id_b];
           Transformation T_SMA_SMB =

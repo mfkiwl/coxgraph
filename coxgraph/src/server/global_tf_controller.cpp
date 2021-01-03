@@ -12,15 +12,12 @@ GlobalTfController::Config GlobalTfController::getConfigFromRosParam(
   Config config;
   nh_private.param<int>("global_tf_controller/init_cli_map_dist",
                         config.init_cli_map_dist, config.init_cli_map_dist);
-  nh_private.param<std::string>("global_tf_controller/map_frame_prefix",
-                                config.map_frame_prefix,
-                                config.map_frame_prefix);
   return config;
 }
 
 void GlobalTfController::initCliMapPose() {
   for (int i = 0; i < client_number_; i++) {
-    cli_mission_frames_.emplace_back(config_.map_frame_prefix + "_" +
+    cli_mission_frames_.emplace_back(map_frame_prefix_ + "_" +
                                      std::to_string(i));
     client_tf_optimizer_.addClient(i, Transformation());
     tf::Transform identity;

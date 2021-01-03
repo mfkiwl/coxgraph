@@ -16,36 +16,31 @@
   <arg name="tsdf_voxel_size" default="0.10"/>
   <arg name="truncation_distance" default="0.30"/>
 
-  <group>
-    <arg unless="$(arg debug)" name="launch_prefix" value=" " />
-    <arg if="$(arg debug)" name="launch_prefix" value="xterm -e gdb --args" />
+  <arg unless="$(arg debug)" name="launch_prefix" value=" " />
+  <arg if="$(arg debug)" name="launch_prefix" value="xterm -e gdb --args" />
 
-    <node name="label_tsdf_client_$(arg id)" pkg="maskgraph" type="label_tsdf_server" output="screen" args="-alsologtostderr" clear_params="true" launch-prefix="$(arg launch_prefix)">
-      <remap from="pointcloud" to="$(arg pointcloud_topic)"/>
-      <rosparam file="$(find maskgraph)/config/segment_map.yaml"/>
-      <rosparam file="$(find maskgraph)/config/$(arg scene_name).yaml"/>
-      <rosparam file="$(arg tw_voxblox_config_file)"/>
-      <param name="meshing/visualize" value="$(arg visualize)" />
-      <param name="enable_segment_map" value="false" />
-      <param name="enable_local_segment_map" value="false" />
-      <param name="verbose" value="$(arg verbose)" />
-      <param name="publish_tsdf_map" value="true" />
-      <param name="publish_esdf_map" value="true" />
-      <param name="publish_slices" value="true" />
-      <param name="publish_pointclouds" value="true" />
-      <param name="publish_traversable" value="true"/>
-      <param name="update_esdf_every_n_sec " value="0.5"/>
-      <param name="publish_active_tsdf_every_n_sec " value="0.5"/>
-      <param name="world_frame" value="$(arg world_frame_suffix)_$(arg id)"/>
-      <param name="client_number" value="$(arg client_number)"/>
-      <param name="client_id" value="$(arg id)"/>
-      <param name="robot_namespace" value="$(arg robot_namespace)"/>
-      <param name="baselink_frame" value="base_link"/>
-      <param name="collision_radius" value="1.0"/>
-      <param name="tsdf_voxel_size" value="$(arg tsdf_voxel_size)"/>
-      <param name="truncation_distance" value="$(arg truncation_distance)"/>
-    </node>
-
-  </group>
+  <node name="tsdf_client_$(arg id)" pkg="voxblox_ros" type="tsdf_server" output="screen" args="-alsologtostderr" clear_params="true" launch-prefix="$(arg launch_prefix)">
+    <remap from="pointcloud" to="$(arg pointcloud_topic)"/>
+    <rosparam file="$(arg tw_voxblox_config_file)"/>
+    <param name="meshing/visualize" value="$(arg visualize)" />
+    <param name="enable_segment_map" value="false" />
+    <param name="enable_local_segment_map" value="false" />
+    <param name="verbose" value="$(arg verbose)" />
+    <param name="publish_tsdf_map" value="true" />
+    <param name="publish_esdf_map" value="true" />
+    <param name="publish_slices" value="true" />
+    <param name="publish_pointclouds" value="true" />
+    <param name="publish_traversable" value="true"/>
+    <param name="update_esdf_every_n_sec " value="0.5"/>
+    <param name="publish_active_tsdf_every_n_sec " value="0.5"/>
+    <param name="world_frame" value="$(arg world_frame_suffix)_$(arg id)"/>
+    <param name="client_number" value="$(arg client_number)"/>
+    <param name="client_id" value="$(arg id)"/>
+    <param name="robot_namespace" value="$(arg robot_namespace)"/>
+    <param name="baselink_frame" value="base_link"/>
+    <param name="collision_radius" value="1.0"/>
+    <param name="tsdf_voxel_size" value="$(arg tsdf_voxel_size)"/>
+    <param name="truncation_distance" value="$(arg truncation_distance)"/>
+  </node>
 
 </launch>

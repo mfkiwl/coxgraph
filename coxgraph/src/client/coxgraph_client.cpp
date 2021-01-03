@@ -2,6 +2,8 @@
 
 #include <coxgraph_msgs/MapPoseUpdates.h>
 #include <coxgraph_msgs/TimeLine.h>
+#include <voxblox_msgs/MultiMesh.h>
+#include <voxgraph/tools/tf_helper.h>
 
 #include <chrono>
 #include <string>
@@ -13,8 +15,6 @@ namespace coxgraph {
 void CoxgraphClient::advertiseClientTopics() {
   time_line_pub_ = nh_private_.advertise<coxgraph_msgs::TimeLine>(
       "time_line", publisher_queue_length_, true);
-  map_pose_pub_ = nh_private_.advertise<coxgraph_msgs::MapPoseUpdates>(
-      "map_pose_updates", publisher_queue_length_, true);
 }
 
 void CoxgraphClient::advertiseClientServices() {
@@ -96,7 +96,8 @@ bool CoxgraphClient::submapCallback(
   if (!VoxgraphMapper::submapCallback(submap_msg)) return false;
   if (submap_collection_ptr_->size()) {
     publishTimeLine();
-    publishMapPoseUpdates();
+    map_server_->publishSubmapMesh(submap_collection_ptr_->getLastSubmapId(),
+                                   frame_names_.input_odom_frame, submap_vis_);
     map_server_->updatePastTsdf();
   }
   return true;
@@ -117,24 +118,42 @@ void CoxgraphClient::publishTimeLine() {
   time_line_pub_.publish(time_line_msg);
 }
 
-void CoxgraphClient::publishMapPoseUpdates() {
-  TransformationVector submap_poses;
-  submap_collection_ptr_->getSubmapPoses(&submap_poses);
+void CoxgraphClient::publishSubmapPoseTFs() {
+  // Publish the submap poses as TFs
+  const ros::Time current_timestamp = ros::Time::now();
+  // NOTE: The rest of the voxgraph is purely driven by the sensor message
+  //       timestamps, but the submap pose TFs are published at the current ROS
+  //       time (e.g. computer time or /clock topic if use_time_time:=true).
+  //       This is necessary because TF lookups only interpolate (i.e. no
+  //       extrapolation), and TFs subscribers typically have a limited buffer
+  //       time length (e.g. Rviz). The TFs therefore have to be published at a
+  //       frequency that exceeds the rate at which new submaps come in (e.g.
+  //       once every 10s). In case you intend to use the TFs for more than
+  //       visualization, it would be important that the message timestamps and
+  //       ros::Time::now() are well synchronized.
 
-  coxgraph_msgs::MapPoseUpdates map_pose_updates_msg;
-  for (auto& sm_id_pose_kv : ser_sm_id_pose_map_) {
-    if (!(submap_poses[sm_id_pose_kv.first] == sm_id_pose_kv.second)) {
-      LOG(INFO) << log_prefix_ << "Updating pose of submap "
-                << sm_id_pose_kv.first << " to server";
-      sm_id_pose_kv.second = submap_poses[sm_id_pose_kv.first];
-      map_pose_updates_msg.submap_id.emplace_back(sm_id_pose_kv.first);
-      geometry_msgs::Pose new_pose;
-      tf::poseKindrToMsg(sm_id_pose_kv.second.cast<double>(), &new_pose);
-      map_pose_updates_msg.new_pose.emplace_back(new_pose);
+  //! override to add client id suffix to tf frames
+  for (auto const& submap_ptr : submap_collection_ptr_->getSubmapConstPtrs()) {
+    TfHelper::publishTransform(submap_ptr->getPose(),
+                               frame_names_.output_odom_frame,
+                               "submap_" + std::to_string(submap_ptr->getID()) +
+                                   "_" + std::to_string(client_id_),
+                               false, current_timestamp);
+  }
+  if (!submap_collection_ptr_->empty()) {
+    auto const first_submap_id = submap_collection_ptr_->getFirstSubmapId();
+    auto const& first_submap =
+        submap_collection_ptr_->getSubmap(first_submap_id);
+    if (!first_submap.getPoseHistory().empty()) {
+      const Transformation T_odom__initial_pose =
+          first_submap.getPose() *
+          first_submap.getPoseHistory().begin()->second;
+      TfHelper::publishTransform(T_odom__initial_pose,
+                                 frame_names_.output_odom_frame,
+                                 "initial_pose_" + std::to_string(client_id_),
+                                 false, current_timestamp);
     }
   }
-  if (map_pose_updates_msg.submap_id.size())
-    map_pose_pub_.publish(map_pose_updates_msg);
 }
 
 void CoxgraphClient::savePoseHistory(std::string file_path) {

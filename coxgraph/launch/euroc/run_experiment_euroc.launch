@@ -65,7 +65,7 @@
     <arg name="tsdf_voxel_size" value="$(arg tsdf_voxel_size)"/>
     <arg name="truncation_distance" value="$(arg truncation_distance)"/>
     <arg name="map_frame_prefix" default="odom"/>
-    <arg name="debug" default="false"/>
+    <arg name="debug" default="true"/>
   </include>
 
   <include file="$(find node_evaluator)/launch/evaluate.launch">

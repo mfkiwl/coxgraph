@@ -1,7 +1,7 @@
-node_names: ["/coxgraph/coxgraph_client_0", "/tsdf_client/label_tsdf_client_0", "/pose_graph_backend", "/coxgraph/coxgraph_server_node"]
+node_names: ["/coxgraph/coxgraph_client_0", "/coxgraph/tsdf_client_0", "/pose_graph_backend", "/coxgraph/coxgraph_server_node"]
 node_eval_mode:  [["cpu","mem"], ["cpu","mem"], ["cpu","mem"], ["cpu","mem"]]
 
-topic_names: ["/coxgraph/coxgraph_client_0/combined_mesh", "/firefly_0/pose_graph_0/vins_keyframe", "/coxgraph/coxgraph_server_node/service_bandwidth"]
+topic_names: ["/coxgraph/coxgraph_client_0/submap_mesh", "/firefly_0/pose_graph_0/vins_keyframe", "/coxgraph/coxgraph_server_node/service_bandwidth"]
 topic_eval_mode: [["topic_bw"],["topic_bw"], ["bw_from_msg"]]
 
 sys_eval_mode: ["sys_bw"]

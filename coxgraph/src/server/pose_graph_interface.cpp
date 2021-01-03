@@ -51,12 +51,13 @@ void PoseGraphInterface::updateSubmapRPConstraints() {
   resetSubmapRelativePoseConstrains();
   for (int cid = 0; cid < cox_submap_collection_ptr_->getClientNumber();
        cid++) {
-    std::vector<SerSmId>* cli_ser_sm_ids =
-        cox_submap_collection_ptr_->getSerSmIdsByCliId(cid);
-    for (int i = 0; i < cli_ser_sm_ids->size() - 1; i++) {
+    std::vector<SerSmId> cli_ser_sm_ids;
+    if (!cox_submap_collection_ptr_->getSerSmIdsByCliId(cid, &cli_ser_sm_ids))
+      continue;
+    for (int i = 0; i < cli_ser_sm_ids.size() - 1; i++) {
       int j = i + 1;
-      SerSmId sid_i = cli_ser_sm_ids->at(i);
-      SerSmId sid_j = cli_ser_sm_ids->at(j);
+      SerSmId sid_i = cli_ser_sm_ids.at(i);
+      SerSmId sid_j = cli_ser_sm_ids.at(j);
 
       Transformation T_M_SMi =
           cox_submap_collection_ptr_->getSubmapPtr(sid_i)->getPose();

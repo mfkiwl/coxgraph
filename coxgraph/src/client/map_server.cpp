@@ -1,5 +1,10 @@
 #include "coxgraph/client/map_server.h"
 
+#include <coxgraph_msgs/MeshWithTrajectory.h>
+
+#include <memory>
+#include <string>
+
 namespace coxgraph {
 namespace client {
 
@@ -32,10 +37,18 @@ void MapServer::advertiseTopics() {
 
   if (config_.publish_traversable)
     traversable_pub_ = nh_private_.advertise<pcl::PointCloud<pcl::PointXYZI> >(
-        "traversable", 1, true);
+        "traversable", 10, true);
+
+  submap_mesh_pub_ = nh_private_.advertise<coxgraph_msgs::MeshWithTrajectory>(
+      "submap_mesh", 10, true);
 }
 
 void MapServer::updatePastTsdf() {
+  if (tsdf_pub_.getNumSubscribers() == 0 &&
+      esdf_pub_.getNumSubscribers() == 0 &&
+      traversable_pub_.getNumSubscribers() == 0)
+    return;
+
   tsdf_map_->getTsdfLayerPtr()->removeAllBlocks();
   for (auto const& submap_ptr : submap_collection_ptr_->getSubmapPtrs()) {
     voxblox::mergeLayerAintoLayerB(submap_ptr->getTsdfMapPtr()->getTsdfLayer(),
@@ -88,6 +101,35 @@ void MapServer::publishTraversable() {
     pointcloud.header.frame_id = frame_names_.input_odom_frame;
     traversable_pub_.publish(pointcloud);
   }
+}
+
+void MapServer::publishSubmapMesh(CliSmId csid, std::string world_frame,
+                                  const voxgraph::SubmapVisuals& submap_vis) {
+  CliSm::ConstPtr submap_ptr = submap_collection_ptr_->getSubmapConstPtr(csid);
+  auto mesh_layer_ptr =
+      std::make_shared<cblox::MeshLayer>(submap_collection_ptr_->block_size());
+
+  submap_vis.generateSubmapMesh(submap_ptr, voxblox::Color(),
+                                mesh_layer_ptr.get());
+
+  coxgraph_msgs::MeshWithTrajectory mesh_with_traj_msg;
+  voxblox_msgs::MultiMesh mesh_msg;
+  submap_vis.generateSubmapMeshMsg(mesh_layer_ptr,
+                                   &mesh_with_traj_msg.mesh.mesh);
+  mesh_with_traj_msg.mesh.header.frame_id =
+      "submap_" + std::to_string(csid) + "_" + std::to_string(client_id_);
+  mesh_with_traj_msg.mesh.name_space =
+      "submap_" + std::to_string(csid) + "_" + std::to_string(client_id_);
+
+  for (auto const& pose_kv : submap_ptr->getPoseHistory()) {
+    geometry_msgs::PoseStamped pose_msg;
+    pose_msg.header.frame_id = world_frame;
+    pose_msg.header.stamp = pose_kv.first;
+    tf::poseKindrToMsg(pose_kv.second.cast<double>(), &pose_msg.pose);
+    mesh_with_traj_msg.trajectory.poses.emplace_back(pose_msg);
+  }
+
+  submap_mesh_pub_.publish(mesh_with_traj_msg);
 }
 
 }  // namespace client

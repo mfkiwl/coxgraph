@@ -28,7 +28,7 @@
       <remap from="vins_estimator_$(arg id)/features" to="feature_tracker_$(arg id)/feature" />
       <remap from="vins_estimator_$(arg id)/feature_restart" to="feature_tracker_$(arg id)/restart" />
 
-      <param name="toggle_mapping_srv_name" value="/tsdf_client/label_tsdf_client_$(arg id)/toggle_mapping"/>
+      <param name="toggle_mapping_srv_name" value="/coxgraph/tsdf_client_$(arg id)/toggle_mapping"/>
     </node>
 
     <!-- Pose Graph -->

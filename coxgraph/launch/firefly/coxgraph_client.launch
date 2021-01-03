@@ -28,15 +28,13 @@
       <param name="output_base_link_frame" value="firefly_$(arg id)/base_link"/>
       <param name="output_sensor_frame" value="sensor_coxgraph_$(arg id)"/>
       <param name="output_active_submap_frame" value="voxgraph_active_submap_$(arg id)"/>
-      <param name="submap_topic" value="/tsdf_client/label_tsdf_client_$(arg id)/tsdf_map_out" />
+      <param name="submap_topic" value="tsdf_client_$(arg id)/tsdf_map_out" />
       <param name="publish_traversable" value="true"/>
       <param name="client_id" value="$(arg id)"/>
       <param name="tsdf_voxel_size" value="$(arg tsdf_voxel_size)"/>
       <param name="truncation_distance" value="$(arg truncation_distance)"/>
     </node>
-  </group>
 
-  <group ns="tsdf_client">
     <include file="$(find coxgraph)/launch/firefly/tsdf_client.launch">
       <arg name="debug" default="$(arg debug_tsdf)"/>
       <arg name="verbose" default="$(arg verbose)"/>

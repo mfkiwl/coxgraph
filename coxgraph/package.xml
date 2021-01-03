@@ -24,7 +24,6 @@
   <depend>cblox_msgs</depend>
   <depend>voxgraph_msgs</depend>
   <depend>voxgraph</depend>
-  <depend>maskgraph</depend>
   <depend>coxgraph_msgs</depend>
 
 </package>

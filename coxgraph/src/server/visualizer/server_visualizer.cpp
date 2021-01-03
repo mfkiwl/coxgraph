@@ -12,7 +12,18 @@
 namespace coxgraph {
 namespace server {
 
-// TODO(mikexyl): check origin params not changed
+ServerVisualizer::Config ServerVisualizer::getConfigFromRosParam(
+    const ros::NodeHandle& nh_private) {
+  Config config;
+  nh_private.param<float>("mesh_opacity", config.mesh_opacity, 1.0);
+  nh_private.param<std::string>("submap_mesh_color_mode",
+                                config.submap_mesh_color_mode, "lambert_color");
+  nh_private.param<std::string>("combined_mesh_color_mode",
+                                config.combined_mesh_color_mode, "normals");
+
+  return config;
+}
+
 void ServerVisualizer::getFinalGlobalMesh(
     const SubmapCollection::Ptr& submap_collection_ptr,
     const PoseGraphInterface& pose_graph_interface,

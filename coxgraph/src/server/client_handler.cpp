@@ -32,11 +32,12 @@ ClientHandler::Config ClientHandler::getConfigFromRosParam(
 }
 
 void ClientHandler::subscribeToTopics() {
-  time_line_sub_ = nh_.subscribe(client_node_name_ + "/time_line", 10,
-                                 &ClientHandler::timeLineCallback, this);
-  sm_pose_updates_sub_ =
-      nh_.subscribe(client_node_name_ + "/map_pose_updates", 10,
-                    &ClientHandler::submapPoseUpdatesCallback, this);
+  time_line_sub_ =
+      nh_.subscribe(client_node_name_ + "/time_line", kSubQueueSize,
+                    &ClientHandler::timeLineCallback, this);
+  submap_mesh_sub_ =
+      nh_.subscribe(client_node_name_ + "/submap_mesh", kSubQueueSize,
+                    &ClientHandler::submapMeshCallback, this);
 }
 
 void ClientHandler::timeLineCallback(
@@ -72,8 +73,8 @@ void ClientHandler::subscribeToServices() {
 }
 
 ClientHandler::ReqState ClientHandler::requestSubmapByTime(
-    const ros::Time& timestamp, const SerSmId& ser_sm_id, CliSmId* cli_sm_id,
-    CliSm::Ptr* submap, Transformation* T_submap_t) {
+    const ros::Time& timestamp, const SerSmId& ser_sid, CliSmId* cli_sid,
+    CliSm::Ptr* submap, Transformation* T_Sm_C_t) {
   std::lock_guard<std::mutex> submap_request_lock(submap_request_mutex_);
 
   if (!time_line_.hasTime(timestamp)) return ReqState::FUTURE;
@@ -85,43 +86,14 @@ ClientHandler::ReqState ClientHandler::requestSubmapByTime(
         client_node_name_ + "/client_submap",
         utils::sizeOfMsg(cli_submap_srv.response.submap),
         cli_submap_srv.response.pub_time, ros::Time::now());
-    *cli_sm_id = cli_submap_srv.response.submap.map_header.id;
-    *submap = utils::cliSubmapFromMsg(
-        ser_sm_id, submap_config_, cli_submap_srv.response, &mission_frame_id_);
+    *cli_sid = cli_submap_srv.response.submap.map_header.id;
+    *submap = utils::cliSubmapFromMsg(ser_sid, submap_config_,
+                                      cli_submap_srv.response, &map_frame_id_);
     tf::transformMsgToKindr<voxblox::FloatingPoint>(
-        cli_submap_srv.response.transform, T_submap_t);
+        cli_submap_srv.response.transform, T_Sm_C_t);
     return ReqState::SUCCESS;
   }
   return ReqState::FAILED;
-}
-
-void ClientHandler::submapPoseUpdatesCallback(
-    const coxgraph_msgs::MapPoseUpdates& map_pose_updates_msg) {
-  LOG(INFO) << log_prefix_ << "Received new pose for "
-            << map_pose_updates_msg.submap_id.size() << " submaps.";
-  submap_collection_ptr_->getPosesUpdateMutex()->lock();
-  {
-    for (int i = 0; i < map_pose_updates_msg.submap_id.size(); i++) {
-      SerSmId ser_sm_id;
-      CHECK(submap_collection_ptr_->getSerSmIdByCliSmId(
-          client_id_, map_pose_updates_msg.submap_id[i], &ser_sm_id));
-      CHECK(submap_collection_ptr_->exists(ser_sm_id))
-          << "CliSmId " << map_pose_updates_msg.submap_id[i]
-          << ", SerSmId: " << ser_sm_id;
-      geometry_msgs::Pose submap_pose_msg = map_pose_updates_msg.new_pose[i];
-      CliSm::Ptr submap_ptr = submap_collection_ptr_->getSubmapPtr(ser_sm_id);
-      TransformationD submap_pose;
-      tf::poseMsgToKindr(submap_pose_msg, &submap_pose);
-      submap_ptr = submap_collection_ptr_->getSubmapPtr(ser_sm_id);
-      submap_ptr->setPose(submap_pose.cast<voxblox::FloatingPoint>());
-      submap_collection_ptr_->updateOriPose(
-          ser_sm_id, submap_pose.cast<voxblox::FloatingPoint>());
-      LOG(INFO) << log_prefix_ << "Updating pose for submap cli id: "
-                << map_pose_updates_msg.submap_id[i]
-                << " ser id: " << ser_sm_id;
-    }
-  }
-  submap_collection_ptr_->getPosesUpdateMutex()->unlock();
 }
 
 bool ClientHandler::requestAllSubmaps(std::vector<CliSmIdPack>* submap_packs,
@@ -135,7 +107,7 @@ bool ClientHandler::requestAllSubmaps(std::vector<CliSmIdPack>* submap_packs,
     for (auto const& submap_msg : submap_srv.response.submaps)
       submap_packs->emplace_back(
           utils::cliSubmapFromMsg((*start_ser_sm_id)++, submap_config_,
-                                  submap_msg, &mission_frame_id_),
+                                  submap_msg, &map_frame_id_),
           client_id_, submap_msg.map_header.id);
     return true;
   }
@@ -153,6 +125,21 @@ bool ClientHandler::requestPoseHistory(const std::string& file_path,
   } else {
     return false;
   }
+}
+
+bool ClientHandler::lookUpSubmapPoseFromTf(CliSmId sid,
+                                           Transformation* T_Cli_Sm) {
+  CHECK(T_Cli_Sm != nullptr);
+  std::string submap_pose_frame =
+      "submap_" + std::to_string(sid) + "_" + std::to_string(client_id_);
+  ros::Time zero_timestamp = ros::Time(0);
+  if (transformer_.lookupTransform(map_frame_id_, submap_pose_frame,
+                                   zero_timestamp, T_Cli_Sm))
+    return true;
+  else
+    LOG(WARNING) << "Failed to look up Tf from " << map_frame_id_ << " to "
+                 << submap_pose_frame << " at time " << zero_timestamp;
+  return false;
 }
 
 }  // namespace server
