@@ -20,7 +20,6 @@
 
     <node name="coxgraph_client_$(arg id)" pkg="coxgraph" type="coxgraph_client_node" output="screen" launch-prefix="$(arg launch_prefix)" args="-alsologtostderr">
       <remap from="/loop_closure_in" to="coxgraph_client_$(arg id)/loop_closure_in"/>
-      <rosparam file="$(find voxgraph)/config/voxgraph_mapper.yaml" />
       <rosparam file="$(find coxgraph)/config/coxgraph_client.yaml" />
       <param name="input_odom_frame" value="$(arg world_frame_suffix)_$(arg id)"/>
       <param name="input_base_link_frame" value="firefly_$(arg id)/base_link"/>

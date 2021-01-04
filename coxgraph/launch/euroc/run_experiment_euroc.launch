@@ -25,6 +25,7 @@
     <arg name="tw_voxblox_config_file" default="$(arg tw_voxblox_config_file)"/>
     <arg name="tsdf_voxel_size" value="$(arg tsdf_voxel_size)"/>
     <arg name="truncation_distance" value="$(arg truncation_distance)"/>
+    <arg name="debug_tsdf" default="false"/>
   </include>
 
   <include file="$(find coxgraph)/launch/euroc/vins_client_euroc.launch">
@@ -41,7 +42,8 @@
     <arg name="tw_voxblox_config_file" default="$(arg tw_voxblox_config_file)"/>
     <arg name="tsdf_voxel_size" value="$(arg tsdf_voxel_size)"/>
     <arg name="truncation_distance" value="$(arg truncation_distance)"/>
-  </include> 
+    <arg name="debug_tsdf" default="false"/>
+  </include>
 
   <!-- <include file="$(find coxgraph)/launch/euroc/vins_client_euroc.launch">
     <arg name="id" value="2"/>
@@ -61,11 +63,11 @@
     <arg name="num_agents" default="2"/>
   </include>
 
-  <include file="$(find coxgraph)/launch/coxgraph_server.launch" >
+  <include file="$(find coxgraph)/launch/coxgraph_server.launch">
     <arg name="tsdf_voxel_size" value="$(arg tsdf_voxel_size)"/>
     <arg name="truncation_distance" value="$(arg truncation_distance)"/>
     <arg name="map_frame_prefix" default="odom"/>
-    <arg name="debug" default="true"/>
+    <arg name="debug" default="false"/>
   </include>
 
   <include file="$(find node_evaluator)/launch/evaluate.launch">
