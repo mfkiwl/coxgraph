@@ -149,7 +149,9 @@ class ServerVisualizer {
     publishSubmapMeshes();
   }
   void publishSubmapMeshes() {
-    for (auto const& kv : *mesh_collection_ptr_->getSubmapMeshesPtr()) {
+    for (auto& kv : *mesh_collection_ptr_->getSubmapMeshesPtr()) {
+      kv.second.mesh.header.stamp = ros::Time::now();
+      kv.second.mesh.mesh.header.stamp = ros::Time::now();
       separated_mesh_pub_.publish(kv.second.mesh);
     }
   }

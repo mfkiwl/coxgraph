@@ -53,6 +53,8 @@ CoxgraphServer::Config CoxgraphServer::getConfigFromRosParam(
                          config.enable_client_loop_clousure);
   nh_private.param<int>("publisher_queue_length", config.publisher_queue_length,
                         config.publisher_queue_length);
+  nh_private.param<bool>("use_tf_submap_pose", config.use_tf_submap_pose,
+                         config.use_tf_submap_pose);
 
   return config;
 }
@@ -63,7 +65,7 @@ void CoxgraphServer::initClientHandlers(const ros::NodeHandle& nh,
   for (int i = 0; i < config_.client_number; i++) {
     client_handlers_.emplace_back(new ClientHandler(
         nh, nh_private, i, config_.map_frame_prefix, submap_config_,
-        server_vis_->getMeshCollectionPtr(),
+        submap_collection_ptr_, server_vis_->getMeshCollectionPtr(),
         std::bind(&CoxgraphServer::timeLineUpdateCallback, this)));
 
     force_fuse_.emplace_back(true);
@@ -466,20 +468,25 @@ bool CoxgraphServer::fuseMap(const CliId& cid_a, const ros::Time& t1,
 }
 
 void CoxgraphServer::updateSubmapRPConstraints() {
-  // Update submap poses in collection by looking up tf. Do this here because
-  // it's only needed when adding rp constraints.
-  for (int cid = 0; cid < submap_collection_ptr_->getClientNumber(); cid++) {
-    std::vector<CliSmId> cli_sids;
-    if (!submap_collection_ptr_->getCliSmIdsByCliId(cid, &cli_sids)) continue;
-    for (auto const& cli_sid : cli_sids) {
-      Transformation T_Cli_Sm;
-      if (!client_handlers_[cid]->lookUpSubmapPoseFromTf(cli_sid, &T_Cli_Sm)) {
-        continue;
+  if (config_.use_tf_submap_pose) {
+    LOG(FATAL)
+        << "Don't turn on use_tf_submap_pose, somehow it doesn't work for now";
+    // Update submap poses in collection by looking up tf. Do this here because
+    // it's only needed when adding rp constraints.
+    for (int cid = 0; cid < submap_collection_ptr_->getClientNumber(); cid++) {
+      std::vector<CliSmId> cli_sids;
+      if (!submap_collection_ptr_->getCliSmIdsByCliId(cid, &cli_sids)) continue;
+      for (auto const& cli_sid : cli_sids) {
+        Transformation T_Cli_Sm;
+        if (!client_handlers_[cid]->lookUpSubmapPoseFromTf(cli_sid,
+                                                           &T_Cli_Sm)) {
+          continue;
+        }
+        SerSmId ser_sid;
+        CHECK(submap_collection_ptr_->getSerSmIdByCliSmId(cid, cli_sid,
+                                                          &ser_sid));
+        submap_collection_ptr_->setSubmapPose(ser_sid, T_Cli_Sm);
       }
-      SerSmId ser_sid;
-      CHECK(
-          submap_collection_ptr_->getSerSmIdByCliSmId(cid, cli_sid, &ser_sid));
-      submap_collection_ptr_->setSubmapPose(ser_sid, T_Cli_Sm);
     }
   }
   pose_graph_interface_.updateSubmapRPConstraints();

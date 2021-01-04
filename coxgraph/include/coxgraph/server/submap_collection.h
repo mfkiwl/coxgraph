@@ -82,6 +82,10 @@ class SubmapCollection : public voxgraph::VoxgraphSubmapCollection {
     return sm_id_ori_pose_map_[ser_sm_id];
   }
 
+  inline std::timed_mutex* getPosesUpdateMutex() {
+    return &submap_poses_update_mutex;
+  }
+
  private:
   typedef std::pair<CliId, CliId> CliIdPair;
   typedef std::unordered_map<SerSmId, CIdCSIdPair> SmCliIdMap;

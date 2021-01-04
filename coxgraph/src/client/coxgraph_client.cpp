@@ -15,6 +15,8 @@ namespace coxgraph {
 void CoxgraphClient::advertiseClientTopics() {
   time_line_pub_ = nh_private_.advertise<coxgraph_msgs::TimeLine>(
       "time_line", publisher_queue_length_, true);
+  map_pose_pub_ = nh_private_.advertise<coxgraph_msgs::MapPoseUpdates>(
+      "map_pose_updates", publisher_queue_length_, true);
 }
 
 void CoxgraphClient::advertiseClientServices() {
@@ -116,6 +118,26 @@ void CoxgraphClient::publishTimeLine() {
   LOG(INFO) << log_prefix_ << "Updating client time Line from "
             << time_line_msg.start << " to " << time_line_msg.end;
   time_line_pub_.publish(time_line_msg);
+}
+
+void CoxgraphClient::publishMapPoseUpdates() {
+  TransformationVector submap_poses;
+  submap_collection_ptr_->getSubmapPoses(&submap_poses);
+
+  coxgraph_msgs::MapPoseUpdates map_pose_updates_msg;
+  for (auto& sm_id_pose_kv : ser_sm_id_pose_map_) {
+    if (!(submap_poses[sm_id_pose_kv.first] == sm_id_pose_kv.second)) {
+      LOG(INFO) << log_prefix_ << "Updating pose of submap "
+                << sm_id_pose_kv.first << " to server";
+      sm_id_pose_kv.second = submap_poses[sm_id_pose_kv.first];
+      map_pose_updates_msg.submap_id.emplace_back(sm_id_pose_kv.first);
+      geometry_msgs::Pose new_pose;
+      tf::poseKindrToMsg(sm_id_pose_kv.second.cast<double>(), &new_pose);
+      map_pose_updates_msg.new_pose.emplace_back(new_pose);
+    }
+  }
+  if (map_pose_updates_msg.submap_id.size())
+    map_pose_pub_.publish(map_pose_updates_msg);
 }
 
 void CoxgraphClient::publishSubmapPoseTFs() {

@@ -58,7 +58,6 @@
   </include>
  -->
 
-
   <include file="$(find coxgraph_sim)/launch/utils/pose_graph_backend.launch">
     <arg name="num_agents" default="2"/>
   </include>

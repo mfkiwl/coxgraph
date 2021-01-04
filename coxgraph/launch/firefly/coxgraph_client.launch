@@ -32,6 +32,7 @@
       <param name="client_id" value="$(arg id)"/>
       <param name="tsdf_voxel_size" value="$(arg tsdf_voxel_size)"/>
       <param name="truncation_distance" value="$(arg truncation_distance)"/>
+      <param name="publish_mesh_with_trajectory" value="true"/>
     </node>
 
     <include file="$(find coxgraph)/launch/firefly/tsdf_client.launch">

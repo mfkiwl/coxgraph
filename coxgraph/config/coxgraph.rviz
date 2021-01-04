@@ -7,6 +7,7 @@ Panels:
         - /Global Options1
         - /Grid1
         - /TF1
+        - /TF1/Status1
         - /TF1/Tree1
       Splitter Ratio: 0.6735293865203857
     Tree Height: 752
@@ -89,42 +90,6 @@ Visualization Manager:
           Value: true
         submap_0_1:
           Value: true
-        submap_10_0:
-          Value: true
-        submap_10_1:
-          Value: true
-        submap_11_0:
-          Value: true
-        submap_11_1:
-          Value: true
-        submap_12_0:
-          Value: true
-        submap_12_1:
-          Value: true
-        submap_13_0:
-          Value: true
-        submap_13_1:
-          Value: true
-        submap_14_0:
-          Value: true
-        submap_14_1:
-          Value: true
-        submap_15_0:
-          Value: true
-        submap_15_1:
-          Value: true
-        submap_16_0:
-          Value: true
-        submap_16_1:
-          Value: true
-        submap_17_0:
-          Value: true
-        submap_17_1:
-          Value: true
-        submap_18_0:
-          Value: true
-        submap_18_1:
-          Value: true
         submap_1_0:
           Value: true
         submap_1_1:
@@ -151,86 +116,42 @@ Visualization Manager:
           Value: true
         submap_7_0:
           Value: true
-        submap_7_1:
-          Value: true
-        submap_8_0:
-          Value: true
-        submap_8_1:
-          Value: true
-        submap_9_0:
-          Value: true
-        submap_9_1:
-          Value: true
       Marker Scale: 1
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: true
       Tree:
-        odom_0:
-          imu_0:
-            cam_0:
-              first_camera_rect_0:
-                {}
-              second_camera_rect_0:
-                {}
-          initial_pose_0:
-            {}
-          submap_0_0:
-            {}
-          submap_10_0:
-            {}
-          submap_11_0:
-            {}
-          submap_12_0:
-            {}
-          submap_13_0:
-            {}
-          submap_14_0:
-            {}
-          submap_15_0:
-            {}
-          submap_16_0:
-            {}
-          submap_17_0:
-            {}
-          submap_18_0:
-            {}
-          submap_1_0:
-            {}
-          submap_2_0:
-            {}
-          submap_3_0:
-            {}
-          submap_4_0:
-            {}
-          submap_5_0:
-            {}
-          submap_6_0:
-            {}
-          submap_7_0:
-            {}
-          submap_8_0:
-            {}
-          submap_9_0:
-            {}
         odom_g:
+          odom_0:
+            imu_0:
+              cam_0:
+                first_camera_rect_0:
+                  {}
+                second_camera_rect_0:
+                  {}
+            initial_pose_0:
+              {}
+            submap_0_0:
+              {}
+            submap_1_0:
+              {}
+            submap_2_0:
+              {}
+            submap_3_0:
+              {}
+            submap_4_0:
+              {}
+            submap_5_0:
+              {}
+            submap_6_0:
+              {}
+            submap_7_0:
+              {}
           odom_1:
             initial_pose_1:
               {}
             submap_0_1:
-              {}
-            submap_10_1:
-              {}
-            submap_11_1:
-              {}
-            submap_12_1:
-              {}
-            submap_13_1:
-              {}
-            submap_14_1:
-              {}
-            submap_15_1:
               {}
             submap_1_1:
               {}
@@ -244,45 +165,15 @@ Visualization Manager:
               {}
             submap_6_1:
               {}
-            submap_7_1:
-              {}
-            submap_8_1:
-              {}
-            submap_9_1:
-              {}
       Update Interval: 0
       Value: true
     - Class: voxblox_rviz_plugin/VoxbloxMultiMesh
-      Enabled: true
+      Enabled: false
       Name: VoxbloxMultiMesh
       Topic: /coxgraph/coxgraph_server_node/separated_mesh
       Unreliable: false
-      Value: true
-      Visible:
-        Value: true
-        submap_10_0: true
-        submap_10_1: true
-        submap_11_0: true
-        submap_11_1: true
-        submap_12_0: true
-        submap_12_1: true
-        submap_13_0: true
-        submap_13_1: true
-        submap_14_0: true
-        submap_14_1: true
-        submap_15_0: true
-        submap_4_0: true
-        submap_4_1: true
-        submap_5_0: true
-        submap_5_1: true
-        submap_6_0: true
-        submap_6_1: true
-        submap_7_0: true
-        submap_7_1: true
-        submap_8_0: true
-        submap_8_1: true
-        submap_9_0: true
-        submap_9_1: true
+      Value: false
+      Visible: true
   Enabled: true
   Global Options:
     Background Color: 255; 255; 255
@@ -311,25 +202,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 15.573100090026855
+      Distance: 12.861976623535156
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 6.595055103302002
-        Y: -7.648594379425049
-        Z: -0.544076681137085
+        X: 3.993330955505371
+        Y: 0.21873077750205994
+        Z: 0.7978324890136719
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.10000000149011612
-      Pitch: 0.7097975015640259
+      Pitch: 0.5597976446151733
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.6717891693115234
+      Yaw: 3.6267881393432617
     Saved: ~
 Window Geometry:
   Displays:

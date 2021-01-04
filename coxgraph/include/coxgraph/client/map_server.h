@@ -26,11 +26,13 @@ class MapServer {
         : publish_combined_maps_every_n_sec(0.0),
           publish_on_update(true),
           publish_traversable(false),
-          traversability_radius(1.0) {}
+          traversability_radius(1.0),
+          publish_mesh_with_trajectory(true) {}
     float publish_combined_maps_every_n_sec;
     bool publish_on_update;
     bool publish_traversable;
     float traversability_radius;
+    bool publish_mesh_with_trajectory;
 
     friend inline std::ostream& operator<<(std::ostream& s, const Config& v) {
       s << std::endl
@@ -46,6 +48,10 @@ class MapServer {
                                                           : "disabled")
         << std::endl
         << "  Traversability radius: " << v.traversability_radius << std::endl
+        << "  Publish mesh with trjectory: "
+        << static_cast<std::string>(v.publish_mesh_with_trajectory ? "enabled"
+                                                                   : "disabled")
+        << std::endl
         << "-------------------------------------------" << std::endl;
       return (s);
     }

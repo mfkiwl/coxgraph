@@ -1,6 +1,7 @@
 #include "coxgraph/client/map_server.h"
 
 #include <coxgraph_msgs/MeshWithTrajectory.h>
+#include <voxblox_msgs/MultiMesh.h>
 
 #include <memory>
 #include <string>
@@ -18,6 +19,11 @@ MapServer::Config MapServer::getConfigFromRosParam(
                          config.publish_traversable);
   nh_private.param<float>("traversability_radius", config.traversability_radius,
                           config.traversability_radius);
+  nh_private.param<bool>("publish_on_update", config.publish_on_update,
+                         config.publish_on_update);
+  nh_private.param<bool>("publish_mesh_with_trajectory",
+                         config.publish_mesh_with_trajectory,
+                         config.publish_mesh_with_trajectory);
   return config;
 }
 
@@ -39,8 +45,12 @@ void MapServer::advertiseTopics() {
     traversable_pub_ = nh_private_.advertise<pcl::PointCloud<pcl::PointXYZI> >(
         "traversable", 10, true);
 
-  submap_mesh_pub_ = nh_private_.advertise<coxgraph_msgs::MeshWithTrajectory>(
-      "submap_mesh", 10, true);
+  if (config_.publish_mesh_with_trajectory)
+    submap_mesh_pub_ = nh_private_.advertise<coxgraph_msgs::MeshWithTrajectory>(
+        "submap_mesh_with_traj", 10, true);
+  else
+    submap_mesh_pub_ =
+        nh_private_.advertise<voxblox_msgs::MultiMesh>("submap_mesh", 10, true);
 }
 
 void MapServer::updatePastTsdf() {
@@ -112,24 +122,28 @@ void MapServer::publishSubmapMesh(CliSmId csid, std::string world_frame,
   submap_vis.generateSubmapMesh(submap_ptr, voxblox::Color(),
                                 mesh_layer_ptr.get());
 
-  coxgraph_msgs::MeshWithTrajectory mesh_with_traj_msg;
   voxblox_msgs::MultiMesh mesh_msg;
-  submap_vis.generateSubmapMeshMsg(mesh_layer_ptr,
-                                   &mesh_with_traj_msg.mesh.mesh);
-  mesh_with_traj_msg.mesh.header.frame_id =
+  submap_vis.generateSubmapMeshMsg(mesh_layer_ptr, &mesh_msg.mesh);
+  mesh_msg.header.frame_id =
       "submap_" + std::to_string(csid) + "_" + std::to_string(client_id_);
-  mesh_with_traj_msg.mesh.name_space =
+  mesh_msg.name_space =
       "submap_" + std::to_string(csid) + "_" + std::to_string(client_id_);
 
-  for (auto const& pose_kv : submap_ptr->getPoseHistory()) {
-    geometry_msgs::PoseStamped pose_msg;
-    pose_msg.header.frame_id = world_frame;
-    pose_msg.header.stamp = pose_kv.first;
-    tf::poseKindrToMsg(pose_kv.second.cast<double>(), &pose_msg.pose);
-    mesh_with_traj_msg.trajectory.poses.emplace_back(pose_msg);
+  if (config_.publish_mesh_with_trajectory) {
+    coxgraph_msgs::MeshWithTrajectory mesh_with_traj_msg;
+    mesh_with_traj_msg.mesh = mesh_msg;
+    for (auto const& pose_kv : submap_ptr->getPoseHistory()) {
+      geometry_msgs::PoseStamped pose_msg;
+      pose_msg.header.frame_id = world_frame;
+      pose_msg.header.stamp = pose_kv.first;
+      tf::poseKindrToMsg(pose_kv.second.cast<double>(), &pose_msg.pose);
+      mesh_with_traj_msg.trajectory.poses.emplace_back(pose_msg);
+    }
+
+    submap_mesh_pub_.publish(mesh_with_traj_msg);
+  } else {
+    submap_mesh_pub_.publish(mesh_msg);
   }
-
-  submap_mesh_pub_.publish(mesh_with_traj_msg);
 }
 
 }  // namespace client

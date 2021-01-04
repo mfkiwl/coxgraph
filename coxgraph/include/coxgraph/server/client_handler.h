@@ -56,14 +56,17 @@ class ClientHandler {
   ClientHandler(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private,
                 const CliId& client_id, std::string map_frame_prefix,
                 const CliSmConfig& submap_config,
+                const SubmapCollection::Ptr& submap_collection_ptr,
                 MeshCollection::Ptr mesh_collection_ptr,
                 TimeLineUpdateCallback time_line_callback)
       : ClientHandler(nh, nh_private, client_id, map_frame_prefix,
                       submap_config, getConfigFromRosParam(nh_private),
-                      mesh_collection_ptr, time_line_callback) {}
+                      submap_collection_ptr, mesh_collection_ptr,
+                      time_line_callback) {}
   ClientHandler(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private,
                 const CliId& client_id, std::string map_frame_prefix,
                 const CliSmConfig& submap_config, const Config& config,
+                const SubmapCollection::Ptr& submap_collection_ptr,
                 MeshCollection::Ptr mesh_collection_ptr,
                 TimeLineUpdateCallback time_line_callback)
       : client_id_(client_id),
@@ -79,6 +82,7 @@ class ClientHandler {
         transformer_(nh, nh_private),
         time_line_update_callback_(time_line_callback),
         eval_data_pub_(nh, nh_private),
+
         mesh_collection_ptr_(mesh_collection_ptr) {
     subscribeToTopics();
     advertiseTopics();
@@ -131,6 +135,9 @@ class ClientHandler {
     return true;
   }
 
+  void submapPoseUpdatesCallback(
+      const coxgraph_msgs::MapPoseUpdates& map_pose_updates_msg);
+
   void subscribeToTopics();
   void advertiseTopics();
   void subscribeToServices();
@@ -153,11 +160,14 @@ class ClientHandler {
   ros::Publisher loop_closure_pub_;
   ros::Publisher sm_pose_tf_pub_;
   ros::Subscriber time_line_sub_;
+  ros::Subscriber sm_pose_updates_sub_;
   ros::ServiceClient pub_client_submap_client_;
   ros::ServiceClient get_all_submaps_client_;
   ros::ServiceClient get_pose_history_client_;
 
   Transformer transformer_;
+
+  SubmapCollection::Ptr submap_collection_ptr_;
 
   std::mutex submap_request_mutex_;
 

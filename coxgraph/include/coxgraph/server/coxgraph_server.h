@@ -46,7 +46,8 @@ class CoxgraphServer {
           output_map_frame("mission"),
           enable_registration_constraints(true),
           enable_map_fusion_constraints(true),
-          publisher_queue_length(100) {}
+          publisher_queue_length(100),
+          use_tf_submap_pose(false) {}
     int32_t client_number;
     int32_t map_fusion_queue_size;
     ros::Duration refuse_interval;
@@ -56,6 +57,7 @@ class CoxgraphServer {
     bool enable_registration_constraints;
     bool enable_map_fusion_constraints;
     int32_t publisher_queue_length;
+    bool use_tf_submap_pose;
 
     bool enable_client_loop_clousure;
 
@@ -81,6 +83,10 @@ class CoxgraphServer {
                                                                   : "disabled")
         << std::endl
         << "  Publisher Queue Length: " << v.publisher_queue_length << std::endl
+        << "  Use TF Submap Pose: "
+        << static_cast<std::string>(v.use_tf_submap_pose ? "enabled"
+                                                         : "disabled")
+        << std::endl
         << "-------------------------------------------" << std::endl;
       return (s);
     }
