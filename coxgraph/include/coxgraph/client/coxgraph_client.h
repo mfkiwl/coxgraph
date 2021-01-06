@@ -26,6 +26,7 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
     int client_id;
     nh_private.param<int>("client_id", client_id, -1);
     client_id_ = static_cast<CliId>(client_id);
+    subscribeToClientTopics();
     advertiseClientTopics();
     advertiseClientServices();
     if (client_id_ < 0) {
@@ -44,6 +45,7 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
 
   inline const CliId& getClientId() const { return client_id_; }
 
+  void subscribeToClientTopics();
   void advertiseClientTopics();
   void advertiseClientServices();
 

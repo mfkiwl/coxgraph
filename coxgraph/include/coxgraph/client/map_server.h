@@ -1,6 +1,7 @@
 #ifndef COXGRAPH_CLIENT_MAP_SERVER_H_
 #define COXGRAPH_CLIENT_MAP_SERVER_H_
 
+#include <nav_msgs/Odometry.h>
 #include <ros/ros.h>
 #include <voxblox_msgs/Layer.h>
 #include <voxblox_ros/ptcloud_vis.h>
@@ -11,6 +12,7 @@
 
 #include <memory>
 #include <mutex>
+#include <set>
 #include <string>
 
 #include "coxgraph/common.h"
@@ -143,6 +145,15 @@ class MapServer {
   }
 
   ros::Publisher submap_mesh_pub_;
+
+  ros::Subscriber kf_pose_sub_;
+  std::set<ros::Time> kf_timestamp_set_;
+  void kfPoseCallback(const nav_msgs::Odometry& kf_pose_msg) {
+    if (kf_timestamp_set_.size() > kKfTimestampQueueSize)
+      kf_timestamp_set_.erase(kf_timestamp_set_.begin());
+    kf_timestamp_set_.emplace(kf_pose_msg.header.stamp);
+  }
+  constexpr static int kKfTimestampQueueSize = 400;
 };
 
 }  // namespace client

@@ -20,6 +20,7 @@
   <depend>active_3d_planning_app_reconstruction</depend>
   <depend>coxgraph</depend>
   <depend>coxgraph_msgs</depend>
+  <depend>coxgraph_mod</depend>
 
 </package>
 

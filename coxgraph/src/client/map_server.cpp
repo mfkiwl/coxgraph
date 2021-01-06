@@ -27,7 +27,10 @@ MapServer::Config MapServer::getConfigFromRosParam(
   return config;
 }
 
-void MapServer::subscribeTopics() {}
+void MapServer::subscribeTopics() {
+  kf_pose_sub_ = nh_private_.subscribe("keyframe_pose", 10,
+                                       &MapServer::kfPoseCallback, this);
+}
 
 void MapServer::advertiseTopics() {
   tsdf_pub_ =
@@ -113,7 +116,7 @@ void MapServer::publishTraversable() {
   }
 }
 
-void MapServer::publishSubmapMesh(CliSmId csid, std::string world_frame,
+void MapServer::publishSubmapMesh(CliSmId csid, std::string /* world_frame */,
                                   const voxgraph::SubmapVisuals& submap_vis) {
   CliSm::ConstPtr submap_ptr = submap_collection_ptr_->getSubmapConstPtr(csid);
   auto mesh_layer_ptr =
@@ -124,17 +127,18 @@ void MapServer::publishSubmapMesh(CliSmId csid, std::string world_frame,
 
   voxblox_msgs::MultiMesh mesh_msg;
   submap_vis.generateSubmapMeshMsg(mesh_layer_ptr, &mesh_msg.mesh);
-  mesh_msg.header.frame_id =
+  std::string submap_frame =
       "submap_" + std::to_string(csid) + "_" + std::to_string(client_id_);
-  mesh_msg.name_space =
-      "submap_" + std::to_string(csid) + "_" + std::to_string(client_id_);
+  mesh_msg.header.frame_id = submap_frame;
+  mesh_msg.name_space = submap_frame;
 
   if (config_.publish_mesh_with_trajectory) {
     coxgraph_msgs::MeshWithTrajectory mesh_with_traj_msg;
     mesh_with_traj_msg.mesh = mesh_msg;
     for (auto const& pose_kv : submap_ptr->getPoseHistory()) {
+      if (!kf_timestamp_set_.count(pose_kv.first)) continue;
       geometry_msgs::PoseStamped pose_msg;
-      pose_msg.header.frame_id = world_frame;
+      pose_msg.header.frame_id = submap_frame;
       pose_msg.header.stamp = pose_kv.first;
       tf::poseKindrToMsg(pose_kv.second.cast<double>(), &pose_msg.pose);
       mesh_with_traj_msg.trajectory.poses.emplace_back(pose_msg);
