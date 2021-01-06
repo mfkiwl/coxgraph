@@ -52,6 +52,7 @@
       <param name="use_tf_transforms" value="true"/>
       <param name="fov_horizontal_degree" value="45"/>
       <param name="fov_vertical_degree" value="60"/>
+      <param name="interpolate_ratio" value="1"/>
     </node>
   </group>
 

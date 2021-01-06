@@ -17,18 +17,10 @@ bool MeshConverter::convertToPointCloud() {
   if (mesh_.mesh_blocks.empty()) return false;
   timing::Timer recovered_poincloud_timer("recover_pointcloud");
   pointcloud_->clear();
+  Pointcloud triangle;
   for (auto const& mesh_block : mesh_.mesh_blocks) {
     const BlockIndex index(mesh_block.index[0], mesh_block.index[1],
                            mesh_block.index[2]);
-
-    // If use mesh pointcloud interpolation, mesh will be connected, and
-    // interpolate according to connected triangles
-    size_t vertex_index = 0u;
-    Mesh mesh;
-    if (config_.interpolate_ratio > 0) {
-      mesh.vertices.reserve(mesh_block.x.size());
-      mesh.indices.reserve(mesh_block.x.size());
-    }
 
     // translate vertex data from message to voxblox mesh
     for (size_t i = 0; i < mesh_block.x.size(); ++i) {
@@ -50,20 +42,21 @@ bool MeshConverter::convertToPointCloud() {
            static_cast<float>(index[2])) *
           mesh_.block_edge_length;
 
-      if (config_.interpolate_ratio > 0) {
-        mesh.indices.push_back(vertex_index++);
-        mesh.vertices.emplace_back(mesh_x, mesh_y, mesh_z);
-      } else {
-        pointcloud_->emplace_back(mesh_x, mesh_y, mesh_z);
+      pointcloud_->emplace_back(mesh_x, mesh_y, mesh_z);
+      triangle.emplace_back(mesh_x, mesh_y, mesh_z);
+      if (config_.interpolate_ratio > 0 && triangle.size() == 3) {
+        for (int i = 0; i < 3 * std::round(config_.interpolate_ratio); i++) {
+          Point p0 = triangle[0], p1 = triangle[1], p2 = triangle[2];
+          Point t_p0_p1 = p1 - p0;
+          float r1 = std::rand() % 100 / 100.0;
+          Point interp_pt = p0 + r1 * t_p0_p1;
+
+          Point t_p2_interp = p2 - interp_pt;
+          float r2 = std::rand() % 100 / 100.0;
+          interp_pt += r2 * t_p2_interp;
+          pointcloud_->emplace_back(interp_pt);
+        }
       }
-    }
-
-    if (config_.interpolate_ratio > 0) {
-      // connect mesh
-      Mesh connected_mesh;
-      createConnectedMesh(mesh, &connected_mesh);
-
-      LOG(FATAL) << "Mesh pointcloud interpolation not implmented yet.";
     }
   }
 
