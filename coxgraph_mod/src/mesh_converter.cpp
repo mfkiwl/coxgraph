@@ -60,8 +60,6 @@ bool MeshConverter::convertToPointCloud() {
     }
   }
 
-  LOG(INFO) << "recovered point cloud size " << pointcloud_->size();
-
   recovered_poincloud_timer.Stop();
 
   return true;

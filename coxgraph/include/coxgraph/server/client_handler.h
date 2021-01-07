@@ -20,6 +20,7 @@
 #include "coxgraph/server/submap_collection.h"
 #include "coxgraph/server/visualizer/mesh_collection.h"
 #include "coxgraph/utils/eval_data_publisher.h"
+#include "coxgraph/utils/msg_converter.h"
 
 namespace coxgraph {
 namespace server {
@@ -179,13 +180,11 @@ class ClientHandler {
   ros::Subscriber submap_mesh_sub_;
   void submapMeshCallback(
       const coxgraph_msgs::MeshWithTrajectory& mesh_with_traj) {
-    std::string frame_id = mesh_with_traj.mesh.header.frame_id;
-    frame_id.erase(0, 7);
-    size_t pos = frame_id.find_last_of('_');
-    CliSmId csid = std::stoi(frame_id.substr(0, pos));
-    CliId cid = std::stoi(frame_id.substr(pos + 1, frame_id.size()));
-    CHECK_EQ(cid, client_id_);
-    mesh_collection_ptr_->addSubmapMesh(client_id_, csid, mesh_with_traj);
+    CIdCSIdPair csid_pair =
+        utils::resolveSubmapFrame(mesh_with_traj.mesh.header.frame_id);
+    CHECK_EQ(csid_pair.first, client_id_);
+    mesh_collection_ptr_->addSubmapMesh(client_id_, csid_pair.second,
+                                        mesh_with_traj);
   }
 
   constexpr static int8_t kSubQueueSize = 10;

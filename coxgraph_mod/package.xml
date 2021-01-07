@@ -17,5 +17,6 @@
   <depend>coxgraph</depend>
   <depend>coxgraph_msgs</depend>
   <depend>eigen_catkin</depend>
+  <depend>cblox_msgs</depend>
 </package>
 

@@ -13,6 +13,7 @@
 #include <voxgraph_msgs/LoopClosure.h>
 
 #include <string>
+#include <utility>
 
 #include "coxgraph/common.h"
 
@@ -160,6 +161,14 @@ inline uint64_t sizeOfMsg(const coxgraph_msgs::ClientSubmap& msg) {
   total_size += sizeof(msg.map_header);
 
   return total_size;
+}
+
+inline CIdCSIdPair resolveSubmapFrame(std::string frame_id) {
+  frame_id.erase(0, 7);
+  size_t pos = frame_id.find_last_of('_');
+  CliSmId csid = std::stoi(frame_id.substr(0, pos));
+  CliId cid = std::stoi(frame_id.substr(pos + 1, frame_id.size()));
+  return std::make_pair(cid, csid);
 }
 
 }  // namespace utils

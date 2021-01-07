@@ -34,7 +34,7 @@
       <param name="tsdf_voxel_size" value="$(arg tsdf_voxel_size)"/>
       <param name="truncation_distance" value="$(arg truncation_distance)"/>
       <param name="publish_mesh_with_trajectory" value="true"/>
-      <param name="submap_pose_tf_publishing_period_s" value="0.0"/>
+      <!-- <param name="submap_pose_tf_publishing_period_s" value="0.0"/> -->
     </node>
 
     <include file="$(find coxgraph)/launch/firefly/tsdf_client.launch">
