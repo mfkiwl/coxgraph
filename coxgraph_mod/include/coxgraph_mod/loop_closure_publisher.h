@@ -37,7 +37,7 @@ class LoopClosurePublisher {
                        const ros::NodeHandle& nh_private,
                        bool server_mode = false)
       : nh_(nh), nh_private_(nh_private) {
-    nh_private_.param("num_agents", client_number_, client_number_);
+    nh_private_.param("num_agents", client_number_, 0);
 
     nh_private_.param<std::string>("loop_closure_topic_prefix",
                                    loop_closure_topic_prefix_,

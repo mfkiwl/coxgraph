@@ -58,8 +58,22 @@ class VIOInterface {
   void publishLoopClosure(CliId cid, const double& from_timestamp,
                           const double& to_timestamp, cv::Mat R, cv::Mat t) {
     init(InitModule::lc);
-    loop_closure_pub_->publishLoopClosure(from_timestamp, cid, to_timestamp, R,
+    loop_closure_pub_->publishLoopClosure(cid, from_timestamp, to_timestamp, R,
                                           t);
+  }
+
+  void publishLoopClosure(const double& from_timestamp,
+                          const double& to_timestamp, cv::Mat R, cv::Mat t) {
+    init(InitModule::lc);
+    loop_closure_pub_->publishLoopClosure(-1, from_timestamp, to_timestamp, R,
+                                          t);
+  }
+
+  void publishLoopClosure(const double& from_timestamp,
+                          const double& to_timestamp, Eigen::Matrix4d T_A_B) {
+    init(InitModule::lc);
+    loop_closure_pub_->publishLoopClosure(-1, from_timestamp, to_timestamp,
+                                          T_A_B);
   }
 
   bool toggleMapping(bool b_mapping) {
@@ -159,6 +173,15 @@ void publishLoopClosure(CliId cid, const double& from_timestamp,
                         const double& to_timestamp, cv::Mat R, cv::Mat t) {
   vio_interface.publishLoopClosure(cid, from_timestamp, to_timestamp, R, t);
 }
+void publishLoopClosure(const double& from_timestamp,
+                        const double& to_timestamp, Eigen::Matrix4d T_A_B) {
+  vio_interface.publishLoopClosure(from_timestamp, to_timestamp, T_A_B);
+}
+void publishLoopClosure(const double& from_timestamp,
+                        const double& to_timestamp, cv::Mat R, cv::Mat t) {
+  vio_interface.publishLoopClosure(from_timestamp, to_timestamp, R, t);
+}
+
 bool toggleMapping(bool b_mapping) {
   return vio_interface.toggleMapping(b_mapping);
 }

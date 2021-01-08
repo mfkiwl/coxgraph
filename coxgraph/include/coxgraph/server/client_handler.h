@@ -183,6 +183,7 @@ class ClientHandler {
     CIdCSIdPair csid_pair =
         utils::resolveSubmapFrame(mesh_with_traj.mesh.header.frame_id);
     CHECK_EQ(csid_pair.first, client_id_);
+    LOG(INFO) << log_prefix_ << " Received mesh of submap " << csid_pair.second;
     mesh_collection_ptr_->addSubmapMesh(client_id_, csid_pair.second,
                                         mesh_with_traj);
   }

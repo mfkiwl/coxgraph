@@ -24,8 +24,10 @@ class MeshCollection {
 
   void addSubmapMesh(CliId cid, CliSmId csid,
                      coxgraph_msgs::MeshWithTrajectory mesh_with_traj) {
-    CHECK(!csid_mesh_map_ptr_->count(std::make_pair(cid, csid)));
-    csid_mesh_map_ptr_->emplace(std::make_pair(cid, csid), mesh_with_traj);
+    if (!csid_mesh_map_ptr_->count(std::make_pair(cid, csid)))
+      csid_mesh_map_ptr_->emplace(std::make_pair(cid, csid), mesh_with_traj);
+    else
+      (*csid_mesh_map_ptr_)[std::make_pair(cid, csid)] = mesh_with_traj;
   }
 
   CSIdMeshMapPtr getSubmapMeshesPtr() { return csid_mesh_map_ptr_; }
