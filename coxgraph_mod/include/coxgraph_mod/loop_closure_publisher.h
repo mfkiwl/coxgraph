@@ -70,7 +70,7 @@ class LoopClosurePublisher {
     map_fusion_msg.transform.translation = transform;
 
     if (from_client_id != to_client_id) {
-      ROS_FATAL(
+      ROS_INFO(
           "Map Fusion Message Published, from client %d time %d, to client "
           "%d time %d ",
           static_cast<int>(from_client_id),
@@ -125,12 +125,14 @@ class LoopClosurePublisher {
                 loop_closure_topic_prefix_ + std::to_string(cid), 10, true));
       }
       loop_closure_pub_[cid].publish(loop_closure_msg);
+      ROS_INFO_STREAM("Published loop closure msg for client " << cid);
     } else {
       if (!loop_closure_pub_.count(-1))
         loop_closure_pub_.emplace(
             -1, nh_private_.advertise<coxgraph_msgs::LoopClosure>(
                     "loop_closure_out", 10, true));
       loop_closure_pub_[-1].publish(loop_closure_msg);
+      ROS_INFO_STREAM("Published loop closure msg");
     }
 
     return true;
