@@ -28,6 +28,9 @@ ClientHandler::Config ClientHandler::getConfigFromRosParam(
       config.client_map_pose_update_topic_suffix);
   nh_private.param<int>("client_handler/pub_queue_length",
                         config.pub_queue_length, config.pub_queue_length);
+  nh_private.param<bool>("enable_client_loop_closure",
+                         config.enable_client_loop_closure,
+                         config.enable_client_loop_closure);
   return config;
 }
 
@@ -47,9 +50,10 @@ void ClientHandler::timeLineCallback(
 }
 
 void ClientHandler::advertiseTopics() {
-  loop_closure_pub_ = nh_.advertise<voxgraph_msgs::LoopClosure>(
-      client_node_name_ + "/" + config_.client_loop_closure_topic_suffix,
-      config_.pub_queue_length, true);
+  if (config_.enable_client_loop_closure)
+    loop_closure_pub_ = nh_.advertise<voxgraph_msgs::LoopClosure>(
+        client_node_name_ + "/" + config_.client_loop_closure_topic_suffix,
+        config_.pub_queue_length, true);
   sm_pose_tf_pub_ = nh_.advertise<coxgraph_msgs::MapTransform>(
       client_node_name_ + "/" + config_.client_map_pose_update_topic_suffix,
       config_.pub_queue_length, true);

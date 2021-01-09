@@ -32,7 +32,8 @@
     </node>
 
     <!-- Pose Graph -->
-    <node name="pose_graph_$(arg id)" pkg="pose_graph" type="pose_graph" output="screen" launch-prefix="xterm -e gdb -ex run --args">
+    <node name="pose_graph_$(arg id)" pkg="pose_graph" type="pose_graph" output="screen" >
+      <remap from="~loop_closure_out" to="/coxgraph/coxgraph_client_$(arg id)/loop_closure_in"/>
       <param name="config_file" type="string" value="$(arg config_path)" />
       <param name="visualization_shift_x" type="int" value="0" />
       <param name="visualization_shift_y" type="int" value="0" />

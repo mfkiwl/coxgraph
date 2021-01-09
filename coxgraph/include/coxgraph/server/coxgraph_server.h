@@ -47,7 +47,8 @@ class CoxgraphServer {
           enable_registration_constraints(true),
           enable_map_fusion_constraints(true),
           publisher_queue_length(100),
-          use_tf_submap_pose(false) {}
+          use_tf_submap_pose(false),
+          enable_client_loop_closure(false) {}
     int32_t client_number;
     int32_t map_fusion_queue_size;
     ros::Duration refuse_interval;
@@ -58,8 +59,7 @@ class CoxgraphServer {
     bool enable_map_fusion_constraints;
     int32_t publisher_queue_length;
     bool use_tf_submap_pose;
-
-    bool enable_client_loop_clousure;
+    bool enable_client_loop_closure;
 
     friend inline std::ostream& operator<<(std::ostream& s, const Config& v) {
       s << std::endl
@@ -79,8 +79,8 @@ class CoxgraphServer {
                v.enable_map_fusion_constraints ? "enabled" : "disabled")
         << std::endl
         << "  Client Loop Closure: "
-        << static_cast<std::string>(v.enable_client_loop_clousure ? "enabled"
-                                                                  : "disabled")
+        << static_cast<std::string>(v.enable_client_loop_closure ? "enabled"
+                                                                 : "disabled")
         << std::endl
         << "  Publisher Queue Length: " << v.publisher_queue_length << std::endl
         << "  Use TF Submap Pose: "

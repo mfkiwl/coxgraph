@@ -32,11 +32,13 @@ class ClientHandler {
         : client_name_prefix("coxgraph_client_"),
           client_loop_closure_topic_suffix("loop_closure_in"),
           client_map_pose_update_topic_suffix("map_pose_update_in"),
-          pub_queue_length(1) {}
+          pub_queue_length(1),
+          enable_client_loop_closure(false) {}
     std::string client_name_prefix;
     std::string client_loop_closure_topic_suffix;
     std::string client_map_pose_update_topic_suffix;
     int32_t pub_queue_length;
+    bool enable_client_loop_closure;
 
     friend inline std::ostream& operator<<(std::ostream& s, const Config& v) {
       s << std::endl
@@ -47,6 +49,8 @@ class ClientHandler {
         << "  Client Map Pose Update Topic Suffix: "
         << v.client_map_pose_update_topic_suffix << std::endl
         << "  Publisher Queue Length: " << v.pub_queue_length << std::endl
+        << "  Client Loop Closure: " << v.enable_client_loop_closure
+        << std::endl
         << "-------------------------------------------" << std::endl;
       return (s);
     }

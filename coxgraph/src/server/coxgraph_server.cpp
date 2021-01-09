@@ -49,8 +49,8 @@ CoxgraphServer::Config CoxgraphServer::getConfigFromRosParam(
                          config.enable_map_fusion_constraints,
                          config.enable_map_fusion_constraints);
   nh_private.param<bool>("enable_client_loop_closure",
-                         config.enable_client_loop_clousure,
-                         config.enable_client_loop_clousure);
+                         config.enable_client_loop_closure,
+                         config.enable_client_loop_closure);
   nh_private.param<int>("publisher_queue_length", config.publisher_queue_length,
                         config.publisher_queue_length);
   nh_private.param<bool>("use_tf_submap_pose", config.use_tf_submap_pose,
@@ -212,7 +212,7 @@ void CoxgraphServer::mapFusionMsgCallback(
 void CoxgraphServer::loopClosureCallback(
     const CliId& client_id,
     const voxgraph_msgs::LoopClosure& loop_closure_msg) {
-  if (config_.enable_client_loop_clousure)
+  if (config_.enable_client_loop_closure)
     client_handlers_[client_id]->pubLoopClosureMsg(loop_closure_msg);
 }
 
