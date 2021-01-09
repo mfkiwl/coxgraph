@@ -1,4 +1,4 @@
-#include "coxgraph_mod/mesh_converter.h"
+#include "coxgraph/map_conversion/mesh_converter.h"
 
 #include <limits>
 
