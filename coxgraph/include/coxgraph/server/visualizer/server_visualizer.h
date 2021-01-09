@@ -15,9 +15,9 @@
 #include <vector>
 
 #include "coxgraph/common.h"
+#include "coxgraph/server/mesh_collection.h"
 #include "coxgraph/server/pose_graph_interface.h"
 #include "coxgraph/server/submap_collection.h"
-#include "coxgraph/server/visualizer/mesh_collection.h"
 
 namespace coxgraph {
 namespace server {

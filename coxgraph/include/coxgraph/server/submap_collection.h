@@ -1,16 +1,22 @@
 #ifndef COXGRAPH_SERVER_SUBMAP_COLLECTION_H_
 #define COXGRAPH_SERVER_SUBMAP_COLLECTION_H_
 
+#include <coxgraph_msgs/MeshWithTrajectory.h>
+#include <voxblox/integrator/tsdf_integrator.h>
+#include <voxblox_ros/ros_params.h>
 #include <voxgraph/frontend/submap_collection/voxgraph_submap_collection.h>
 
 #include <map>
 #include <memory>
 #include <mutex>
+#include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
 #include "coxgraph/common.h"
+#include "coxgraph/map_conversion/mesh_converter.h"
+#include "coxgraph/server/mesh_collection.h"
 
 namespace coxgraph {
 namespace server {
@@ -20,9 +26,22 @@ class SubmapCollection : public voxgraph::VoxgraphSubmapCollection {
   typedef std::shared_ptr<SubmapCollection> Ptr;
 
   SubmapCollection(const voxgraph::VoxgraphSubmap::Config& submap_config,
-                   int8_t client_number, bool verbose = false)
+                   int8_t client_number,
+                   MeshCollection::Ptr mesh_collection_ptr,
+                   const ros::NodeHandle& nh_private, bool verbose = false)
       : voxgraph::VoxgraphSubmapCollection(submap_config, verbose),
-        client_number_(client_number) {}
+        client_number_(client_number),
+        mesh_collection_ptr_(mesh_collection_ptr) {
+    mesh_converter_ptr_.reset(new voxblox::MeshConverter(nh_private));
+
+    tmp_tsdf_layer_.reset(new voxblox::Layer<voxblox::TsdfVoxel>(
+        submap_config.tsdf_voxel_size, submap_config.tsdf_voxels_per_side));
+    std::string method("merged");
+    nh_private.param("method", method, method);
+    tsdf_integrator_ = voxblox::TsdfIntegratorFactory::create(
+        method, voxblox::getTsdfIntegratorConfigFromRosParam(nh_private),
+        tmp_tsdf_layer_.get());
+  }
 
   // Copy constructor without copy mutex
   SubmapCollection(const SubmapCollection& rhs)
@@ -37,8 +56,11 @@ class SubmapCollection : public voxgraph::VoxgraphSubmapCollection {
 
   const int8_t& getClientNumber() const { return client_number_; }
 
-  Transformation addSubmap(const CliSm::Ptr& submap_ptr, const CliId& cid,
-                           const CliSmId& cli_sm_id);
+  void addSubmap(const CliSm::Ptr& submap_ptr, const CliId& cid,
+                 const CliSmId& cli_sm_id);
+
+  void addSubmap(const coxgraph_msgs::MeshWithTrajectory& submap_mesh,
+                 const CliId& cid, const CliSmId& csid);
 
   inline bool getSerSmIdsByCliId(const CliId& cid,
                                  std::vector<SerSmId>* ser_sids) {
@@ -50,12 +72,12 @@ class SubmapCollection : public voxgraph::VoxgraphSubmapCollection {
     }
   }
 
-  inline bool getSerSmIdByCliSmId(const CliId& cid, const CliSmId& cli_sm_id,
-                                  SerSmId* ser_sm_id) {
-    CHECK(ser_sm_id != nullptr);
+  inline bool getSerSmIdByCliSmId(const CliId& cid, const CliSmId& csid,
+                                  SerSmId* ssid) {
+    CHECK(ssid != nullptr);
     for (auto ser_sm_id_v : cli_ser_sm_id_map_[cid]) {
-      if (sm_cli_id_map_[ser_sm_id_v].second == cli_sm_id) {
-        *ser_sm_id = ser_sm_id_v;
+      if (sm_cli_id_map_[ser_sm_id_v].second == csid) {
+        *ssid = ser_sm_id_v;
         return true;
       }
     }
@@ -63,23 +85,22 @@ class SubmapCollection : public voxgraph::VoxgraphSubmapCollection {
   }
 
   inline bool getCliSmIdsByCliId(const CliId& cid,
-                                 std::vector<CliSmId>* cli_sids) {
-    CHECK(cli_sids != nullptr);
-    cli_sids->clear();
+                                 std::vector<CliSmId>* csids) {
+    CHECK(csids != nullptr);
+    csids->clear();
     for (auto ser_sm_id_v : cli_ser_sm_id_map_[cid]) {
-      cli_sids->emplace_back(sm_cli_id_map_[ser_sm_id_v].second);
+      csids->emplace_back(sm_cli_id_map_[ser_sm_id_v].second);
     }
-    return !cli_sids->empty();
+    return !csids->empty();
   }
 
-  inline void updateOriPose(const SerSmId& ser_sm_id,
-                            const Transformation& pose) {
-    CHECK(exists(ser_sm_id));
-    sm_id_ori_pose_map_[ser_sm_id] = pose;
+  inline void updateOriPose(const SerSmId& ssid, const Transformation& pose) {
+    CHECK(exists(ssid));
+    sm_id_ori_pose_map_[ssid] = pose;
   }
-  inline Transformation getOriPose(const SerSmId& ser_sm_id) {
-    CHECK(sm_id_ori_pose_map_.count(ser_sm_id));
-    return sm_id_ori_pose_map_[ser_sm_id];
+  inline Transformation getOriPose(const SerSmId& ssid) {
+    CHECK(sm_id_ori_pose_map_.count(ssid));
+    return sm_id_ori_pose_map_[ssid];
   }
 
   inline std::timed_mutex* getPosesUpdateMutex() {
@@ -97,6 +118,11 @@ class SubmapCollection : public voxgraph::VoxgraphSubmapCollection {
 
   SmCliIdMap sm_cli_id_map_;
   CliSerSmIdMap cli_ser_sm_id_map_;
+
+  voxblox::Layer<voxblox::TsdfVoxel>::Ptr tmp_tsdf_layer_;
+  voxblox::MeshConverter::Ptr mesh_converter_ptr_;
+  std::shared_ptr<voxblox::TsdfIntegratorBase> tsdf_integrator_;
+  MeshCollection::Ptr mesh_collection_ptr_;
 
   std::unordered_map<SerSmId, Transformation> sm_id_ori_pose_map_;
 

@@ -108,8 +108,7 @@ class CoxgraphServer {
         verbose_(false),
         config_(config),
         submap_config_(submap_config),
-        submap_collection_ptr_(std::make_shared<SubmapCollection>(
-            submap_config_, config.client_number)),
+
         pose_graph_interface_(nh_private, submap_collection_ptr_, mesh_config,
                               config.output_map_frame, false),
         server_vis_(
@@ -117,6 +116,10 @@ class CoxgraphServer {
     nh_private_.param<bool>("verbose", verbose_, verbose_);
     LOG(INFO) << "Verbose: " << verbose_;
     LOG(INFO) << config_;
+
+    submap_collection_ptr_ = std::make_shared<SubmapCollection>(
+        submap_config_, config.client_number,
+        server_vis_->getMeshCollectionPtr(), nh_private, verbose_);
 
     distrib_ctl_ptr_.reset(
         new DistributionController(nh_, nh_private_, submap_collection_ptr_));

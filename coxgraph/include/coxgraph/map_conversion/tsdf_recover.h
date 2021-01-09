@@ -52,8 +52,7 @@ class TsdfRecover : public TsdfServer {
     nh_private_.param<float>("fov_horizontal_degree", fov.horizontal_degree,
                              90);
     nh_private_.param<float>("fov_vertical_degree", fov.vertical_degree, 60);
-    mesh_converter_.reset(new MeshConverter(
-        MeshConverter::getConfigFromRosParam(nh_private_), fov));
+    mesh_converter_.reset(new MeshConverter(nh_private_));
 
     subscribeToTopics();
     advertiseTopics();

@@ -1,5 +1,5 @@
-#ifndef COXGRAPH_SERVER_VISUALIZER_MESH_COLLECTION_H_
-#define COXGRAPH_SERVER_VISUALIZER_MESH_COLLECTION_H_
+#ifndef COXGRAPH_SERVER_MESH_COLLECTION_H_
+#define COXGRAPH_SERVER_MESH_COLLECTION_H_
 
 #include <coxgraph/common.h>
 #include <coxgraph_msgs/MeshWithTrajectory.h>
@@ -39,4 +39,4 @@ class MeshCollection {
 }  // namespace server
 }  // namespace coxgraph
 
-#endif  // COXGRAPH_SERVER_VISUALIZER_MESH_COLLECTION_H_
+#endif  // COXGRAPH_SERVER_MESH_COLLECTION_H_

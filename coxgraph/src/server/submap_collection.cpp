@@ -7,9 +7,8 @@
 namespace coxgraph {
 namespace server {
 
-Transformation SubmapCollection::addSubmap(const CliSm::Ptr& submap_ptr,
-                                           const CliId& cid,
-                                           const CliSmId& cli_sm_id) {
+void SubmapCollection::addSubmap(const CliSm::Ptr& submap_ptr, const CliId& cid,
+                                 const CliSmId& cli_sm_id) {
   CHECK(submap_ptr != nullptr);
   voxgraph::VoxgraphSubmapCollection::addSubmap(submap_ptr);
   sm_cli_id_map_.emplace(submap_ptr->getID(), CIdCSIdPair(cid, cli_sm_id));
@@ -18,7 +17,16 @@ Transformation SubmapCollection::addSubmap(const CliSm::Ptr& submap_ptr,
   }
   cli_ser_sm_id_map_[cid].emplace_back(submap_ptr->getID());
   sm_id_ori_pose_map_.emplace(submap_ptr->getID(), submap_ptr->getPose());
-  return Transformation();
+}
+
+void SubmapCollection::addSubmap(
+    const coxgraph_msgs::MeshWithTrajectory& submap_mesh, const CliId& cid,
+    const CliSmId& csid) {
+  // If a submap is already generated from tsdf, don't replace it
+  if (cli_ser_sm_id_map_.count(cid) &&
+      std::count(cli_ser_sm_id_map_[cid].begin(), cli_ser_sm_id_map_[cid].end(),
+                 csid))
+    return;
 }
 
 Transformation SubmapCollection::mergeToCliMap(const CliSm::Ptr& submap_ptr) {

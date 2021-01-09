@@ -17,8 +17,8 @@
 #include <vector>
 
 #include "coxgraph/common.h"
+#include "coxgraph/server/mesh_collection.h"
 #include "coxgraph/server/submap_collection.h"
-#include "coxgraph/server/visualizer/mesh_collection.h"
 #include "coxgraph/utils/eval_data_publisher.h"
 #include "coxgraph/utils/msg_converter.h"
 
