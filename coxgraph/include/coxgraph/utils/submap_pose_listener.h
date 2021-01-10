@@ -5,15 +5,20 @@
 #include <minkindr_conversions/kindr_msg.h>
 
 #include <map>
+#include <string>
+#include <utility>
 
 #include "coxgraph/common.h"
+#include "coxgraph/utils/msg_converter.h"
 
 namespace coxgraph {
 namespace utils {
 class SubmapPoseListener {
  public:
-  SubmapPoseListener() : SubmapPoseListener(ros::NodeHandle()) {}
-  explicit SubmapPoseListener(ros::NodeHandle nh_private) {
+  SubmapPoseListener()
+      : SubmapPoseListener(ros::NodeHandle(), ros::NodeHandle("~")) {}
+  explicit SubmapPoseListener(ros::NodeHandle nh, ros::NodeHandle nh_private)
+      : transformer_(nh, nh_private) {
     nh_private.param("use_tf_submap_pose", use_tf_submap_pose_, false);
     if (!use_tf_submap_pose_)
       submap_pose_sub_ = nh_private.subscribe(
@@ -21,40 +26,75 @@ class SubmapPoseListener {
     else
       LOG(FATAL) << "bug unfixed when using submap pose from tf";
 
-    nh_private.param("submap_pose_time_tolerance_ms",
-                     submap_pose_time_tolerance_ms_,
-                     submap_pose_time_tolerance_ms_);
+    nh_private.param<float>("submap_pose_time_tolerance_ms",
+                            submap_pose_time_tolerance_ms_, 500.0);
+
+    nh_private.param<std::string>("map_frame_prefix", map_frame_prefix_,
+                                  map_frame_prefix_);
   }
 
   ~SubmapPoseListener() = default;
 
-  bool getSubmapPoseBlocking(int16_t submap_id, Transformation* T_G_Sm) {
+  /**
+   * @brief Get the Submap Pose in Blocking mode, if submap pose can't be find,
+   * block
+   *
+   * @param submap_frame
+   * @param T_G_Sm if from_frame is empty, this will be transform from client
+   * map frame to submap frame
+   * @param from_frame
+   * @return true
+   * @return false
+   */
+  bool getSubmapPoseBlocking(const std::string& submap_frame,
+                             Transformation* T_G_Sm,
+                             bool from_global_frame = false) {
     float loop_ms = 10;
     ros::Rate loop(ros::Duration(loop_ms / 1000));
     float wait_time_ms = 0;
-    while (!submap_pose_map_.count(submap_id)) {
+    while (!submap_pose_map_.count(submap_frame)) {
       loop.sleep();
       wait_time_ms += loop_ms;
       if (wait_time_ms > submap_pose_time_tolerance_ms_) {
+        LOG(ERROR) << submap_pose_time_tolerance_ms_
+                   << "ms later, still hasn't receive pose for "
+                   << submap_frame;
         return false;
       }
     }
-    *T_G_Sm = submap_pose_map_.find(submap_id)->second;
+    if (!from_global_frame) {
+      *T_G_Sm = submap_pose_map_.find(submap_frame)->second;
+    } else {
+      CIdCSIdPair csid_pair = utils::resolveSubmapFrame(submap_frame);
+      Transformation T_G_Cli;
+
+      if (!transformer_.lookupTransform(
+              map_frame_prefix_ + "_g",
+              map_frame_prefix_ + "_" + std::to_string(csid_pair.first),
+              ros::Time(0), &T_G_Cli))
+        return false;
+      else
+        *T_G_Sm = T_G_Cli * submap_pose_map_.find(submap_frame)->second;
+    }
     return true;
   }
 
  private:
-  tf::TransformListener tf_listener_;
+  voxblox::Transformer transformer_;
 
   ros::Subscriber submap_pose_sub_;
-  std::map<int16_t, Transformation> submap_pose_map_;
+  std::map<std::string, Transformation> submap_pose_map_;
   void submapPoseCallback(const cblox_msgs::MapPoseUpdates& pose_update_msg) {
+    CliId cid = utils::resolveMapFrame(pose_update_msg.header.frame_id);
     for (auto const& map_header : pose_update_msg.map_headers) {
       kindr::minimal::QuatTransformationTemplate<double> T_G_Sm;
       tf::poseMsgToKindr(map_header.pose_estimate.map_pose, &T_G_Sm);
-      auto submap_pose_kv = submap_pose_map_.find(map_header.id);
+      std::string submap_frame =
+          utils::getSubmapFrame(std::make_pair(cid, map_header.id));
+      auto submap_pose_kv = submap_pose_map_.find(submap_frame);
       if (submap_pose_kv == submap_pose_map_.end()) {
-        submap_pose_map_.emplace(map_header.id, T_G_Sm.cast<FloatingPoint>());
+        LOG(INFO) << "Received submap pose for " << submap_frame;
+        submap_pose_map_.emplace(submap_frame, T_G_Sm.cast<FloatingPoint>());
       } else {
         submap_pose_kv->second = T_G_Sm.cast<FloatingPoint>();
       }
@@ -63,6 +103,7 @@ class SubmapPoseListener {
 
   bool use_tf_submap_pose_;
   float submap_pose_time_tolerance_ms_;
+  std::string map_frame_prefix_;
 };
 }  // namespace utils
 }  // namespace coxgraph

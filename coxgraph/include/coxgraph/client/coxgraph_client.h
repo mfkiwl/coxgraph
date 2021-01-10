@@ -18,6 +18,7 @@
 #include "coxgraph/utils/msg_converter.h"
 
 namespace coxgraph {
+namespace client {
 
 class CoxgraphClient : public voxgraph::VoxgraphMapper {
  public:
@@ -73,7 +74,6 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
 
  private:
   using VoxgraphMapper = voxgraph::VoxgraphMapper;
-  using MapServer = client::MapServer;
   typedef std::map<CliSmId, Transformation> SmIdTfMap;
 
   void publishTimeLine();
@@ -99,6 +99,7 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
   MapServer::Ptr map_server_;
 };
 
+}  // namespace client
 }  // namespace coxgraph
 
 #endif  // COXGRAPH_CLIENT_COXGRAPH_CLIENT_H_

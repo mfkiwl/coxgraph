@@ -2,6 +2,7 @@
 
 #include <voxblox/integrator/merge_integration.h>
 
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -52,7 +53,7 @@ void SubmapCollection::addSubmap(
   }
 
   recovered_submap_map_.emplace(submap_mesh.mesh.header.frame_id,
-                                std::move(submap));
+                                std::make_shared<CliSm>(std::move(submap)));
 }
 
 // TODO(mikexyl): delete this
@@ -69,6 +70,23 @@ Transformation SubmapCollection::mergeToCliMap(const CliSm::Ptr& submap_ptr) {
 
   cli_map_ptr->finishSubmap();
   return submap_ptr->getPose() * cli_map_ptr->getPose().inverse();
+}
+
+voxblox::TsdfMap::Ptr SubmapCollection::getProjectedMap() {
+  voxblox::TsdfMap::Ptr combined_tsdf_map =
+      voxgraph::VoxgraphSubmapCollection::getProjectedMap();
+
+  // Also project mesh-recovered submaps
+  for (auto const& submap_kv : recovered_submap_map_) {
+    Transformation T_G_Sm;
+    if (submap_pose_listener_.getSubmapPoseBlocking(submap_kv.first, &T_G_Sm,
+                                                    true))
+      voxblox::mergeLayerAintoLayerB(
+          submap_kv.second->getTsdfMap().getTsdfLayer(), T_G_Sm,
+          combined_tsdf_map->getTsdfLayerPtr());
+  }
+
+  return combined_tsdf_map;
 }
 
 }  // namespace server

@@ -29,11 +29,12 @@ class SubmapCollection : public voxgraph::VoxgraphSubmapCollection {
   SubmapCollection(const voxgraph::VoxgraphSubmap::Config& submap_config,
                    int8_t client_number,
                    MeshCollection::Ptr mesh_collection_ptr,
-                   const ros::NodeHandle& nh_private, bool verbose = false)
+                   const ros::NodeHandle& nh, const ros::NodeHandle& nh_private,
+                   bool verbose = false)
       : voxgraph::VoxgraphSubmapCollection(submap_config, verbose),
         client_number_(client_number),
         mesh_collection_ptr_(mesh_collection_ptr),
-        submap_pose_listener_(nh_private) {
+        submap_pose_listener_(nh, nh_private) {
     mesh_converter_ptr_.reset(new voxblox::MeshConverter(nh_private));
 
     std::string method("projective");
@@ -112,6 +113,8 @@ class SubmapCollection : public voxgraph::VoxgraphSubmapCollection {
     return &submap_poses_update_mutex;
   }
 
+  voxblox::TsdfMap::Ptr getProjectedMap();
+
  private:
   typedef std::pair<CliId, CliId> CliIdPair;
   typedef std::unordered_map<SerSmId, CIdCSIdPair> SmCliIdMap;
@@ -127,7 +130,7 @@ class SubmapCollection : public voxgraph::VoxgraphSubmapCollection {
   voxblox::MeshConverter::Ptr mesh_converter_ptr_;
   std::shared_ptr<voxblox::TsdfIntegratorBase> tsdf_integrator_;
   MeshCollection::Ptr mesh_collection_ptr_;
-  std::map<std::string, CliSm> recovered_submap_map_;
+  std::map<std::string, CliSm::Ptr> recovered_submap_map_;
 
   std::unordered_map<SerSmId, Transformation> sm_id_ori_pose_map_;
 

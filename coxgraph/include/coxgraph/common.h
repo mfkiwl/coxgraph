@@ -18,7 +18,7 @@
 
 namespace coxgraph {
 
-typedef int8_t CliId;
+typedef int16_t CliId;
 
 using CliSm = voxgraph::VoxgraphSubmap;
 using SerSmId = voxgraph::SubmapID;

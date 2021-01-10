@@ -18,6 +18,7 @@
 #include "coxgraph/utils/msg_converter.h"
 
 namespace coxgraph {
+namespace server {
 
 CoxgraphServer::Config CoxgraphServer::getConfigFromRosParam(
     const ros::NodeHandle& nh_private) {
@@ -80,7 +81,10 @@ void CoxgraphServer::subscribeTopics() {
                     &CoxgraphServer::mapFusionMsgCallback, this);
 }
 
-void CoxgraphServer::advertiseTopics() {}
+void CoxgraphServer::advertiseTopics() {
+  projected_map_pub_timer_ = nh_private_.createTimer(
+      ros::Duration(1.0), &CoxgraphServer::publishProjectedMap, this);
+}
 
 void CoxgraphServer::advertiseServices() {
   get_final_global_mesh_srv_ = nh_private_.advertiseService(
@@ -561,4 +565,5 @@ void CoxgraphServer::updateCliMapRelativePose() {
   }
 }
 
+}  // namespace server
 }  // namespace coxgraph

@@ -178,6 +178,12 @@ inline std::string getSubmapFrame(CIdCSIdPair csid_pair) {
   return frame_oss.str();
 }
 
+inline CliId resolveMapFrame(std::string frame_id) {
+  size_t pos = frame_id.find_last_of('_');
+  CliId cid = std::stoi(frame_id.substr(pos + 1, frame_id.size()));
+  return cid;
+}
+
 }  // namespace utils
 }  // namespace coxgraph
 

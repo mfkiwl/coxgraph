@@ -18,7 +18,7 @@ int main(int argc, char** argv) {
   ros::NodeHandle nh_private("~");
 
   // Create the mapper
-  coxgraph::CoxgraphClient coxgraph_client(nh, nh_private);
+  coxgraph::client::CoxgraphClient coxgraph_client(nh, nh_private);
 
   // Spin
   ros::spin();

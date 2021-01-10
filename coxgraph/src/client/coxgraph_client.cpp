@@ -11,6 +11,7 @@
 #include "coxgraph/common.h"
 
 namespace coxgraph {
+namespace client {
 
 void CoxgraphClient::subscribeToClientTopics() {}
 
@@ -201,4 +202,5 @@ void CoxgraphClient::savePoseHistory(std::string file_path) {
   LOG(INFO) << log_prefix_ << ok_str;
 }
 
+}  // namespace client
 }  // namespace coxgraph
