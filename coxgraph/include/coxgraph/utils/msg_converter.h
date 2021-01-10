@@ -80,6 +80,7 @@ inline CliSm::Ptr cliSubmapFromMsg(
   // CHECK_EQ(submap_response.submap.layer_with_traj.trajectory.poses.size(),
   // 2);
 
+  // TODO(mikexyl): should use drawNewSubmap() here
   CliSm::Ptr submap_ptr(new CliSm(Transformation(), ser_sm_id, submap_config));
 
   // Naming copied from voxgraph
@@ -169,6 +170,12 @@ inline CIdCSIdPair resolveSubmapFrame(std::string frame_id) {
   CliSmId csid = std::stoi(frame_id.substr(0, pos));
   CliId cid = std::stoi(frame_id.substr(pos + 1, frame_id.size()));
   return std::make_pair(cid, csid);
+}
+
+inline std::string getSubmapFrame(CIdCSIdPair csid_pair) {
+  std::ostringstream frame_oss;
+  frame_oss << "submap_" << csid_pair.second << "_" << csid_pair.first;
+  return frame_oss.str();
 }
 
 }  // namespace utils

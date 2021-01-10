@@ -62,17 +62,15 @@ class ClientHandler {
                 const CliId& client_id, std::string map_frame_prefix,
                 const CliSmConfig& submap_config,
                 const SubmapCollection::Ptr& submap_collection_ptr,
-                MeshCollection::Ptr mesh_collection_ptr,
                 TimeLineUpdateCallback time_line_callback)
       : ClientHandler(nh, nh_private, client_id, map_frame_prefix,
                       submap_config, getConfigFromRosParam(nh_private),
-                      submap_collection_ptr, mesh_collection_ptr,
-                      time_line_callback) {}
+                      submap_collection_ptr, time_line_callback) {}
+
   ClientHandler(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private,
                 const CliId& client_id, std::string map_frame_prefix,
                 const CliSmConfig& submap_config, const Config& config,
                 const SubmapCollection::Ptr& submap_collection_ptr,
-                MeshCollection::Ptr mesh_collection_ptr,
                 TimeLineUpdateCallback time_line_callback)
       : client_id_(client_id),
         nh_(nh),
@@ -85,10 +83,9 @@ class ClientHandler {
         log_prefix_("CH " + std::to_string(static_cast<int>(client_id_)) +
                     ": "),
         transformer_(nh, nh_private),
+        submap_collection_ptr_(submap_collection_ptr),
         time_line_update_callback_(time_line_callback),
-        eval_data_pub_(nh, nh_private),
-
-        mesh_collection_ptr_(mesh_collection_ptr) {
+        eval_data_pub_(nh, nh_private) {
     subscribeToTopics();
     advertiseTopics();
     subscribeToServices();
@@ -180,7 +177,6 @@ class ClientHandler {
 
   utils::EvalDataPublisher eval_data_pub_;
 
-  MeshCollection::Ptr mesh_collection_ptr_;
   ros::Subscriber submap_mesh_sub_;
   void submapMeshCallback(
       const coxgraph_msgs::MeshWithTrajectory& mesh_with_traj) {
@@ -188,8 +184,8 @@ class ClientHandler {
         utils::resolveSubmapFrame(mesh_with_traj.mesh.header.frame_id);
     CHECK_EQ(csid_pair.first, client_id_);
     LOG(INFO) << log_prefix_ << " Received mesh of submap " << csid_pair.second;
-    mesh_collection_ptr_->addSubmapMesh(client_id_, csid_pair.second,
-                                        mesh_with_traj);
+    submap_collection_ptr_->addSubmap(mesh_with_traj, client_id_,
+                                      csid_pair.second);
   }
 
   constexpr static int8_t kSubQueueSize = 10;

@@ -65,7 +65,7 @@ void CoxgraphServer::initClientHandlers(const ros::NodeHandle& nh,
   for (int i = 0; i < config_.client_number; i++) {
     client_handlers_.emplace_back(new ClientHandler(
         nh, nh_private, i, config_.map_frame_prefix, submap_config_,
-        submap_collection_ptr_, server_vis_->getMeshCollectionPtr(),
+        submap_collection_ptr_,
         std::bind(&CoxgraphServer::timeLineUpdateCallback, this)));
 
     force_fuse_.emplace_back(true);
@@ -442,8 +442,8 @@ bool CoxgraphServer::fuseMap(const CliId& cid_a, const ros::Time& t1,
   if (config_.enable_map_fusion_constraints) {
     // TODO(mikexyl): transform T_t1_t2 based on cli map frame
     Transformation T_A_B = T_A_t1 * T_t1_t2 * T_B_t2.inverse();
-    pose_graph_interface_.addLoopClosureMeasurement(ser_sm_id_a, ser_sm_id_b,
-                                                    T_A_B);
+    pose_graph_interface_->addLoopClosureMeasurement(ser_sm_id_a, ser_sm_id_b,
+                                                     T_A_B);
     geometry_msgs::Transform pose;
     tf::transformKindrToMsg(T_A_B.cast<double>(), &pose);
     double roll, pitch, yaw;
@@ -455,8 +455,8 @@ bool CoxgraphServer::fuseMap(const CliId& cid_a, const ros::Time& t1,
               << yaw / PI * 180;
   }
 
-  pose_graph_interface_.addForceRegistrationConstraint(ser_sm_id_a,
-                                                       ser_sm_id_b);
+  pose_graph_interface_->addForceRegistrationConstraint(ser_sm_id_a,
+                                                        ser_sm_id_b);
 
   updateSubmapRPConstraints();
 
@@ -489,7 +489,7 @@ void CoxgraphServer::updateSubmapRPConstraints() {
       }
     }
   }
-  pose_graph_interface_.updateSubmapRPConstraints();
+  pose_graph_interface_->updateSubmapRPConstraints();
 }
 
 CoxgraphServer::OptState CoxgraphServer::optimizePoseGraph(
@@ -504,9 +504,9 @@ CoxgraphServer::OptState CoxgraphServer::optimizePoseGraph(
   TransformationVector submap_poses;
   submap_collection_ptr_->getSubmapPoses(&submap_poses);
 
-  pose_graph_interface_.optimize(enable_registration);
+  pose_graph_interface_->optimize(enable_registration);
 
-  auto pose_map = pose_graph_interface_.getPoseMap();
+  auto pose_map = pose_graph_interface_->getPoseMap();
 
   if (verbose_) evaluateResiduals();
 
@@ -519,12 +519,12 @@ CoxgraphServer::OptState CoxgraphServer::optimizePoseGraph(
 void CoxgraphServer::evaluateResiduals() {
   if (config_.enable_map_fusion_constraints) {
     LOG(INFO) << "Evaluating Residuals of Map Fusion Constraints";
-    pose_graph_interface_.printResiduals(
+    pose_graph_interface_->printResiduals(
         PoseGraphInterface::ConstraintType::RelPose);
   }
   if (submap_collection_ptr_->size() > 2) {
     LOG(INFO) << "Evaluating Residuals of Submap RelPose Constraints";
-    pose_graph_interface_.printResiduals(
+    pose_graph_interface_->printResiduals(
         PoseGraphInterface::ConstraintType::SubmapRelPose);
   } else {
     LOG(INFO) << "No Submap RelPose Constraints added yet";
@@ -535,7 +535,7 @@ void CoxgraphServer::updateCliMapRelativePose() {
   std::lock_guard<std::mutex> pose_update_lock(
       *(tf_controller_->getPoseUpdateMutex()));
   tf_controller_->resetCliMapRelativePoses();
-  PoseMap pose_map = pose_graph_interface_.getPoseMap();
+  PoseMap pose_map = pose_graph_interface_->getPoseMap();
   TransformationVector submap_poses;
   submap_collection_ptr_->getSubmapPoses(&submap_poses);
   for (int i = 0; i < config_.client_number; i++) {

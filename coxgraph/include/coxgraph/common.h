@@ -37,6 +37,7 @@ struct CliSmIdPack {
 using CliSmConfig = voxgraph::VoxgraphSubmap::Config;
 using MeshIntegratorConfig = voxblox::MeshIntegratorConfig;
 
+using FloatingPoint = voxblox::FloatingPoint;
 using Transformation = voxgraph::Transformation;
 using TransformationD = voxgraph::TransformationD;
 using TransformationVector = cblox::TransformationVector;

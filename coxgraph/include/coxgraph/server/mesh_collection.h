@@ -22,8 +22,8 @@ class MeshCollection {
   MeshCollection() : csid_mesh_map_ptr_(new CSIdMeshMap()) {}
   ~MeshCollection() = default;
 
-  void addSubmapMesh(CliId cid, CliSmId csid,
-                     coxgraph_msgs::MeshWithTrajectory mesh_with_traj) {
+  void addSubmapMesh(coxgraph_msgs::MeshWithTrajectory mesh_with_traj,
+                     CliId cid, CliSmId csid) {
     if (!csid_mesh_map_ptr_->count(std::make_pair(cid, csid)))
       csid_mesh_map_ptr_->emplace(std::make_pair(cid, csid), mesh_with_traj);
     else

@@ -19,6 +19,7 @@
     <arg if="$(arg debug_cg)" name="launch_prefix" value="xterm -e gdb --args" />
 
     <node name="coxgraph_client_$(arg id)" pkg="coxgraph" type="coxgraph_client_node" output="screen" launch-prefix="$(arg launch_prefix)" args="-alsologtostderr">
+      <remap from="~submap_poses" to="coxgraph_server/submap_poses"/>
       <remap from="~keyframe_pose" to="/firefly_$(arg id)/vins_estimator_$(arg id)/keyframe_pose" />
       <remap from="/loop_closure_in" to="coxgraph_client_$(arg id)/loop_closure_in"/>
       <rosparam file="$(find coxgraph)/config/coxgraph_client.yaml" />

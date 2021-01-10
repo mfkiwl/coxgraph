@@ -108,18 +108,19 @@ class CoxgraphServer {
         verbose_(false),
         config_(config),
         submap_config_(submap_config),
-
-        pose_graph_interface_(nh_private, submap_collection_ptr_, mesh_config,
-                              config.output_map_frame, false),
         server_vis_(
             new ServerVisualizer(nh, nh_private, submap_config, mesh_config)) {
     nh_private_.param<bool>("verbose", verbose_, verbose_);
     LOG(INFO) << "Verbose: " << verbose_;
     LOG(INFO) << config_;
 
-    submap_collection_ptr_ = std::make_shared<SubmapCollection>(
+    submap_collection_ptr_.reset(new SubmapCollection(
         submap_config_, config.client_number,
-        server_vis_->getMeshCollectionPtr(), nh_private, verbose_);
+        server_vis_->getMeshCollectionPtr(), nh_private, verbose_));
+
+    pose_graph_interface_.reset(
+        new PoseGraphInterface(nh_private, submap_collection_ptr_, mesh_config,
+                               config.output_map_frame, false));
 
     distrib_ctl_ptr_.reset(
         new DistributionController(nh_, nh_private_, submap_collection_ptr_));
@@ -127,8 +128,8 @@ class CoxgraphServer {
     tf_controller_.reset(new GlobalTfController(
         nh_, nh_private_, config_.client_number, config_.map_frame_prefix,
         distrib_ctl_ptr_, verbose_));
-    pose_graph_interface_.setVerbosity(verbose_);
-    pose_graph_interface_.setMeasurementConfigFromRosParams(nh_private_);
+    pose_graph_interface_->setVerbosity(verbose_);
+    pose_graph_interface_->setMeasurementConfigFromRosParams(nh_private_);
 
     subscribeTopics();
     advertiseTopics();
@@ -226,7 +227,7 @@ class CoxgraphServer {
                            const CliSmId& cli_sm_id) {
     std::lock_guard<std::mutex> submap_add_lock(submap_add_mutex_);
     submap_collection_ptr_->addSubmap(submap, cid, cli_sm_id);
-    pose_graph_interface_.addSubmap(submap->getID());
+    pose_graph_interface_->addSubmap(submap->getID());
     return submap->getID();
   }
 
@@ -243,7 +244,7 @@ class CoxgraphServer {
 
   const CliSmConfig submap_config_;
   SubmapCollection::Ptr submap_collection_ptr_;
-  PoseGraphInterface pose_graph_interface_;
+  PoseGraphInterface::Ptr pose_graph_interface_;
   std::mutex submap_add_mutex_;
 
   std::vector<ClientHandler::Ptr> client_handlers_;
