@@ -1,5 +1,5 @@
-#ifndef COXGRAPH_MOD_TSDF_RECOVER_H_
-#define COXGRAPH_MOD_TSDF_RECOVER_H_
+#ifndef COXGRAPH_MAP_CONVERSION_TSDF_RECOVER_H_
+#define COXGRAPH_MAP_CONVERSION_TSDF_RECOVER_H_
 
 #include <cblox_msgs/MapPoseUpdates.h>
 #include <ros/ros.h>
@@ -11,8 +11,7 @@
 #include <map>
 #include <string>
 
-#include "coxgraph_mod/common.h"
-#include "coxgraph_mod/mesh_converter.h"
+#include "coxgraph/map_conversion/mesh_converter.h"
 
 namespace voxblox {
 class TsdfRecover : public TsdfServer {
@@ -53,8 +52,7 @@ class TsdfRecover : public TsdfServer {
     nh_private_.param<float>("fov_horizontal_degree", fov.horizontal_degree,
                              90);
     nh_private_.param<float>("fov_vertical_degree", fov.vertical_degree, 60);
-    mesh_converter_.reset(new MeshConverter(
-        MeshConverter::getConfigFromRosParam(nh_private_), fov));
+    mesh_converter_.reset(new MeshConverter(nh_private_));
 
     subscribeToTopics();
     advertiseTopics();
@@ -115,4 +113,4 @@ class TsdfRecover : public TsdfServer {
 };
 }  // namespace voxblox
 
-#endif  // COXGRAPH_MOD_TSDF_RECOVER_H_
+#endif  //  COXGRAPH_MAP_CONVERSION_TSDF_RECOVER_H_

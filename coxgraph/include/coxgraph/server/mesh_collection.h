@@ -1,5 +1,5 @@
-#ifndef COXGRAPH_SERVER_VISUALIZER_MESH_COLLECTION_H_
-#define COXGRAPH_SERVER_VISUALIZER_MESH_COLLECTION_H_
+#ifndef COXGRAPH_SERVER_MESH_COLLECTION_H_
+#define COXGRAPH_SERVER_MESH_COLLECTION_H_
 
 #include <coxgraph/common.h>
 #include <coxgraph_msgs/MeshWithTrajectory.h>
@@ -22,8 +22,8 @@ class MeshCollection {
   MeshCollection() : csid_mesh_map_ptr_(new CSIdMeshMap()) {}
   ~MeshCollection() = default;
 
-  void addSubmapMesh(CliId cid, CliSmId csid,
-                     coxgraph_msgs::MeshWithTrajectory mesh_with_traj) {
+  void addSubmapMesh(coxgraph_msgs::MeshWithTrajectory mesh_with_traj,
+                     CliId cid, CliSmId csid) {
     if (!csid_mesh_map_ptr_->count(std::make_pair(cid, csid)))
       csid_mesh_map_ptr_->emplace(std::make_pair(cid, csid), mesh_with_traj);
     else
@@ -39,4 +39,4 @@ class MeshCollection {
 }  // namespace server
 }  // namespace coxgraph
 
-#endif  // COXGRAPH_SERVER_VISUALIZER_MESH_COLLECTION_H_
+#endif  // COXGRAPH_SERVER_MESH_COLLECTION_H_

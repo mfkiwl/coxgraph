@@ -1,7 +1,7 @@
 #include <glog/logging.h>
 #include <ros/ros.h>
 
-#include "coxgraph_mod/tsdf_recover.h"
+#include "coxgraph/map_conversion/tsdf_recover.h"
 
 int main(int argc, char** argv) {
   // Start logging

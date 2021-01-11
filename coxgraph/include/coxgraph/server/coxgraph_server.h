@@ -26,6 +26,7 @@
 
 #include "coxgraph/common.h"
 #include "coxgraph/server/client_handler.h"
+#include "coxgraph/server/data_server/projected_map_server.h"
 #include "coxgraph/server/distribution/distribution_controller.h"
 #include "coxgraph/server/global_tf_controller.h"
 #include "coxgraph/server/pose_graph_interface.h"
@@ -33,6 +34,7 @@
 #include "coxgraph/server/visualizer/server_visualizer.h"
 
 namespace coxgraph {
+namespace server {
 
 class CoxgraphServer {
  public:
@@ -108,15 +110,20 @@ class CoxgraphServer {
         verbose_(false),
         config_(config),
         submap_config_(submap_config),
-        submap_collection_ptr_(std::make_shared<SubmapCollection>(
-            submap_config_, config.client_number)),
-        pose_graph_interface_(nh_private, submap_collection_ptr_, mesh_config,
-                              config.output_map_frame, false),
         server_vis_(
-            new ServerVisualizer(nh, nh_private, submap_config, mesh_config)) {
+            new ServerVisualizer(nh, nh_private, submap_config, mesh_config)),
+        projected_map_server_(nh_private) {
     nh_private_.param<bool>("verbose", verbose_, verbose_);
     LOG(INFO) << "Verbose: " << verbose_;
     LOG(INFO) << config_;
+
+    submap_collection_ptr_.reset(new SubmapCollection(
+        submap_config_, config_.client_number,
+        server_vis_->getMeshCollectionPtr(), nh_, nh_private_, verbose_));
+
+    pose_graph_interface_.reset(
+        new PoseGraphInterface(nh_private_, submap_collection_ptr_, mesh_config,
+                               config_.output_map_frame, false));
 
     distrib_ctl_ptr_.reset(
         new DistributionController(nh_, nh_private_, submap_collection_ptr_));
@@ -124,8 +131,8 @@ class CoxgraphServer {
     tf_controller_.reset(new GlobalTfController(
         nh_, nh_private_, config_.client_number, config_.map_frame_prefix,
         distrib_ctl_ptr_, verbose_));
-    pose_graph_interface_.setVerbosity(verbose_);
-    pose_graph_interface_.setMeasurementConfigFromRosParams(nh_private_);
+    pose_graph_interface_->setVerbosity(verbose_);
+    pose_graph_interface_->setMeasurementConfigFromRosParams(nh_private_);
 
     subscribeTopics();
     advertiseTopics();
@@ -162,15 +169,9 @@ class CoxgraphServer {
   void futureMFProcCallback(const ros::TimerEvent& event);
 
  private:
-  using ClientHandler = server::ClientHandler;
-  using GlobalTfController = server::GlobalTfController;
   using ReqState = ClientHandler::ReqState;
-  using SubmapCollection = server::SubmapCollection;
-  using PoseGraphInterface = server::PoseGraphInterface;
   using ThreadingHelper = voxgraph::ThreadingHelper;
   using PoseMap = PoseGraphInterface::PoseMap;
-  using ServerVisualizer = server::ServerVisualizer;
-  using DistributionController = server::DistributionController;
 
   void initClientHandlers(const ros::NodeHandle& nh,
                           const ros::NodeHandle& nh_private);
@@ -223,7 +224,7 @@ class CoxgraphServer {
                            const CliSmId& cli_sm_id) {
     std::lock_guard<std::mutex> submap_add_lock(submap_add_mutex_);
     submap_collection_ptr_->addSubmap(submap, cid, cli_sm_id);
-    pose_graph_interface_.addSubmap(submap->getID());
+    pose_graph_interface_->addSubmap(submap->getID());
     return submap->getID();
   }
 
@@ -240,7 +241,7 @@ class CoxgraphServer {
 
   const CliSmConfig submap_config_;
   SubmapCollection::Ptr submap_collection_ptr_;
-  PoseGraphInterface pose_graph_interface_;
+  PoseGraphInterface::Ptr pose_graph_interface_;
   std::mutex submap_add_mutex_;
 
   std::vector<ClientHandler::Ptr> client_handlers_;
@@ -269,12 +270,21 @@ class CoxgraphServer {
   DistributionController::Ptr distrib_ctl_ptr_;
   inline bool inControl() const { return distrib_ctl_ptr_->inControl(); }
 
+  ProjectedMapServer projected_map_server_;
+  ros::Timer projected_map_pub_timer_;
+  void publishProjectedMap(const ros::TimerEvent& event) {
+    projected_map_server_.publishProjectedMap(submap_collection_ptr_,
+                                              config_.map_frame_prefix + "_g",
+                                              ros::Time::now());
+  }
+
   constexpr static uint8_t kMaxClientNum = 2;
   constexpr static uint8_t kPoseUpdateWaitMs = 100;
   constexpr static float kFutureMFProcInterval = 1.0;
   constexpr static int kMaxFutureUncatchedN = 4;
 };
 
+}  // namespace server
 }  // namespace coxgraph
 
 #endif  // COXGRAPH_SERVER_COXGRAPH_SERVER_H_

@@ -14,7 +14,7 @@
   <include file="$(find coxgraph)/launch/euroc/vins_client_euroc.launch">
     <arg name="id" value="0"/>
     <arg name="clock" value="false"/>
-    <arg name="play_speed" value="1"/>
+    <arg name="play_speed" value="1.0"/>
     <arg name="bag_file" value="$(arg bag_file0)"/>
   </include>
 
@@ -31,7 +31,7 @@
   <include file="$(find coxgraph)/launch/euroc/vins_client_euroc.launch">
     <arg name="id" value="1"/>
     <arg name="clock" value="false"/>
-    <arg name="play_speed" value="1"/>
+    <arg name="play_speed" value="1.0"/>
     <arg name="bag_file" value="$(arg bag_file1)"/>
   </include>
 
@@ -73,5 +73,21 @@
     <arg name="config_file" default="$(find coxgraph)/config/evaluation_config.yaml"/>
     <arg name="debug" default="false"/>
   </include>
+
+  <group ns="coxgraph">
+    <node pkg="voxblox_ros" type="tsdf_server" name="projected_map_vis" output="screen" launch-prefix="xterm -e">
+      <remap from="~tsdf_map_in" to="coxgraph_server_node/projected_map_tsdf"/>
+      <param name="verbose" value="true"/>
+      <param name="use_tf_transforms" value="true" />
+      <param name="tsdf_voxel_size" value="$(arg tsdf_voxel_size)" />
+      <param name="truncation_distance" value="$(arg truncation_distance)" />
+      <param name="update_mesh_every_n_sec" value="1.0" />
+      <param name="publish_tsdf_map" value="true" />
+      <param name="publish_slices" value="true" />
+      <param name="publish_pointclouds" value="true" />
+      <param name="publish_traversable" value="true"/>
+      <param name="world_frame" value="odom_g"/>
+    </node>
+  </group>
 
 </launch>

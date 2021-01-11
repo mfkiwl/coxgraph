@@ -15,7 +15,9 @@ cs_add_library(${PROJECT_NAME}
     src/server/global_tf_controller.cpp
     src/server/submap_collection.cpp
     src/server/client_tf_optimizer.cpp
-    src/server/visualizer/server_visualizer.cpp)
+    src/server/visualizer/server_visualizer.cpp
+    src/map_conversion/mesh_converter.cpp
+    src/map_conversion/tsdf_recover.cpp)
 
 cs_add_executable(coxgraph_client_node
     src/coxgraph_client_node.cpp)
@@ -24,5 +26,10 @@ target_link_libraries(coxgraph_client_node ${PROJECT_NAME})
 cs_add_executable(coxgraph_server_node
     src/coxgraph_server_node.cpp)
 target_link_libraries(coxgraph_server_node ${PROJECT_NAME})
+
+cs_add_executable(tsdf_recover_node
+    src/tsdf_recover_node.cpp)
+target_link_libraries(tsdf_recover_node ${PROJECT_NAME})
+
 
 cs_export()

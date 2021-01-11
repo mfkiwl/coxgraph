@@ -33,7 +33,7 @@
     <!-- <arg unless="$(arg debug)" name="launch_prefix" value="xterm -e" /> -->
     <arg unless="$(arg debug)" name="launch_prefix" value="" />
     <arg if="$(arg debug)" name="launch_prefix" value="xterm -e gdb -ex run --args" />
-    <node pkg="coxgraph_mod" type="tsdf_recover_node" name="tsdf_recover_node" output="screen" args="-alsologtostderr" launch-prefix="$(arg launch_prefix)">
+    <node pkg="coxgraph" type="tsdf_recover_node" name="tsdf_recover_node" output="screen" args="-alsologtostderr" launch-prefix="$(arg launch_prefix)">
       <remap from="submap_poses" to="coxgraph_client_0/submap_poses"/>
       <remap from="submap_mesh_with_traj" to="coxgraph_client_0/submap_mesh_with_traj"/>
       <param name="publish_tsdf_map" value="true" />

@@ -2,25 +2,75 @@
 
 #include <voxblox/integrator/merge_integration.h>
 
+#include <memory>
+#include <utility>
 #include <vector>
+
+#include "coxgraph/utils/msg_converter.h"
 
 namespace coxgraph {
 namespace server {
 
-Transformation SubmapCollection::addSubmap(const CliSm::Ptr& submap_ptr,
-                                           const CliId& cid,
-                                           const CliSmId& cli_sm_id) {
+void SubmapCollection::addSubmap(const CliSm::Ptr& submap_ptr, const CliId& cid,
+                                 const CliSmId& csid) {
   CHECK(submap_ptr != nullptr);
   voxgraph::VoxgraphSubmapCollection::addSubmap(submap_ptr);
-  sm_cli_id_map_.emplace(submap_ptr->getID(), CIdCSIdPair(cid, cli_sm_id));
+
+  std::lock_guard<std::mutex> id_update_lock(id_update_mutex_);
+  sm_cli_id_map_.emplace(submap_ptr->getID(), CIdCSIdPair(cid, csid));
   if (!cli_ser_sm_id_map_.count(submap_ptr->getID())) {
     cli_ser_sm_id_map_.emplace(cid, std::vector<SerSmId>());
   }
   cli_ser_sm_id_map_[cid].emplace_back(submap_ptr->getID());
   sm_id_ori_pose_map_.emplace(submap_ptr->getID(), submap_ptr->getPose());
-  return Transformation();
 }
 
+void SubmapCollection::addSubmap(
+    const coxgraph_msgs::MeshWithTrajectory& submap_mesh, const CliId& cid,
+    const CliSmId& csid) {
+  voxblox::timing::Timer recover_tsdf_timer("recover_tsdf");
+
+  // If a submap is already generated from tsdf, don't add it
+  SerSmId ssid;
+  if (getSerSmIdByCliSmId(cid, csid, &ssid)) return;
+
+  mesh_collection_ptr_->addSubmapMesh(submap_mesh, cid, csid);
+
+  CIdCSIdPair csid_pair =
+      utils::resolveSubmapFrame(submap_mesh.mesh.header.frame_id);
+
+  CliSm submap = draftNewSubmap();
+  tsdf_integrator_->setLayer(submap.getTsdfMapPtr()->getTsdfLayerPtr());
+
+  Transformation T_Sm_C;
+  voxblox::Pointcloud points_C;
+
+  mesh_converter_ptr_->setMesh(submap_mesh.mesh.mesh);
+  mesh_converter_ptr_->setTrajectory(submap_mesh.trajectory);
+  mesh_converter_ptr_->convertToPointCloud();
+
+  while (mesh_converter_ptr_->getPointcloudInNextFOV(&T_Sm_C, &points_C)) {
+    // LOG(INFO) << "in fov points: " << points_C.size();
+    if (points_C.empty()) continue;
+
+    // Only for navigation, no need color
+    voxblox::Colors no_colors(points_C.size(), voxblox::Color());
+    tsdf_integrator_->integratePointCloud(T_Sm_C, points_C, no_colors, false);
+  }
+
+  // LOG(INFO)
+  //     << "New recovered submap has blocks: "
+  //     << submap.getTsdfMapPtr()->getTsdfLayer().getNumberOfAllocatedBlocks();
+  // LOG(INFO) << "Number of recovered submaps: " <<
+  // recovered_submap_map_.size();
+  recovered_submap_map_.emplace(submap_mesh.mesh.header.frame_id,
+                                std::make_shared<CliSm>(std::move(submap)));
+
+  recover_tsdf_timer.Stop();
+  LOG(INFO) << voxblox::timing::Timing::Print();
+}
+
+// TODO(mikexyl): delete this
 Transformation SubmapCollection::mergeToCliMap(const CliSm::Ptr& submap_ptr) {
   CHECK(exists(submap_ptr->getID()));
 
@@ -34,6 +84,28 @@ Transformation SubmapCollection::mergeToCliMap(const CliSm::Ptr& submap_ptr) {
 
   cli_map_ptr->finishSubmap();
   return submap_ptr->getPose() * cli_map_ptr->getPose().inverse();
+}
+
+voxblox::TsdfMap::Ptr SubmapCollection::getProjectedMap() {
+  voxblox::TsdfMap::Ptr combined_tsdf_map =
+      voxgraph::VoxgraphSubmapCollection::getProjectedMap();
+
+  // Also project mesh-recovered submaps
+  for (auto const& submap_kv : recovered_submap_map_) {
+    Transformation T_G_Sm;
+    if (submap_pose_listener_.getSubmapPoseBlocking(submap_kv.first, &T_G_Sm,
+                                                    true))
+      voxblox::mergeLayerAintoLayerB(
+          submap_kv.second->getTsdfMap().getTsdfLayer(), T_G_Sm,
+          combined_tsdf_map->getTsdfLayerPtr());
+    else
+      LOG(ERROR) << "Failed to project " << submap_kv.first;
+  }
+  LOG(INFO)
+      << "Projected tsdf blocks: "
+      << combined_tsdf_map->getTsdfLayerPtr()->getNumberOfAllocatedBlocks();
+
+  return combined_tsdf_map;
 }
 
 }  // namespace server

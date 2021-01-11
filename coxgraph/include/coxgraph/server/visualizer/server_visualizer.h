@@ -15,9 +15,9 @@
 #include <vector>
 
 #include "coxgraph/common.h"
+#include "coxgraph/server/mesh_collection.h"
 #include "coxgraph/server/pose_graph_interface.h"
 #include "coxgraph/server/submap_collection.h"
-#include "coxgraph/server/visualizer/mesh_collection.h"
 
 namespace coxgraph {
 namespace server {
@@ -99,9 +99,9 @@ class ServerVisualizer {
 
   MeshCollection::Ptr getMeshCollectionPtr() { return mesh_collection_ptr_; }
 
-  void addSubmapMesh(CliId cid, CliSmId csid,
-                     coxgraph_msgs::MeshWithTrajectory mesh_with_traj) {
-    mesh_collection_ptr_->addSubmapMesh(cid, csid, mesh_with_traj);
+  void addSubmapMesh(coxgraph_msgs::MeshWithTrajectory mesh_with_traj,
+                     CliId cid, CliSmId csid) {
+    mesh_collection_ptr_->addSubmapMesh(mesh_with_traj, cid, csid);
   }
 
   /**
@@ -114,14 +114,14 @@ class ServerVisualizer {
    * @param other_submaps
    */
   void getFinalGlobalMesh(const SubmapCollection::Ptr& submap_collection_ptr,
-                          const PoseGraphInterface& pose_graph_interface,
+                          const PoseGraphInterface::Ptr& pose_graph_interface,
                           const std::vector<CliSmIdPack>& other_submaps,
                           const std::string& mission_frame,
                           const ros::Publisher& publisher,
                           const std::string& file_path);
 
   void getFinalGlobalMesh(const SubmapCollection::Ptr& submap_collection_ptr,
-                          const PoseGraphInterface& pose_graph_interface,
+                          const PoseGraphInterface::Ptr& pose_graph_interface,
                           const std::vector<CliSmIdPack>& other_submaps,
                           const std::string& mission_frame,
                           const std::string& file_path) {
@@ -150,6 +150,12 @@ class ServerVisualizer {
   }
   void publishSubmapMeshes() {
     for (auto& kv : *mesh_collection_ptr_->getSubmapMeshesPtr()) {
+      // Publish an empty multi mesh to reset rviz
+      voxblox_msgs::MultiMesh empty_mesh_msg;
+      empty_mesh_msg.header.stamp = ros::Time::now();
+      empty_mesh_msg.header.frame_id = kv.second.mesh.header.frame_id;
+      separated_mesh_pub_.publish(empty_mesh_msg);
+
       kv.second.mesh.header.stamp = ros::Time::now();
       kv.second.mesh.mesh.header.stamp = ros::Time::now();
       separated_mesh_pub_.publish(kv.second.mesh);

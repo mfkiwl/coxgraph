@@ -1,5 +1,5 @@
-#ifndef COXGRAPH_MOD_MESH_CONVERTER_H_
-#define COXGRAPH_MOD_MESH_CONVERTER_H_
+#ifndef COXGRAPH_MAP_CONVERSION_MESH_CONVERTER_H_
+#define COXGRAPH_MAP_CONVERSION_MESH_CONVERTER_H_
 
 #include <coxgraph/common.h>
 #include <coxgraph_msgs/MeshWithTrajectory.h>
@@ -20,6 +20,16 @@ class MeshConverter {
     float min_ray_length_m;
     float vertical_degree;
     float horizontal_degree;
+
+    static FOV getFOVFromRosParam(const ros::NodeHandle& nh_private) {
+      FOV fov;
+      nh_private.param<float>("max_ray_length_m", fov.max_ray_length_m, 90);
+      nh_private.param<float>("min_ray_length_m", fov.min_ray_length_m, 90);
+      nh_private.param<float>("fov_horizontal_degree", fov.horizontal_degree,
+                              90);
+      nh_private.param<float>("fov_vertical_degree", fov.vertical_degree, 60);
+      return fov;
+    }
   };
 
   struct Config {
@@ -41,8 +51,10 @@ class MeshConverter {
 
   typedef kindr::minimal::PositionTemplate<FloatingPoint> Position;
 
-  MeshConverter(const Config& config, FOV fov)
-      : config_(config), fov_(fov), pointcloud_(new Pointcloud()) {
+  explicit MeshConverter(const ros::NodeHandle nh_private)
+      : config_(getConfigFromRosParam(nh_private)),
+        fov_(FOV::getFOVFromRosParam(nh_private)),
+        pointcloud_(new Pointcloud()) {
     LOG(INFO) << config_;
     LOG(INFO) << "fov: " << fov_.horizontal_degree << " "
               << fov_.vertical_degree << " " << fov_.max_ray_length_m << " "
@@ -119,4 +131,4 @@ class MeshConverter {
 };
 }  // namespace voxblox
 
-#endif  // COXGRAPH_MOD_MESH_CONVERTER_H_
+#endif  //  COXGRAPH_MAP_CONVERSION_MESH_CONVERTER_H_

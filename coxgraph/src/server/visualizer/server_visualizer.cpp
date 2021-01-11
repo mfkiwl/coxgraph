@@ -26,7 +26,7 @@ ServerVisualizer::Config ServerVisualizer::getConfigFromRosParam(
 
 void ServerVisualizer::getFinalGlobalMesh(
     const SubmapCollection::Ptr& submap_collection_ptr,
-    const PoseGraphInterface& pose_graph_interface,
+    const PoseGraphInterface::Ptr& pose_graph_interface,
     const std::vector<CliSmIdPack>& other_submaps,
     const std::string& mission_frame, const ros::Publisher& publisher,
     const std::string& file_path) {
@@ -34,7 +34,7 @@ void ServerVisualizer::getFinalGlobalMesh(
 
   SubmapCollection::Ptr global_submap_collection_ptr(
       new SubmapCollection(*submap_collection_ptr));
-  PoseGraphInterface global_pg_interface(pose_graph_interface,
+  PoseGraphInterface global_pg_interface(*pose_graph_interface,
                                          global_submap_collection_ptr);
   // SubmapCollection::Ptr global_submap_collection_ptr = submap_collection_ptr;
   // PoseGraphInterface& global_pg_interface = pose_graph_interface;
