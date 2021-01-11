@@ -31,5 +31,8 @@ cs_add_executable(tsdf_recover_node
     src/tsdf_recover_node.cpp)
 target_link_libraries(tsdf_recover_node ${PROJECT_NAME})
 
+cs_add_executable(voxblox_eval_node
+    src/voxblox_eval_node.cpp)
+target_link_libraries(voxblox_eval_node ${PROJECT_NAME})
 
 cs_export()

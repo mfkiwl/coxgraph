@@ -72,11 +72,12 @@
 
   <include file="$(find node_evaluator)/launch/evaluate.launch">
     <arg name="config_file" default="$(find coxgraph)/config/evaluation_config.yaml"/>
+    <arg name="result_dir" default="/workspaces/voxgraph_melodic_ws/eval/node_evaluator"/>
     <arg name="debug" default="false"/>
   </include>
 
   <group ns="coxgraph">
-    <node pkg="voxblox_ros" type="tsdf_server" name="projected_map_vis" output="screen" launch-prefix="xterm -e">
+    <node pkg="voxblox_ros" type="tsdf_server" name="global_map_vis" output="screen" launch-prefix="xterm -e">
       <remap from="~tsdf_map_in" to="coxgraph_server_node/projected_map_tsdf"/>
       <param name="verbose" value="true"/>
       <param name="use_tf_transforms" value="true" />
