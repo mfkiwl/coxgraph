@@ -28,13 +28,14 @@ void SubmapCollection::addSubmap(const CliSm::Ptr& submap_ptr, const CliId& cid,
 void SubmapCollection::addSubmap(
     const coxgraph_msgs::MeshWithTrajectory& submap_mesh, const CliId& cid,
     const CliSmId& csid) {
+  voxblox::timing::Timer recover_tsdf_timer("recover_tsdf");
+
   // If a submap is already generated from tsdf, don't add it
   SerSmId ssid;
   if (getSerSmIdByCliSmId(cid, csid, &ssid)) return;
 
   mesh_collection_ptr_->addSubmapMesh(submap_mesh, cid, csid);
 
-  voxblox::timing::Timer wait_for_tf_timer("wait_for_tf");
   CIdCSIdPair csid_pair =
       utils::resolveSubmapFrame(submap_mesh.mesh.header.frame_id);
 
@@ -44,7 +45,12 @@ void SubmapCollection::addSubmap(
   Transformation T_Sm_C;
   voxblox::Pointcloud points_C;
 
+  mesh_converter_ptr_->setMesh(submap_mesh.mesh.mesh);
+  mesh_converter_ptr_->setTrajectory(submap_mesh.trajectory);
+  mesh_converter_ptr_->convertToPointCloud();
+
   while (mesh_converter_ptr_->getPointcloudInNextFOV(&T_Sm_C, &points_C)) {
+    // LOG(INFO) << "in fov points: " << points_C.size();
     if (points_C.empty()) continue;
 
     // Only for navigation, no need color
@@ -52,8 +58,16 @@ void SubmapCollection::addSubmap(
     tsdf_integrator_->integratePointCloud(T_Sm_C, points_C, no_colors, false);
   }
 
+  // LOG(INFO)
+  //     << "New recovered submap has blocks: "
+  //     << submap.getTsdfMapPtr()->getTsdfLayer().getNumberOfAllocatedBlocks();
+  // LOG(INFO) << "Number of recovered submaps: " <<
+  // recovered_submap_map_.size();
   recovered_submap_map_.emplace(submap_mesh.mesh.header.frame_id,
                                 std::make_shared<CliSm>(std::move(submap)));
+
+  recover_tsdf_timer.Stop();
+  LOG(INFO) << voxblox::timing::Timing::Print();
 }
 
 // TODO(mikexyl): delete this
@@ -84,7 +98,12 @@ voxblox::TsdfMap::Ptr SubmapCollection::getProjectedMap() {
       voxblox::mergeLayerAintoLayerB(
           submap_kv.second->getTsdfMap().getTsdfLayer(), T_G_Sm,
           combined_tsdf_map->getTsdfLayerPtr());
+    else
+      LOG(ERROR) << "Failed to project " << submap_kv.first;
   }
+  LOG(INFO)
+      << "Projected tsdf blocks: "
+      << combined_tsdf_map->getTsdfLayerPtr()->getNumberOfAllocatedBlocks();
 
   return combined_tsdf_map;
 }

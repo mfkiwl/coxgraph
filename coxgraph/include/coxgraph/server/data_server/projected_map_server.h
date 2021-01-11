@@ -11,7 +11,8 @@ namespace coxgraph {
 namespace server {
 class ProjectedMapServer {
  public:
-  explicit ProjectedMapServer(ros::NodeHandle nh_private) {
+  explicit ProjectedMapServer(ros::NodeHandle nh_private)
+      : prev_submap_number_(0) {
     projected_tsdf_map_pub_ = nh_private.advertise<voxblox_msgs::Layer>(
         "projected_map_tsdf", 1, true);
   }
@@ -29,7 +30,12 @@ class ProjectedMapServer {
                            const std::string& world_frame,
                            const ros::Time& timestamp,
                            const ros::Publisher& projected_map_publisher) {
-    if (projected_tsdf_map_pub_.getNumSubscribers() > 0) {
+    if (projected_tsdf_map_pub_.getNumSubscribers() > 0 &&
+        submap_collection->getSubmapPtrs().size() +
+                submap_collection->getNumberOfRecoveredSubmaps() >
+            prev_submap_number_) {
+      prev_submap_number_ = submap_collection->getSubmapPtrs().size() +
+                            submap_collection->getNumberOfRecoveredSubmaps();
       LOG(INFO) << "Publishing projected map";
 
       voxblox_msgs::Layer projected_tsdf_layer_msg;
@@ -47,6 +53,8 @@ class ProjectedMapServer {
 
  private:
   ros::Publisher projected_tsdf_map_pub_;
+
+  int8_t prev_submap_number_;
 };
 }  // namespace server
 }  // namespace coxgraph

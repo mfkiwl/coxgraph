@@ -113,6 +113,10 @@ class SubmapCollection : public voxgraph::VoxgraphSubmapCollection {
     return &submap_poses_update_mutex;
   }
 
+  inline size_t getNumberOfRecoveredSubmaps() const {
+    return recovered_submap_map_.size();
+  }
+
   voxblox::TsdfMap::Ptr getProjectedMap();
 
  private:

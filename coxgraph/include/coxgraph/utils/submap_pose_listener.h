@@ -71,10 +71,14 @@ class SubmapPoseListener {
       if (!transformer_.lookupTransform(
               map_frame_prefix_ + "_g",
               map_frame_prefix_ + "_" + std::to_string(csid_pair.first),
-              ros::Time(0), &T_G_Cli))
+              ros::Time(0), &T_G_Cli)) {
+        LOG(INFO) << "Failed to look up tf from " << map_frame_prefix_ + "_g"
+                  << " to "
+                  << map_frame_prefix_ + "_" + std::to_string(csid_pair.first);
         return false;
-      else
+      } else {
         *T_G_Sm = T_G_Cli * submap_pose_map_.find(submap_frame)->second;
+      }
     }
     return true;
   }

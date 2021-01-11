@@ -5,7 +5,7 @@
   <arg name="logging" default="true"/>
 
   <!-- Debug -->
-  <arg name="launch_prefix" default=""/>
+  <arg name="launch_prefix" default="xterm -e "/>
   <!-- xterm -fs 60 -e gdb args -->
 
   <!-- Pose-Graph Node -->
