@@ -25,8 +25,19 @@ void SubmapCollection::addSubmap(const CliSm::Ptr& submap_ptr, const CliId& cid,
   sm_id_ori_pose_map_.emplace(submap_ptr->getID(), submap_ptr->getPose());
 }
 
-void SubmapCollection::addSubmap(
-    const coxgraph_msgs::MeshWithTrajectory& submap_mesh, const CliId& cid,
+void SubmapCollection::addSubmapFromMeshAsync(
+    const coxgraph_msgs::MeshWithTrajectory::Ptr& submap_mesh, const CliId& cid,
+    const CliSmId& csid) {
+  if (!recover_threads_.count(cid))
+    recover_threads_.emplace(cid, std::thread());
+  else
+    recover_threads_[cid].join();
+  recover_threads_[cid] = std::thread(&SubmapCollection::addSubmapFromMesh,
+                                      this, submap_mesh, cid, csid);
+}
+
+void SubmapCollection::addSubmapFromMesh(
+    const coxgraph_msgs::MeshWithTrajectory::Ptr& submap_mesh, const CliId& cid,
     const CliSmId& csid) {
   voxblox::timing::Timer recover_tsdf_timer("recover_tsdf");
 
@@ -37,34 +48,43 @@ void SubmapCollection::addSubmap(
   mesh_collection_ptr_->addSubmapMesh(submap_mesh, cid, csid);
 
   CIdCSIdPair csid_pair =
-      utils::resolveSubmapFrame(submap_mesh.mesh.header.frame_id);
+      utils::resolveSubmapFrame(submap_mesh->mesh.header.frame_id);
 
   CliSm submap = draftNewSubmap();
-  tsdf_integrator_->setLayer(submap.getTsdfMapPtr()->getTsdfLayerPtr());
+  voxblox::MeshConverter mesh_converter(nh_private_);
+  voxblox::TsdfIntegratorBase::Ptr tsdf_integrator =
+      voxblox::TsdfIntegratorFactory::create(
+          tsdf_integrator_method_, tsdf_integrator_config_,
+          submap.getTsdfMapPtr()->getTsdfLayerPtr());
 
   Transformation T_Sm_C;
   voxblox::Pointcloud points_C;
 
-  mesh_converter_ptr_->setMesh(submap_mesh.mesh.mesh);
-  mesh_converter_ptr_->setTrajectory(submap_mesh.trajectory);
-  mesh_converter_ptr_->convertToPointCloud();
+  mesh_converter.setMesh(submap_mesh->mesh.mesh);
+  mesh_converter.setTrajectory(submap_mesh->trajectory);
+  mesh_converter.convertToPointCloud();
 
-  while (mesh_converter_ptr_->getPointcloudInNextFOV(&T_Sm_C, &points_C)) {
+  while (mesh_converter.getPointcloudInNextFOV(&T_Sm_C, &points_C)) {
     // LOG(INFO) << "in fov points: " << points_C.size();
     if (points_C.empty()) continue;
 
     // Only for navigation, no need color
     voxblox::Colors no_colors(points_C.size(), voxblox::Color());
-    tsdf_integrator_->integratePointCloud(T_Sm_C, points_C, no_colors, false);
+    tsdf_integrator->integratePointCloud(T_Sm_C, points_C, no_colors, false);
   }
 
   // LOG(INFO)
   //     << "New recovered submap has blocks: "
-  //     << submap.getTsdfMapPtr()->getTsdfLayer().getNumberOfAllocatedBlocks();
+  //     <<
+  //     submap.getTsdfMapPtr()->getTsdfLayer().getNumberOfAllocatedBlocks();
   // LOG(INFO) << "Number of recovered submaps: " <<
   // recovered_submap_map_.size();
-  recovered_submap_map_.emplace(submap_mesh.mesh.header.frame_id,
-                                std::make_shared<CliSm>(std::move(submap)));
+  {
+    std::lock_guard<std::mutex> recovered_submap_map_lock(
+        recovered_submap_map_mutex_);
+    recovered_submap_map_.emplace(submap_mesh->mesh.header.frame_id,
+                                  std::make_shared<CliSm>(std::move(submap)));
+  }
 
   recover_tsdf_timer.Stop();
   LOG(INFO) << voxblox::timing::Timing::Print();

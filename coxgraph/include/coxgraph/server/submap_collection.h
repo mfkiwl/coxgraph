@@ -32,17 +32,14 @@ class SubmapCollection : public voxgraph::VoxgraphSubmapCollection {
                    const ros::NodeHandle& nh, const ros::NodeHandle& nh_private,
                    bool verbose = false)
       : voxgraph::VoxgraphSubmapCollection(submap_config, verbose),
+        nh_private_(nh_private),
         client_number_(client_number),
+        tsdf_integrator_config_(
+            voxblox::getTsdfIntegratorConfigFromRosParam(nh_private)),
         mesh_collection_ptr_(mesh_collection_ptr),
         submap_pose_listener_(nh, nh_private) {
-    mesh_converter_ptr_.reset(new voxblox::MeshConverter(nh_private));
-
-    std::string method("projective");
-    nh_private.param("method", method, method);
-    tsdf_integrator_ = voxblox::TsdfIntegratorFactory::create(
-        method, voxblox::getTsdfIntegratorConfigFromRosParam(nh_private),
-        new voxblox::Layer<voxblox::TsdfVoxel>(
-            submap_config.tsdf_voxel_size, submap_config.tsdf_voxels_per_side));
+    nh_private_.param<std::string>("method", tsdf_integrator_method_,
+                                   "projective");
   }
 
   // Copy constructor without copy mutex
@@ -61,8 +58,13 @@ class SubmapCollection : public voxgraph::VoxgraphSubmapCollection {
   void addSubmap(const CliSm::Ptr& submap_ptr, const CliId& cid,
                  const CliSmId& csid);
 
-  void addSubmap(const coxgraph_msgs::MeshWithTrajectory& submap_mesh,
-                 const CliId& cid, const CliSmId& csid);
+  void addSubmapFromMesh(
+      const coxgraph_msgs::MeshWithTrajectory::Ptr& submap_mesh,
+      const CliId& cid, const CliSmId& csid);
+
+  void addSubmapFromMeshAsync(
+      const coxgraph_msgs::MeshWithTrajectory::Ptr& submap_mesh,
+      const CliId& cid, const CliSmId& csid);
 
   inline bool getSerSmIdsByCliId(const CliId& cid,
                                  std::vector<SerSmId>* ser_sids) {
@@ -126,15 +128,19 @@ class SubmapCollection : public voxgraph::VoxgraphSubmapCollection {
 
   Transformation mergeToCliMap(const CliSm::Ptr& submap_ptr);
 
+  ros::NodeHandle nh_private_;
+
   const int8_t client_number_;
 
   SmCliIdMap sm_cli_id_map_;
   CliSerSmIdMap cli_ser_sm_id_map_;
 
-  voxblox::MeshConverter::Ptr mesh_converter_ptr_;
-  std::shared_ptr<voxblox::TsdfIntegratorBase> tsdf_integrator_;
+  std::map<CliId, std::thread> recover_threads_;
+  std::string tsdf_integrator_method_;
+  voxblox::TsdfIntegratorBase::Config tsdf_integrator_config_;
   MeshCollection::Ptr mesh_collection_ptr_;
   std::map<std::string, CliSm::Ptr> recovered_submap_map_;
+  std::mutex recovered_submap_map_mutex_;
 
   std::unordered_map<SerSmId, Transformation> sm_id_ori_pose_map_;
 

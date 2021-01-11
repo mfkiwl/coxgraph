@@ -179,13 +179,13 @@ class ClientHandler {
 
   ros::Subscriber submap_mesh_sub_;
   void submapMeshCallback(
-      const coxgraph_msgs::MeshWithTrajectory& mesh_with_traj) {
+      const coxgraph_msgs::MeshWithTrajectory::Ptr& mesh_with_traj) {
     CIdCSIdPair csid_pair =
-        utils::resolveSubmapFrame(mesh_with_traj.mesh.header.frame_id);
+        utils::resolveSubmapFrame(mesh_with_traj->mesh.header.frame_id);
     CHECK_EQ(csid_pair.first, client_id_);
     LOG(INFO) << log_prefix_ << " Received mesh of submap " << csid_pair.second;
-    submap_collection_ptr_->addSubmap(mesh_with_traj, client_id_,
-                                      csid_pair.second);
+    submap_collection_ptr_->addSubmapFromMeshAsync(mesh_with_traj, client_id_,
+                                                   csid_pair.second);
   }
 
   constexpr static int8_t kSubQueueSize = 10;

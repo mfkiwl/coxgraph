@@ -8,13 +8,14 @@
   <arg name="tw_voxblox_config_file" default="$(find coxgraph)/config/tsdf_server_euroc.yaml"/>
   <arg name="tsdf_voxel_size" default="0.10"/>
   <arg name="truncation_distance" default="0.30"/>
+  <arg name="play_speed" default="0.5"/>
 
   <arg name="evaluate" default="true"/>
 
   <include file="$(find coxgraph)/launch/euroc/vins_client_euroc.launch">
     <arg name="id" value="0"/>
     <arg name="clock" value="false"/>
-    <arg name="play_speed" value="1.0"/>
+    <arg name="play_speed" value="$(arg play_speed)"/>
     <arg name="bag_file" value="$(arg bag_file0)"/>
   </include>
 
@@ -31,7 +32,7 @@
   <include file="$(find coxgraph)/launch/euroc/vins_client_euroc.launch">
     <arg name="id" value="1"/>
     <arg name="clock" value="false"/>
-    <arg name="play_speed" value="1.0"/>
+    <arg name="play_speed" value="$(arg play_speed)"/>
     <arg name="bag_file" value="$(arg bag_file1)"/>
   </include>
 
@@ -66,7 +67,7 @@
     <arg name="tsdf_voxel_size" value="$(arg tsdf_voxel_size)"/>
     <arg name="truncation_distance" value="$(arg truncation_distance)"/>
     <arg name="map_frame_prefix" default="odom"/>
-    <arg name="debug" default="false"/>
+    <arg name="debug" default="true"/>
   </include>
 
   <include file="$(find node_evaluator)/launch/evaluate.launch">

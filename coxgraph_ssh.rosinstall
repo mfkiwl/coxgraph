@@ -41,8 +41,8 @@
     uri: git@github.com:ethz-asl/opencv3_catkin.git
 - git:
     local-name: pcl_catkin
-    uri: git@github.com:ethz-asl/pcl_catkin.git
-    version: 740e68
+    uri: git@github.com:LXYYY/pcl_catkin.git
+    version: devel/maskgraph
 - git:
     local-name: vpp_msgs
     uri: git@github.com:ethz-asl/vpp_msgs.git
