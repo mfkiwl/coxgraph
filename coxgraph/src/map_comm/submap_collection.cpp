@@ -1,4 +1,4 @@
-#include "coxgraph/server/submap_collection.h"
+#include "coxgraph/map_comm/submap_collection.h"
 
 #include <voxblox/integrator/merge_integration.h>
 
@@ -9,7 +9,7 @@
 #include "coxgraph/utils/msg_converter.h"
 
 namespace coxgraph {
-namespace server {
+namespace comm {
 
 void SubmapCollection::addSubmap(const CliSm::Ptr& submap_ptr, const CliId& cid,
                                  const CliSmId& csid) {
@@ -69,16 +69,10 @@ void SubmapCollection::addSubmapFromMesh(
     if (points_C.empty()) continue;
 
     // Only for navigation, no need color
-    voxblox::Colors no_colors(points_C.size(), voxblox::Color());
-    tsdf_integrator->integratePointCloud(T_Sm_C, points_C, no_colors, false);
+    tsdf_integrator->integratePointCloud(T_Sm_C, points_C, voxblox::Colors(),
+                                         false);
   }
 
-  // LOG(INFO)
-  //     << "New recovered submap has blocks: "
-  //     <<
-  //     submap.getTsdfMapPtr()->getTsdfLayer().getNumberOfAllocatedBlocks();
-  // LOG(INFO) << "Number of recovered submaps: " <<
-  // recovered_submap_map_.size();
   {
     std::lock_guard<std::mutex> recovered_submap_map_lock(
         recovered_submap_map_mutex_);
@@ -113,7 +107,7 @@ voxblox::TsdfMap::Ptr SubmapCollection::getProjectedMap() {
   // Also project mesh-recovered submaps
   for (auto const& submap_kv : recovered_submap_map_) {
     Transformation T_G_Sm;
-    if (submap_pose_listener_.getSubmapPoseBlocking(submap_kv.first, &T_G_Sm,
+    if (submap_info_listener_.getSubmapPoseBlocking(submap_kv.first, &T_G_Sm,
                                                     true))
       voxblox::mergeLayerAintoLayerB(
           submap_kv.second->getTsdfMap().getTsdfLayer(), T_G_Sm,
@@ -128,5 +122,5 @@ voxblox::TsdfMap::Ptr SubmapCollection::getProjectedMap() {
   return combined_tsdf_map;
 }
 
-}  // namespace server
+}  // namespace comm
 }  // namespace coxgraph

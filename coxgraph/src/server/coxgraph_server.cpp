@@ -64,7 +64,7 @@ void CoxgraphServer::initClientHandlers(const ros::NodeHandle& nh,
                                         const ros::NodeHandle& nh_private) {
   CHECK_LT(config_.fixed_map_client_id, kMaxClientNum);
   for (int i = 0; i < config_.client_number; i++) {
-    client_handlers_.emplace_back(new ClientHandler(
+    client_handlers_.emplace_back(new comm::ClientHandler(
         nh, nh_private, i, config_.map_frame_prefix, submap_config_,
         submap_collection_ptr_,
         std::bind(&CoxgraphServer::timeLineUpdateCallback, this)));

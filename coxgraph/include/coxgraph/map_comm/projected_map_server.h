@@ -1,14 +1,14 @@
-#ifndef COXGRAPH_SERVER_DATA_SERVER_PROJECTED_MAP_SERVER_H_
-#define COXGRAPH_SERVER_DATA_SERVER_PROJECTED_MAP_SERVER_H_
+#ifndef COXGRAPH_MAP_COMM_PROJECTED_MAP_SERVER_H_
+#define COXGRAPH_MAP_COMM_PROJECTED_MAP_SERVER_H_
 
 #include <voxblox_msgs/Layer.h>
 
 #include <string>
 
-#include "coxgraph/server/submap_collection.h"
+#include "coxgraph/map_comm/submap_collection.h"
 
 namespace coxgraph {
-namespace server {
+namespace comm {
 class ProjectedMapServer {
  public:
   explicit ProjectedMapServer(ros::NodeHandle nh_private)
@@ -56,7 +56,7 @@ class ProjectedMapServer {
 
   int8_t prev_submap_number_;
 };
-}  // namespace server
+}  // namespace comm
 }  // namespace coxgraph
 
-#endif  // COXGRAPH_SERVER_DATA_SERVER_PROJECTED_MAP_SERVER_H_
+#endif  // COXGRAPH_MAP_COMM_PROJECTED_MAP_SERVER_H_

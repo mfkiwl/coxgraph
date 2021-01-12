@@ -8,7 +8,7 @@
 #include <string>
 
 #include "coxgraph/common.h"
-#include "coxgraph/server/submap_collection.h"
+#include "coxgraph/map_comm/submap_collection.h"
 #include "coxgraph/utils/msg_converter.h"
 
 namespace coxgraph {
@@ -31,9 +31,9 @@ class DistributionController {
 
   typedef std::shared_ptr<DistributionController> Ptr;
 
-  DistributionController(const ros::NodeHandle& nh,
-                         const ros::NodeHandle& nh_private,
-                         const SubmapCollection::Ptr& submap_collection_ptr)
+  DistributionController(
+      const ros::NodeHandle& nh, const ros::NodeHandle& nh_private,
+      const comm::SubmapCollection::Ptr& submap_collection_ptr)
       : nh_(nh),
         nh_private_(nh_private),
         submap_collection_ptr_(submap_collection_ptr) {
@@ -74,7 +74,7 @@ class DistributionController {
   }
 
   ros::ServiceServer state_query_srv_;
-  SubmapCollection::Ptr submap_collection_ptr_;
+  comm::SubmapCollection::Ptr submap_collection_ptr_;
   bool StateQueryCallback(
       coxgraph_msgs::StateQuery::Request& request,      // NOLINT
       coxgraph_msgs::StateQuery::Response& response) {  // NOLINT

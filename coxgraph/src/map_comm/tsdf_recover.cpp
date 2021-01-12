@@ -1,4 +1,4 @@
-#include "coxgraph/map_conversion/tsdf_recover.h"
+#include "coxgraph/map_comm/tsdf_recover.h"
 
 #include <pcl/point_types.h>
 #include <pcl_ros/point_cloud.h>

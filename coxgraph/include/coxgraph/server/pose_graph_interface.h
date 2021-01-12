@@ -9,7 +9,7 @@
 #include <string>
 
 #include "coxgraph/common.h"
-#include "coxgraph/server/submap_collection.h"
+#include "coxgraph/map_comm/submap_collection.h"
 #include "coxgraph/utils/ros_params.h"
 
 namespace coxgraph {
@@ -25,7 +25,7 @@ class PoseGraphInterface : public voxgraph::PoseGraphInterface {
   using PoseMap = voxgraph::PoseGraph::PoseMap;
 
   PoseGraphInterface(const ros::NodeHandle& nh_private,
-                     const SubmapCollection::Ptr& submap_collection_ptr,
+                     const comm::SubmapCollection::Ptr& submap_collection_ptr,
                      const MeshIntegratorConfig& mesh_config,
                      const std::string& visualizations_mission_frame,
                      bool robocentric, bool verbose = false)
@@ -45,7 +45,7 @@ class PoseGraphInterface : public voxgraph::PoseGraphInterface {
 
   // Copy constructor with a new submap collection ptr
   PoseGraphInterface(const PoseGraphInterface& rhs,
-                     SubmapCollection::Ptr submap_collection_ptr)
+                     comm::SubmapCollection::Ptr submap_collection_ptr)
       : PoseGraphInterface(rhs) {
     // reset submap collection ptr
     submap_collection_ptr_ =
@@ -84,7 +84,7 @@ class PoseGraphInterface : public voxgraph::PoseGraphInterface {
  private:
   bool robocentric_;
 
-  SubmapCollection::Ptr cox_submap_collection_ptr_;
+  comm::SubmapCollection::Ptr cox_submap_collection_ptr_;
   InformationMatrix sm_rp_info_matrix_;
 };
 

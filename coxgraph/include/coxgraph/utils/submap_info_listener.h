@@ -1,5 +1,5 @@
-#ifndef COXGRAPH_UTILS_SUBMAP_POSE_LISTENER_H_
-#define COXGRAPH_UTILS_SUBMAP_POSE_LISTENER_H_
+#ifndef COXGRAPH_UTILS_SUBMAP_INFO_LISTENER_H_
+#define COXGRAPH_UTILS_SUBMAP_INFO_LISTENER_H_
 
 #include <cblox_msgs/MapPoseUpdates.h>
 #include <minkindr_conversions/kindr_msg.h>
@@ -13,16 +13,16 @@
 
 namespace coxgraph {
 namespace utils {
-class SubmapPoseListener {
+class SubmapInfoListener {
  public:
-  SubmapPoseListener()
-      : SubmapPoseListener(ros::NodeHandle(), ros::NodeHandle("~")) {}
-  explicit SubmapPoseListener(ros::NodeHandle nh, ros::NodeHandle nh_private)
+  SubmapInfoListener()
+      : SubmapInfoListener(ros::NodeHandle(), ros::NodeHandle("~")) {}
+  explicit SubmapInfoListener(ros::NodeHandle nh, ros::NodeHandle nh_private)
       : transformer_(nh, nh_private) {
     nh_private.param("use_tf_submap_pose", use_tf_submap_pose_, false);
     if (!use_tf_submap_pose_)
       submap_pose_sub_ = nh_private.subscribe(
-          "submap_poses", 10, &SubmapPoseListener::submapPoseCallback, this);
+          "submap_poses", 10, &SubmapInfoListener::submapPoseCallback, this);
     else
       LOG(FATAL) << "bug unfixed when using submap pose from tf";
 
@@ -33,7 +33,7 @@ class SubmapPoseListener {
                                   map_frame_prefix_);
   }
 
-  ~SubmapPoseListener() = default;
+  ~SubmapInfoListener() = default;
 
   /**
    * @brief Get the Submap Pose in Blocking mode, if submap pose can't be find,
@@ -105,11 +105,24 @@ class SubmapPoseListener {
     }
   }
 
+  ros::Subscriber submap_abb_sub_;
+  std::map<std::string, BoundingBox> submap_abb_map_;
+  void submapBBoxCallback(const coxgraph_msgs::BoundingBox& bbox_msg) {
+    std::string submap_name =
+        utils::getSubmapFrame(std::make_pair(bbox_msg.cid, bbox_msg.csid));
+    auto submap_abb_kv = submap_abb_map_.find(submap_name);
+    if (submap_abb_kv != submap_abb_map_.end())
+      submap_abb_kv->second = utils::getBBoxFromMsg(bbox_msg);
+    else
+      submap_abb_map_.emplace(submap_name, utils::getBBoxFromMsg(bbox_msg));
+  }
+
   bool use_tf_submap_pose_;
   float submap_pose_time_tolerance_ms_;
   std::string map_frame_prefix_;
 };
+
 }  // namespace utils
 }  // namespace coxgraph
 
-#endif  // COXGRAPH_UTILS_SUBMAP_POSE_LISTENER_H_
+#endif  // COXGRAPH_UTILS_SUBMAP_INFO_LISTENER_H_

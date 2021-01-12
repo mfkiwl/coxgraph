@@ -1,5 +1,5 @@
-#ifndef COXGRAPH_SERVER_SUBMAP_COLLECTION_H_
-#define COXGRAPH_SERVER_SUBMAP_COLLECTION_H_
+#ifndef COXGRAPH_MAP_COMM_SUBMAP_COLLECTION_H_
+#define COXGRAPH_MAP_COMM_SUBMAP_COLLECTION_H_
 
 #include <coxgraph_msgs/MeshWithTrajectory.h>
 #include <voxblox/integrator/tsdf_integrator.h>
@@ -15,12 +15,12 @@
 #include <vector>
 
 #include "coxgraph/common.h"
-#include "coxgraph/map_conversion/mesh_converter.h"
-#include "coxgraph/server/mesh_collection.h"
-#include "coxgraph/utils/submap_pose_listener.h"
+#include "coxgraph/map_comm/mesh_collection.h"
+#include "coxgraph/map_comm/mesh_converter.h"
+#include "coxgraph/utils/submap_info_listener.h"
 
 namespace coxgraph {
-namespace server {
+namespace comm {
 
 class SubmapCollection : public voxgraph::VoxgraphSubmapCollection {
  public:
@@ -37,7 +37,7 @@ class SubmapCollection : public voxgraph::VoxgraphSubmapCollection {
         tsdf_integrator_config_(
             voxblox::getTsdfIntegratorConfigFromRosParam(nh_private)),
         mesh_collection_ptr_(mesh_collection_ptr),
-        submap_pose_listener_(nh, nh_private) {
+        submap_info_listener_(nh, nh_private) {
     nh_private_.param<std::string>("method", tsdf_integrator_method_,
                                    "projective");
   }
@@ -144,13 +144,13 @@ class SubmapCollection : public voxgraph::VoxgraphSubmapCollection {
 
   std::unordered_map<SerSmId, Transformation> sm_id_ori_pose_map_;
 
-  utils::SubmapPoseListener submap_pose_listener_;
+  utils::SubmapInfoListener submap_info_listener_;
 
   std::mutex id_update_mutex_;
   std::timed_mutex submap_poses_update_mutex;
 };
 
-}  // namespace server
+}  // namespace comm
 }  // namespace coxgraph
 
-#endif  // COXGRAPH_SERVER_SUBMAP_COLLECTION_H_
+#endif  // COXGRAPH_MAP_COMM_SUBMAP_COLLECTION_H_
