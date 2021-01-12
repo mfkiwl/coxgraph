@@ -69,16 +69,10 @@ void SubmapCollection::addSubmapFromMesh(
     if (points_C.empty()) continue;
 
     // Only for navigation, no need color
-    voxblox::Colors no_colors(points_C.size(), voxblox::Color());
-    tsdf_integrator->integratePointCloud(T_Sm_C, points_C, no_colors, false);
+    tsdf_integrator->integratePointCloud(T_Sm_C, points_C, voxblox::Colors(),
+                                         false);
   }
 
-  // LOG(INFO)
-  //     << "New recovered submap has blocks: "
-  //     <<
-  //     submap.getTsdfMapPtr()->getTsdfLayer().getNumberOfAllocatedBlocks();
-  // LOG(INFO) << "Number of recovered submaps: " <<
-  // recovered_submap_map_.size();
   {
     std::lock_guard<std::mutex> recovered_submap_map_lock(
         recovered_submap_map_mutex_);

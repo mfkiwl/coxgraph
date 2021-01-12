@@ -25,8 +25,10 @@
 #include <voxblox/io/layer_io.h>
 #include <voxblox/io/mesh_ply.h>
 #include <voxblox/mesh/mesh_integrator.h>
+#include <voxblox_ros/conversions.h>
 #include <voxblox_ros/mesh_vis.h>
 #include <voxblox_ros/ptcloud_vis.h>
+#include <voxgraph/tools/evaluation/map_evaluation.h>
 #include <boost/filesystem.hpp>
 
 #include <deque>
@@ -44,7 +46,7 @@ class VoxbloxEvaluator {
                    const ros::NodeHandle& nh_private);
   void evaluate();
   void visualize();
-  bool shouldExit() const { return !visualize_; }
+  bool shouldExit() const { return !bag_.isOpen(); }
 
  private:
   ros::NodeHandle nh_;
@@ -67,11 +69,11 @@ class VoxbloxEvaluator {
 
   // Visualization publishers.
   ros::Publisher mesh_pub_;
-  ros::Publisher gt_ptcloud_pub_;
+  ros::Publisher occupancy_marker_pub_;
+  ros::Publisher gt_occupancy_marker_pub_;
 
   // Core data to compare.
   std::shared_ptr<Layer<TsdfVoxel>> tsdf_layer_;
-  pcl::PointCloud<pcl::PointXYZRGB> gt_ptcloud_;
 
   // Interpolator to get the distance at the exact point in the GT.
   Interpolator<TsdfVoxel>::Ptr interpolator_;
@@ -83,6 +85,8 @@ class VoxbloxEvaluator {
   std::string tsdf_topic_;
   std::string result_folder_path_;
   std::ofstream result_file_;
+
+  voxgraph::MapEvaluation* map_evaluation_;
 };
 
 VoxbloxEvaluator::VoxbloxEvaluator(const ros::NodeHandle& nh,
@@ -99,7 +103,8 @@ VoxbloxEvaluator::VoxbloxEvaluator(const ros::NodeHandle& nh,
 
   nh_private_.param<std::string>("tsdf_topic", tsdf_topic_, "");
 
-  nh_private_.param<std::string>("voxblox_eval.txt", result_folder_path_, "");
+  nh_private_.param<std::string>("result_folder_path", result_folder_path_,
+                                 ".");
   boost::filesystem::path p(result_folder_path_);
   p.append("voxblox_eval.txt");
   result_file_.open(p.string());
@@ -107,13 +112,13 @@ VoxbloxEvaluator::VoxbloxEvaluator(const ros::NodeHandle& nh,
     LOG(ERROR) << "Failed to open result file " << p.string()
                << " , result will not be logged";
   } else {
-    result_file_ << "time,"
-                    "RMSE,"
-                    "total_evaluated,"
-                    "unknown_voxels,"
-                    "unknown_voxels(%),"
-                    "outside_truncation,"
-                    "outside_truncation(%)"
+    result_file_ << "evaluated_voxels,"
+                    "overlapping_voxels,"
+                    "non_overlapping_voxels,"
+                    "ignored_voxels,"
+                    "error_min,"
+                    "error_max,"
+                    "RMSE"
                  << std::endl;
   }
 
@@ -142,9 +147,7 @@ VoxbloxEvaluator::VoxbloxEvaluator(const ros::NodeHandle& nh,
       << "No file path provided for ground truth pointcloud! Set the "
          "\"gt_file_path\" param.";
 
-  pcl::PLYReader ply_reader;
-  CHECK_EQ(ply_reader.read(gt_file_path, gt_ptcloud_), 0)
-      << "Could not load pointcloud ground truth.";
+  map_evaluation_ = new voxgraph::MapEvaluation(nh_, gt_file_path);
 
   // Initialize the interpolator.
   interpolator_.reset(new Interpolator<TsdfVoxel>(tsdf_layer_.get()));
@@ -153,8 +156,6 @@ VoxbloxEvaluator::VoxbloxEvaluator(const ros::NodeHandle& nh,
   if (visualize_) {
     mesh_pub_ =
         nh_private_.advertise<visualization_msgs::MarkerArray>("mesh", 1, true);
-    gt_ptcloud_pub_ = nh_private_.advertise<pcl::PointCloud<pcl::PointXYZRGB>>(
-        "gt_ptcloud", 1, true);
 
     std::string color_mode("color");
     nh_private_.param("color_mode", color_mode, color_mode);
@@ -170,16 +171,18 @@ VoxbloxEvaluator::VoxbloxEvaluator(const ros::NodeHandle& nh,
       color_mode_ = ColorMode::kGray;
     }
   }
+  occupancy_marker_pub_ =
+      nh_private_.advertise<visualization_msgs::MarkerArray>("occupied_nodes",
+                                                             1, true);
+
+  gt_occupancy_marker_pub_ =
+      nh_private_.advertise<visualization_msgs::MarkerArray>(
+          "gt_occupied_nodes", 1, true);
 
   std::cout << "Evaluating " << voxblox_bag_path << std::endl;
 }
 
 void VoxbloxEvaluator::evaluate() {
-  // First, transform the pointcloud into the correct coordinate frame.
-  // First, rotate the pointcloud into the world frame.
-  pcl::transformPointCloud(gt_ptcloud_, gt_ptcloud_,
-                           T_V_G_.getTransformationMatrix());
-
   // Display every n seconds, to make the reconstruction visible in rviz
   ros::Rate display_loop(ros::Duration(1.0));
 
@@ -190,86 +193,27 @@ void VoxbloxEvaluator::evaluate() {
     if (i != nullptr) {
       display_loop.sleep();
 
-      // Go through each point, use trilateral interpolation to figure out the
-      // distance at that point.
-      // This double-counts -- multiple queries to the same voxel will be
-      // counted separately.
-      uint64_t total_evaluated_voxels = 0;
-      uint64_t unknown_voxels = 0;
-      uint64_t outside_truncation_voxels = 0;
-
-      // TODO(helenol): make this dynamic.
-      double truncation_distance = 3 * tsdf_layer_->voxel_size();
-
-      double mse = 0.0;
-
-      for (pcl::PointCloud<pcl::PointXYZRGB>::const_iterator it =
-               gt_ptcloud_.begin();
-           it != gt_ptcloud_.end(); ++it) {
-        Point point(it->x, it->y, it->z);
-
-        FloatingPoint distance = 0.0;
-        float weight = 0.0;
-        bool valid = false;
-
-        const float min_weight = 0.01;
-        const bool interpolate = true;
-        // We will do multiple lookups -- the first is to determine whether the
-        // voxel exists.
-        if (!interpolator_->getNearestDistanceAndWeight(point, &distance,
-                                                        &weight)) {
-          unknown_voxels++;
-        } else if (weight <= min_weight) {
-          unknown_voxels++;
-        } else if (distance >= truncation_distance) {
-          outside_truncation_voxels++;
-          mse += truncation_distance * truncation_distance;
-          valid = true;
-        } else {
-          // In case this fails, distance is still the nearest neighbor
-          // distance.
-          interpolator_->getDistance(point, &distance, interpolate);
-          mse += distance * distance;
-          valid = true;
-        }
-
-        if (valid && visualize_ && recolor_by_error_) {
-          Layer<TsdfVoxel>::BlockType::Ptr block_ptr =
-              tsdf_layer_->getBlockPtrByCoordinates(point);
-          if (block_ptr != nullptr) {
-            TsdfVoxel& voxel = block_ptr->getVoxelByCoordinates(point);
-            voxel.color =
-                grayColorMap(std::fabs(distance) / truncation_distance);
-          }
-        }
-
-        total_evaluated_voxels++;
+      if (tsdf_layer_ == nullptr) {
+        tsdf_layer_.reset(
+            new Layer<TsdfVoxel>(i->voxel_size, i->voxels_per_side));
+        interpolator_.reset(new Interpolator<TsdfVoxel>(tsdf_layer_.get()));
       }
+      deserializeMsgToLayer(*i, tsdf_layer_.get());
+      LOG(INFO) << "tsdf layer blocks: "
+                << tsdf_layer_->getNumberOfAllocatedBlocks();
 
-      double rms = sqrt(mse / (total_evaluated_voxels - unknown_voxels));
+      auto result = map_evaluation_->evaluate(*tsdf_layer_);
 
-      std::cout << "Finished evaluating.\n"
-                << "\nTimestamp:           " << m.getTime()
-                << "\nRMS Error:           " << rms
-                << "\nTotal evaluated:     " << total_evaluated_voxels
-                << "\nUnknown voxels:      " << unknown_voxels << " ("
-                << static_cast<double>(unknown_voxels) / total_evaluated_voxels
-                << ")\nOutside truncation: " << outside_truncation_voxels
-                << " ("
-                << outside_truncation_voxels /
-                       static_cast<double>(total_evaluated_voxels)
-                << ")\n";
+      std::cout << result.reconstruction.toString();
+      auto recon_rlt = result.reconstruction;
 
       if (result_file_.is_open()) {
-        // clang-format off
-        result_file_ << m.getTime() << ","
-                     << rms << ","
-                     << total_evaluated_voxels << ","
-                     << unknown_voxels << ","
-                     << static_cast<double>(unknown_voxels) / total_evaluated_voxels << "," // NOLINT
-                     << outside_truncation_voxels << ","
-                     << outside_truncation_voxels / static_cast<double>(total_evaluated_voxels)<<std::endl; // NOLINT
-        // clang-format on
+        result_file_ << m.getTime() << "," << recon_rlt.num_evaluated_voxels
+                     << "," << recon_rlt.num_overlapping_voxels << ","
+                     << recon_rlt.num_non_overlapping_voxels << ","
+                     << recon_rlt.num_ignored_voxels << ","
+                     << recon_rlt.min_error << "," << recon_rlt.max_error << ","
+                     << recon_rlt.rmse << std::endl;
       }
 
       if (visualize_) {
@@ -277,6 +221,8 @@ void VoxbloxEvaluator::evaluate() {
       }
     }
   }
+
+  bag_.close();
 }
 
 void VoxbloxEvaluator::visualize() {
@@ -289,6 +235,7 @@ void VoxbloxEvaluator::visualize() {
   constexpr bool only_mesh_updated_blocks = false;
   constexpr bool clear_updated_flag = true;
   mesh_integrator_->generateMesh(only_mesh_updated_blocks, clear_updated_flag);
+  LOG(INFO) << "mesh size: " << mesh_layer_->getNumberOfAllocatedMeshes();
 
   // Publish mesh.
   visualization_msgs::MarkerArray marker_array;
@@ -297,8 +244,16 @@ void VoxbloxEvaluator::visualize() {
   fillMarkerWithMesh(mesh_layer_, color_mode_, &marker_array.markers[0]);
   mesh_pub_.publish(marker_array);
 
-  gt_ptcloud_.header.frame_id = frame_id_;
-  gt_ptcloud_pub_.publish(gt_ptcloud_);
+  visualization_msgs::MarkerArray occu_node_array;
+  createOccupancyBlocksFromTsdfLayer(*tsdf_layer_, frame_id_, &occu_node_array);
+  occupancy_marker_pub_.publish(occu_node_array);
+
+  visualization_msgs::MarkerArray gt_occu_node_array;
+  createOccupancyBlocksFromTsdfLayer(
+      map_evaluation_->getGroundTruthMapPtr()->getTsdfMapPtr()->getTsdfLayer(),
+      frame_id_, &gt_occu_node_array);
+  occupancy_marker_pub_.publish(gt_occu_node_array);
+
   std::cout << "Finished visualizing.\n";
 }
 

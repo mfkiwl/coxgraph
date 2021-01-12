@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+  <node pkg="coxgraph" type="voxblox_eval_node" name="voxblox_eval_node" launch-prefix="xterm -e gdb -ex run --args" args="-alsologtostderr">
+    <param name="result_folder_path" value="/workspaces/voxgraph_melodic_ws/eval/node_evaluator/01-11-21-16-17-03"/>
+    <param name="gt_file_path" value="/workspaces/voxgraph_melodic_ws/eval/node_evaluator/euroc_ml23_maplab.tsdf"/>
+    <param name="voxblox_bag_path" value="/workspaces/voxgraph_melodic_ws/eval/node_evaluator/01-11-21-16-17-03/eval_data_2021-01-11-16-17-03.bag"/>
+    <param name="frame_id" value="odom_g"/>
+    <param name="color_mode" value="height"/>
+  </node>
+</launch>
