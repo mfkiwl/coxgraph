@@ -11,6 +11,7 @@
 #include <voxgraph_msgs/LoopClosure.h>
 #include <Eigen/Dense>
 
+#include <map>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -57,6 +58,14 @@ class ClientHandler {
   };
 
   typedef std::shared_ptr<ClientHandler> Ptr;
+
+  static void initClientHandlers(
+      const ros::NodeHandle& nh, const ros::NodeHandle& nh_private,
+      std::string map_frame_prefix, const CliSmConfig& submap_config,
+      const SubmapCollection::Ptr& submap_collection_ptr, int client_number,
+      std::map<CliId, ClientHandler::Ptr>* client_handlers,
+      const CliId& cid = -1,
+      TimeLineUpdateCallback time_line_callback = TimeLineUpdateCallback());
 
   ClientHandler(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private,
                 const CliId& client_id, std::string map_frame_prefix,

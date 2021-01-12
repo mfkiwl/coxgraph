@@ -10,12 +10,15 @@
 #include <voxgraph/frontend/submap_collection/voxgraph_submap_collection.h>
 #include <voxgraph/tools/visualization/submap_visuals.h>
 
+#include <map>
 #include <memory>
 #include <mutex>
 #include <set>
 #include <string>
 
 #include "coxgraph/common.h"
+#include "coxgraph/map_comm/client_handler.h"
+#include "coxgraph/map_comm/submap_collection.h"
 #include "coxgraph/utils/msg_converter.h"
 #include "coxgraph/utils/submap_info_listener.h"
 
@@ -30,12 +33,14 @@ class MapServer {
           publish_on_update(true),
           publish_traversable(false),
           traversability_radius(1.0),
-          publish_mesh_with_trajectory(true) {}
+          publish_mesh_with_trajectory(true),
+          request_new_submap_every_n_sec(1.0) {}
     float publish_combined_maps_every_n_sec;
     bool publish_on_update;
     bool publish_traversable;
     float traversability_radius;
     bool publish_mesh_with_trajectory;
+    float request_new_submap_every_n_sec;
 
     friend inline std::ostream& operator<<(std::ostream& s, const Config& v) {
       s << std::endl
@@ -55,6 +60,8 @@ class MapServer {
         << static_cast<std::string>(v.publish_mesh_with_trajectory ? "enabled"
                                                                    : "disabled")
         << std::endl
+        << "  Request new submap every: " << v.request_new_submap_every_n_sec
+        << "s" << std::endl
         << "-------------------------------------------" << std::endl;
       return (s);
     }
@@ -66,20 +73,21 @@ class MapServer {
   using VoxgraphSubmapCollection = voxgraph::VoxgraphSubmapCollection;
 
   MapServer(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private,
-            CliId client_id, const voxgraph::VoxgraphSubmap::Config& map_config,
+            CliId client_id, int client_number,
+            const voxgraph::VoxgraphSubmap::Config& map_config,
             const FrameNames& frame_names,
-            const VoxgraphSubmapCollection::Ptr& submap_collection_ptr)
-      : MapServer(nh, nh_private, client_id, getConfigFromRosParam(nh_private),
-                  map_config, frame_names,
+            const comm::SubmapCollection::Ptr& submap_collection_ptr)
+      : MapServer(nh, nh_private, client_id, client_number,
+                  getConfigFromRosParam(nh_private), map_config, frame_names,
                   voxblox::getEsdfIntegratorConfigFromRosParam(nh_private),
                   submap_collection_ptr) {}
 
   MapServer(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private,
-            CliId client_id, const Config& config,
+            CliId client_id, int client_number, const Config& config,
             const voxgraph::VoxgraphSubmap::Config& map_config,
             const FrameNames& frame_names,
             const voxblox::EsdfIntegrator::Config& esdf_integrator_config,
-            const VoxgraphSubmapCollection::Ptr& submap_collection_ptr)
+            const comm::SubmapCollection::Ptr& submap_collection_ptr)
       : nh_(nh),
         nh_private_(nh_private),
         config_(getConfigFromRosParam(nh_private)),
@@ -93,8 +101,13 @@ class MapServer {
     esdf_integrator_.reset(new voxblox::EsdfIntegrator(
         esdf_integrator_config, tsdf_map_->getTsdfLayerPtr(),
         esdf_map_->getEsdfLayerPtr()));
-    subscribeTopics();
+    subscribeToTopics();
     advertiseTopics();
+
+    comm::ClientHandler::initClientHandlers(
+        nh_, nh_private_, frame_names_.input_odom_frame, map_config,
+        submap_collection_ptr, client_number, &client_handlers_, client_id);
+    startTimers();
 
     LOG(INFO) << config_;
   }
@@ -104,11 +117,18 @@ class MapServer {
   void publishSubmapMesh(CliSmId csid, std::string world_frame,
                          const voxgraph::SubmapVisuals& submap_vis);
 
+  // Publish bounding box in client odom frame
+  void publishSubmapBBox(CliSmId csid) {
+    submap_bbox_pub_.publish(utils::msgFromBb(
+        submap_collection_ptr_->getSubmap(csid).getOdomFrameSubmapAabb()));
+  }
+
   void updatePastTsdf();
 
  private:
-  void subscribeTopics();
+  void subscribeToTopics();
   void advertiseTopics();
+  void startTimers();
 
   void publishMapEvent(const ros::TimerEvent& event);
   void publishMap();
@@ -123,7 +143,7 @@ class MapServer {
 
   FrameNames frame_names_;
 
-  VoxgraphSubmapCollection::Ptr submap_collection_ptr_;
+  comm::SubmapCollection::Ptr submap_collection_ptr_;
 
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
@@ -145,7 +165,9 @@ class MapServer {
     }
   }
 
+  // TODO(mikexyl): better move pubs to submap_info_listener
   ros::Publisher submap_mesh_pub_;
+  ros::Publisher submap_bbox_pub_;
 
   ros::Subscriber kf_pose_sub_;
   std::set<ros::Time> kf_timestamp_set_;
@@ -157,6 +179,14 @@ class MapServer {
   constexpr static int kKfTimestampQueueSize = 400;
 
   utils::SubmapInfoListener submap_info_listener_;
+
+  ros::Timer request_new_submap_timer_;
+  void requestNewSubmapEvent(const ros::TimerEvent& event) {
+    requestNewSubmap();
+  }
+  void requestNewSubmap();
+
+  std::map<CliId, comm::ClientHandler::Ptr> client_handlers_;
 };
 
 }  // namespace client

@@ -1,5 +1,6 @@
 #include "coxgraph/client/map_server.h"
 
+#include <coxgraph_msgs/BoundingBox.h>
 #include <coxgraph_msgs/MeshWithTrajectory.h>
 #include <voxblox_msgs/MultiMesh.h>
 
@@ -24,10 +25,13 @@ MapServer::Config MapServer::getConfigFromRosParam(
   nh_private.param<bool>("publish_mesh_with_trajectory",
                          config.publish_mesh_with_trajectory,
                          config.publish_mesh_with_trajectory);
+  nh_private.param<float>("request_new_submap_every_n_sec",
+                          config.request_new_submap_every_n_sec,
+                          config.request_new_submap_every_n_sec);
   return config;
 }
 
-void MapServer::subscribeTopics() {
+void MapServer::subscribeToTopics() {
   kf_pose_sub_ = nh_private_.subscribe("keyframe_pose", 10,
                                        &MapServer::kfPoseCallback, this);
 }
@@ -54,6 +58,17 @@ void MapServer::advertiseTopics() {
   else
     submap_mesh_pub_ =
         nh_private_.advertise<voxblox_msgs::MultiMesh>("submap_mesh", 10, true);
+
+  submap_mesh_pub_ = nh_private_.advertise<coxgraph_msgs::BoundingBox>(
+      "submap_bbox", 10, true);
+}
+
+void MapServer::startTimers() {
+  if (config_.request_new_submap_every_n_sec > 0) {
+    request_new_submap_timer_ = nh_private_.createTimer(
+        ros::Duration(config_.request_new_submap_every_n_sec),
+        &MapServer::requestNewSubmapEvent, this);
+  }
 }
 
 void MapServer::updatePastTsdf() {
@@ -149,6 +164,8 @@ void MapServer::publishSubmapMesh(CliSmId csid, std::string /* world_frame */,
     submap_mesh_pub_.publish(mesh_msg);
   }
 }
+
+void MapServer::requestNewSubmap() {}
 
 }  // namespace client
 }  // namespace coxgraph

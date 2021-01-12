@@ -63,12 +63,13 @@ CoxgraphServer::Config CoxgraphServer::getConfigFromRosParam(
 void CoxgraphServer::initClientHandlers(const ros::NodeHandle& nh,
                                         const ros::NodeHandle& nh_private) {
   CHECK_LT(config_.fixed_map_client_id, kMaxClientNum);
-  for (int i = 0; i < config_.client_number; i++) {
-    client_handlers_.emplace_back(new comm::ClientHandler(
-        nh, nh_private, i, config_.map_frame_prefix, submap_config_,
-        submap_collection_ptr_,
-        std::bind(&CoxgraphServer::timeLineUpdateCallback, this)));
 
+  comm::ClientHandler::initClientHandlers(
+      nh_, nh_private_, config_.map_frame_prefix, submap_config_,
+      submap_collection_ptr_, config_.client_number, &client_handlers_, -1,
+      std::bind(&CoxgraphServer::timeLineUpdateCallback, this));
+
+  for (int i = 0; i < config_.client_number; i++) {
     force_fuse_.emplace_back(true);
     fused_time_line_.emplace_back(TimeLine());
   }
@@ -121,7 +122,7 @@ bool CoxgraphServer::getFinalGlobalMeshCallback(
   SerSmId start_ser_sm_id = submap_collection_ptr_->getNextSubmapID();
   for (auto const& ch : client_handlers_) {
     std::vector<CliSmIdPack> submaps_in_client;
-    CHECK(ch->requestAllSubmaps(&submaps_in_client, &start_ser_sm_id));
+    CHECK(ch.second->requestAllSubmaps(&submaps_in_client, &start_ser_sm_id));
     all_submaps.insert(all_submaps.end(), submaps_in_client.begin(),
                        submaps_in_client.end());
   }
@@ -145,11 +146,11 @@ bool CoxgraphServer::getPoseHistoryCallback(
   LOG(INFO) << "Generating pose history for all clients";
 
   std::vector<PoseStampedVector> pose_histories(config_.client_number);
-  for (auto const& ch : client_handlers_) {
-    if (!ch->requestPoseHistory(request.file_path,
-                                &pose_histories[ch->getCliId()])) {
-      LOG(ERROR) << "Request pose history of Client " << ch->getCliId()
-                 << " failed";
+  for (auto const& ch_kv : client_handlers_) {
+    if (!ch_kv.second->requestPoseHistory(
+            request.file_path, &pose_histories[ch_kv.second->getCliId()])) {
+      LOG(ERROR) << "Request pose history of Client "
+                 << ch_kv.second->getCliId() << " failed";
       return false;
     }
   }

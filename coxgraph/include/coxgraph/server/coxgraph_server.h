@@ -244,7 +244,7 @@ class CoxgraphServer {
   PoseGraphInterface::Ptr pose_graph_interface_;
   std::mutex submap_add_mutex_;
 
-  std::vector<comm::ClientHandler::Ptr> client_handlers_;
+  std::map<CliId, comm::ClientHandler::Ptr> client_handlers_;
 
   // Map fusion msg process related
   std::deque<std::pair<coxgraph_msgs::MapFusion, int>> map_fusion_msgs_future_;

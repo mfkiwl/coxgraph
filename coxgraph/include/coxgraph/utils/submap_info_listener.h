@@ -4,7 +4,9 @@
 #include <cblox_msgs/MapPoseUpdates.h>
 #include <minkindr_conversions/kindr_msg.h>
 
+#include <limits>
 #include <map>
+#include <set>
 #include <string>
 #include <utility>
 
@@ -83,6 +85,43 @@ class SubmapInfoListener {
     return true;
   }
 
+  CIdCSIdPair getUnknownSubmapNearClient(
+      const Transformation& T_G_C, const std::set<CIdCSIdPair>& known_submap_id,
+      CIdCSIdPair* target_submap_id) {
+    float min_max_overlap = 1.0;
+    float min_dist = std::numeric_limits<float>().max();
+    std::string csid_min_overlap;
+    for (auto submap_bbox_kv : submap_aabb_map_) {
+      if (known_submap_id.count(
+              utils::resolveSubmapFrame(submap_bbox_kv.first)))
+        continue;
+      if (submap_bbox_kv.second.hasPosition(T_G_C.getPosition())) {
+        float max_overlap_ratio = 0.0;
+        for (auto csid_pair : known_submap_id) {
+          CHECK(submap_aabb_map_.count(utils::getSubmapFrame(csid_pair)));
+          BoundingBox other_bbox =
+              submap_aabb_map_[utils::getSubmapFrame(csid_pair)];
+          float overlap_ratio = submap_bbox_kv.second.overlapRatioWith(
+                                    other_bbox) > max_overlap_ratio;
+          if (overlap_ratio > kMaxOverlapRatio) continue;
+          if (overlap_ratio > max_overlap_ratio) {
+            max_overlap_ratio = overlap_ratio;
+          }
+        }
+        if (max_overlap_ratio < min_max_overlap) {
+          min_max_overlap = max_overlap_ratio;
+          csid_min_overlap = submap_bbox_kv.first;
+        } else if (max_overlap_ratio == min_max_overlap &&
+                   submap_bbox_kv.second.distToPosition(T_G_C.getPosition()) <
+                       min_dist) {
+          min_dist = submap_bbox_kv.second.distToPosition(T_G_C.getPosition());
+          csid_min_overlap = submap_bbox_kv.first;
+        }
+      }
+    }
+    return utils::resolveSubmapFrame(csid_min_overlap);
+  }
+
  private:
   voxblox::Transformer transformer_;
 
@@ -106,20 +145,22 @@ class SubmapInfoListener {
   }
 
   ros::Subscriber submap_abb_sub_;
-  std::map<std::string, BoundingBox> submap_abb_map_;
+  std::map<std::string, BoundingBox> submap_aabb_map_;
   void submapBBoxCallback(const coxgraph_msgs::BoundingBox& bbox_msg) {
     std::string submap_name =
         utils::getSubmapFrame(std::make_pair(bbox_msg.cid, bbox_msg.csid));
-    auto submap_abb_kv = submap_abb_map_.find(submap_name);
-    if (submap_abb_kv != submap_abb_map_.end())
+    auto submap_abb_kv = submap_aabb_map_.find(submap_name);
+    if (submap_abb_kv != submap_aabb_map_.end())
       submap_abb_kv->second = utils::getBBoxFromMsg(bbox_msg);
     else
-      submap_abb_map_.emplace(submap_name, utils::getBBoxFromMsg(bbox_msg));
+      submap_aabb_map_.emplace(submap_name, utils::getBBoxFromMsg(bbox_msg));
   }
 
   bool use_tf_submap_pose_;
   float submap_pose_time_tolerance_ms_;
   std::string map_frame_prefix_;
+
+  constexpr static float kMaxOverlapRatio = 0.4;
 };
 
 }  // namespace utils
