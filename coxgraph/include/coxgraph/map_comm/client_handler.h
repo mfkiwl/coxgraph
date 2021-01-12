@@ -1,5 +1,5 @@
-#ifndef COXGRAPH_SERVER_CLIENT_HANDLER_H_
-#define COXGRAPH_SERVER_CLIENT_HANDLER_H_
+#ifndef COXGRAPH_MAP_COMM_CLIENT_HANDLER_H_
+#define COXGRAPH_MAP_COMM_CLIENT_HANDLER_H_
 
 #include <coxgraph_msgs/ClientSubmap.h>
 #include <coxgraph_msgs/ClientSubmapSrv.h>
@@ -17,13 +17,13 @@
 #include <vector>
 
 #include "coxgraph/common.h"
-#include "coxgraph/server/mesh_collection.h"
-#include "coxgraph/server/submap_collection.h"
+#include "coxgraph/map_comm/mesh_collection.h"
+#include "coxgraph/map_comm/submap_collection.h"
 #include "coxgraph/utils/eval_data_publisher.h"
 #include "coxgraph/utils/msg_converter.h"
 
 namespace coxgraph {
-namespace server {
+namespace comm {
 
 class ClientHandler {
  public:
@@ -191,7 +191,7 @@ class ClientHandler {
   constexpr static int8_t kSubQueueSize = 10;
 };
 
-}  // namespace server
+}  // namespace comm
 }  // namespace coxgraph
 
-#endif  // COXGRAPH_SERVER_CLIENT_HANDLER_H_
+#endif  // COXGRAPH_MAP_COMM_CLIENT_HANDLER_H_

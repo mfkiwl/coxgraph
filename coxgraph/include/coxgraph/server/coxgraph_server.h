@@ -25,12 +25,12 @@
 #include <vector>
 
 #include "coxgraph/common.h"
-#include "coxgraph/server/client_handler.h"
-#include "coxgraph/server/data_server/projected_map_server.h"
+#include "coxgraph/map_comm/client_handler.h"
+#include "coxgraph/map_comm/projected_map_server.h"
+#include "coxgraph/map_comm/submap_collection.h"
 #include "coxgraph/server/distribution/distribution_controller.h"
 #include "coxgraph/server/global_tf_controller.h"
 #include "coxgraph/server/pose_graph_interface.h"
-#include "coxgraph/server/submap_collection.h"
 #include "coxgraph/server/visualizer/server_visualizer.h"
 
 namespace coxgraph {
@@ -117,7 +117,7 @@ class CoxgraphServer {
     LOG(INFO) << "Verbose: " << verbose_;
     LOG(INFO) << config_;
 
-    submap_collection_ptr_.reset(new SubmapCollection(
+    submap_collection_ptr_.reset(new comm::SubmapCollection(
         submap_config_, config_.client_number,
         server_vis_->getMeshCollectionPtr(), nh_, nh_private_, verbose_));
 
@@ -169,7 +169,7 @@ class CoxgraphServer {
   void futureMFProcCallback(const ros::TimerEvent& event);
 
  private:
-  using ReqState = ClientHandler::ReqState;
+  using ReqState = comm::ClientHandler::ReqState;
   using ThreadingHelper = voxgraph::ThreadingHelper;
   using PoseMap = PoseGraphInterface::PoseMap;
 
@@ -240,11 +240,11 @@ class CoxgraphServer {
   const Config config_;
 
   const CliSmConfig submap_config_;
-  SubmapCollection::Ptr submap_collection_ptr_;
+  comm::SubmapCollection::Ptr submap_collection_ptr_;
   PoseGraphInterface::Ptr pose_graph_interface_;
   std::mutex submap_add_mutex_;
 
-  std::vector<ClientHandler::Ptr> client_handlers_;
+  std::vector<comm::ClientHandler::Ptr> client_handlers_;
 
   // Map fusion msg process related
   std::deque<std::pair<coxgraph_msgs::MapFusion, int>> map_fusion_msgs_future_;
@@ -270,7 +270,7 @@ class CoxgraphServer {
   DistributionController::Ptr distrib_ctl_ptr_;
   inline bool inControl() const { return distrib_ctl_ptr_->inControl(); }
 
-  ProjectedMapServer projected_map_server_;
+  comm::ProjectedMapServer projected_map_server_;
   ros::Timer projected_map_pub_timer_;
   void publishProjectedMap(const ros::TimerEvent& event) {
     projected_map_server_.publishProjectedMap(submap_collection_ptr_,

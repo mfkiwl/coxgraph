@@ -10,14 +10,14 @@ cs_add_library(${PROJECT_NAME}
     src/client/coxgraph_client.cpp
     src/client/map_server.cpp
     src/server/coxgraph_server.cpp
-    src/server/client_handler.cpp
     src/server/pose_graph_interface.cpp
     src/server/global_tf_controller.cpp
-    src/server/submap_collection.cpp
     src/server/client_tf_optimizer.cpp
     src/server/visualizer/server_visualizer.cpp
-    src/map_conversion/mesh_converter.cpp
-    src/map_conversion/tsdf_recover.cpp)
+    src/map_comm/submap_collection.cpp
+    src/map_comm/client_handler.cpp
+    src/map_comm/mesh_converter.cpp
+    src/map_comm/tsdf_recover.cpp)
 
 cs_add_executable(coxgraph_client_node
     src/coxgraph_client_node.cpp)

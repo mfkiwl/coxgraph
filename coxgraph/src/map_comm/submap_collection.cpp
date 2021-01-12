@@ -1,4 +1,4 @@
-#include "coxgraph/server/submap_collection.h"
+#include "coxgraph/map_comm/submap_collection.h"
 
 #include <voxblox/integrator/merge_integration.h>
 
@@ -9,7 +9,7 @@
 #include "coxgraph/utils/msg_converter.h"
 
 namespace coxgraph {
-namespace server {
+namespace comm {
 
 void SubmapCollection::addSubmap(const CliSm::Ptr& submap_ptr, const CliId& cid,
                                  const CliSmId& csid) {
@@ -107,7 +107,7 @@ voxblox::TsdfMap::Ptr SubmapCollection::getProjectedMap() {
   // Also project mesh-recovered submaps
   for (auto const& submap_kv : recovered_submap_map_) {
     Transformation T_G_Sm;
-    if (submap_pose_listener_.getSubmapPoseBlocking(submap_kv.first, &T_G_Sm,
+    if (submap_info_listener_.getSubmapPoseBlocking(submap_kv.first, &T_G_Sm,
                                                     true))
       voxblox::mergeLayerAintoLayerB(
           submap_kv.second->getTsdfMap().getTsdfLayer(), T_G_Sm,
@@ -122,5 +122,5 @@ voxblox::TsdfMap::Ptr SubmapCollection::getProjectedMap() {
   return combined_tsdf_map;
 }
 
-}  // namespace server
+}  // namespace comm
 }  // namespace coxgraph

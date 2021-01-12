@@ -184,6 +184,13 @@ inline CliId resolveMapFrame(std::string frame_id) {
   return cid;
 }
 
+inline BoundingBox getBBoxFromMsg(const coxgraph_msgs::BoundingBox& bbox_msg) {
+  BoundingBox bbox;
+  bbox.min = {bbox_msg.min[0], bbox_msg.min[1], bbox_msg.min[2]};
+  bbox.max = {bbox_msg.max[0], bbox_msg.max[1], bbox_msg.max[2]};
+  return bbox;
+}
+
 }  // namespace utils
 }  // namespace coxgraph
 

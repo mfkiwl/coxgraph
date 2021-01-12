@@ -17,6 +17,7 @@
 
 #include "coxgraph/common.h"
 #include "coxgraph/utils/msg_converter.h"
+#include "coxgraph/utils/submap_info_listener.h"
 
 namespace coxgraph {
 namespace client {
@@ -154,6 +155,8 @@ class MapServer {
     kf_timestamp_set_.emplace(kf_pose_msg.header.stamp);
   }
   constexpr static int kKfTimestampQueueSize = 400;
+
+  utils::SubmapInfoListener submap_info_listener_;
 };
 
 }  // namespace client

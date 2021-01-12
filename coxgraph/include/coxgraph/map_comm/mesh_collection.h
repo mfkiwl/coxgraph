@@ -1,5 +1,5 @@
-#ifndef COXGRAPH_SERVER_MESH_COLLECTION_H_
-#define COXGRAPH_SERVER_MESH_COLLECTION_H_
+#ifndef COXGRAPH_MAP_COMM_MESH_COLLECTION_H_
+#define COXGRAPH_MAP_COMM_MESH_COLLECTION_H_
 
 #include <coxgraph/common.h>
 #include <coxgraph_msgs/MeshWithTrajectory.h>
@@ -10,7 +10,7 @@
 #include <utility>
 
 namespace coxgraph {
-namespace server {
+namespace comm {
 
 class MeshCollection {
  public:
@@ -41,7 +41,7 @@ class MeshCollection {
   std::mutex mesh_mutex_;
 };
 
-}  // namespace server
+}  // namespace comm
 }  // namespace coxgraph
 
-#endif  // COXGRAPH_SERVER_MESH_COLLECTION_H_
+#endif  // COXGRAPH_MAP_COMM_MESH_COLLECTION_H_

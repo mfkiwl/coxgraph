@@ -1,4 +1,4 @@
-#include "coxgraph/server/client_handler.h"
+#include "coxgraph/map_comm/client_handler.h"
 
 #include <coxgraph_msgs/PoseHistorySrv.h>
 #include <coxgraph_msgs/SubmapsSrv.h>
@@ -10,7 +10,7 @@
 #include "coxgraph/utils/msg_converter.h"
 
 namespace coxgraph {
-namespace server {
+namespace comm {
 
 ClientHandler::Config ClientHandler::getConfigFromRosParam(
     const ros::NodeHandle& nh_private) {
@@ -175,5 +175,5 @@ bool ClientHandler::lookUpSubmapPoseFromTf(CliSmId sid,
   return false;
 }
 
-}  // namespace server
+}  // namespace comm
 }  // namespace coxgraph

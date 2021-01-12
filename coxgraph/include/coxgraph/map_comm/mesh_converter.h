@@ -1,5 +1,5 @@
-#ifndef COXGRAPH_MAP_CONVERSION_MESH_CONVERTER_H_
-#define COXGRAPH_MAP_CONVERSION_MESH_CONVERTER_H_
+#ifndef COXGRAPH_MAP_COMM_MESH_CONVERTER_H_
+#define COXGRAPH_MAP_COMM_MESH_CONVERTER_H_
 
 #include <coxgraph/common.h>
 #include <coxgraph_msgs/MeshWithTrajectory.h>
@@ -131,4 +131,4 @@ class MeshConverter {
 };
 }  // namespace voxblox
 
-#endif  //  COXGRAPH_MAP_CONVERSION_MESH_CONVERTER_H_
+#endif  //  COXGRAPH_MAP_COMM_MESH_CONVERTER_H_

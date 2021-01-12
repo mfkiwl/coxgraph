@@ -15,9 +15,9 @@
 #include <vector>
 
 #include "coxgraph/common.h"
-#include "coxgraph/server/mesh_collection.h"
+#include "coxgraph/map_comm/mesh_collection.h"
+#include "coxgraph/map_comm/submap_collection.h"
 #include "coxgraph/server/pose_graph_interface.h"
-#include "coxgraph/server/submap_collection.h"
 
 namespace coxgraph {
 namespace server {
@@ -62,7 +62,7 @@ class ServerVisualizer {
         submap_config_(submap_config),
         mesh_config_(mesh_config),
         submap_vis_(submap_config, mesh_config),
-        mesh_collection_ptr_(new MeshCollection()) {
+        mesh_collection_ptr_(new comm::MeshCollection()) {
     LOG(INFO) << config_;
 
     setMeshOpacity(config_.mesh_opacity);
@@ -97,7 +97,9 @@ class ServerVisualizer {
           &ServerVisualizer::publishSubmapMeshesCallback, this);
   }
 
-  MeshCollection::Ptr getMeshCollectionPtr() { return mesh_collection_ptr_; }
+  comm::MeshCollection::Ptr getMeshCollectionPtr() {
+    return mesh_collection_ptr_;
+  }
 
   void addSubmapMesh(
       const coxgraph_msgs::MeshWithTrajectory::Ptr& mesh_with_traj, CliId cid,
@@ -114,18 +116,18 @@ class ServerVisualizer {
    * @param pose_graph_interface
    * @param other_submaps
    */
-  void getFinalGlobalMesh(const SubmapCollection::Ptr& submap_collection_ptr,
-                          const PoseGraphInterface::Ptr& pose_graph_interface,
-                          const std::vector<CliSmIdPack>& other_submaps,
-                          const std::string& mission_frame,
-                          const ros::Publisher& publisher,
-                          const std::string& file_path);
+  void getFinalGlobalMesh(
+      const comm::SubmapCollection::Ptr& submap_collection_ptr,
+      const PoseGraphInterface::Ptr& pose_graph_interface,
+      const std::vector<CliSmIdPack>& other_submaps,
+      const std::string& mission_frame, const ros::Publisher& publisher,
+      const std::string& file_path);
 
-  void getFinalGlobalMesh(const SubmapCollection::Ptr& submap_collection_ptr,
-                          const PoseGraphInterface::Ptr& pose_graph_interface,
-                          const std::vector<CliSmIdPack>& other_submaps,
-                          const std::string& mission_frame,
-                          const std::string& file_path) {
+  void getFinalGlobalMesh(
+      const comm::SubmapCollection::Ptr& submap_collection_ptr,
+      const PoseGraphInterface::Ptr& pose_graph_interface,
+      const std::vector<CliSmIdPack>& other_submaps,
+      const std::string& mission_frame, const std::string& file_path) {
     getFinalGlobalMesh(submap_collection_ptr, pose_graph_interface,
                        other_submaps, mission_frame, combined_mesh_pub_,
                        file_path);
@@ -142,7 +144,7 @@ class ServerVisualizer {
 
   voxgraph::SubmapVisuals submap_vis_;
 
-  MeshCollection::Ptr mesh_collection_ptr_;
+  comm::MeshCollection::Ptr mesh_collection_ptr_;
   ros::Timer submap_mesh_pub_timer_;
   ros::Publisher combined_mesh_pub_;
   ros::Publisher separated_mesh_pub_;

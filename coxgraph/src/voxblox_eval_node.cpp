@@ -35,6 +35,8 @@
 #include <memory>
 #include <string>
 
+#include "coxgraph/common.h"
+
 // This binary evaluates a pre-built voxblox map against a provided ground
 // truth dataset, provided as pointcloud, and outputs a variety of statistics.
 namespace voxblox {
@@ -87,6 +89,7 @@ class VoxbloxEvaluator {
   std::ofstream result_file_;
 
   voxgraph::MapEvaluation* map_evaluation_;
+  ros::Publisher tsdf_pointcloud_pub_;
 };
 
 VoxbloxEvaluator::VoxbloxEvaluator(const ros::NodeHandle& nh,
@@ -179,6 +182,9 @@ VoxbloxEvaluator::VoxbloxEvaluator(const ros::NodeHandle& nh,
       nh_private_.advertise<visualization_msgs::MarkerArray>(
           "gt_occupied_nodes", 1, true);
 
+  tsdf_pointcloud_pub_ = nh_private_.advertise<pcl::PointCloud<pcl::PointXYZI>>(
+      "tsdf_pointcloud", 1, true);
+
   std::cout << "Evaluating " << voxblox_bag_path << std::endl;
 }
 
@@ -198,7 +204,12 @@ void VoxbloxEvaluator::evaluate() {
             new Layer<TsdfVoxel>(i->voxel_size, i->voxels_per_side));
         interpolator_.reset(new Interpolator<TsdfVoxel>(tsdf_layer_.get()));
       }
-      deserializeMsgToLayer(*i, tsdf_layer_.get());
+      Layer<TsdfVoxel>::Ptr transformed_tsdf_layer(
+          new Layer<TsdfVoxel>(i->voxel_size, i->voxels_per_side));
+      deserializeMsgToLayer(*i, transformed_tsdf_layer.get());
+      Transformation T_I_C(kindr::minimal::PositionTemplate<float>(0, 0, 0),
+                           Rotation(0, 0, 0, 1));
+      transformLayer(*transformed_tsdf_layer, T_I_C, tsdf_layer_.get());
       LOG(INFO) << "tsdf layer blocks: "
                 << tsdf_layer_->getNumberOfAllocatedBlocks();
 
@@ -253,6 +264,14 @@ void VoxbloxEvaluator::visualize() {
       map_evaluation_->getGroundTruthMapPtr()->getTsdfMapPtr()->getTsdfLayer(),
       frame_id_, &gt_occu_node_array);
   occupancy_marker_pub_.publish(gt_occu_node_array);
+
+  // Create a pointcloud with distance = intensity.
+  pcl::PointCloud<pcl::PointXYZI> pointcloud;
+
+  createDistancePointcloudFromTsdfLayer(*tsdf_layer_, &pointcloud);
+
+  pointcloud.header.frame_id = frame_id_;
+  tsdf_pointcloud_pub_.publish(pointcloud);
 
   std::cout << "Finished visualizing.\n";
 }
