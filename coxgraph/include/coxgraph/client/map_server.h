@@ -1,6 +1,8 @@
 #ifndef COXGRAPH_CLIENT_MAP_SERVER_H_
 #define COXGRAPH_CLIENT_MAP_SERVER_H_
 
+#include <coxgraph_msgs/GetSubmapMeshWithTraj.h>
+#include <coxgraph_msgs/MeshWithTrajectory.h>
 #include <coxgraph_msgs/SetTargetPose.h>
 #include <nav_msgs/Odometry.h>
 #include <ros/ros.h>
@@ -69,10 +71,6 @@ class MapServer {
         client_id_(client_id),
         frame_names_(frame_names),
         submap_collection_ptr_(submap_collection_ptr) {
-    comm::ClientHandler::initClientHandlers(
-        nh_, nh_private_, frame_names_.input_odom_frame, map_config,
-        submap_collection_ptr, client_number, &client_handlers_, client_id);
-
     subscribeToTopics();
     advertiseTopics();
     advertiseServices();
@@ -95,6 +93,7 @@ class MapServer {
  private:
   void subscribeToTopics();
   void advertiseTopics();
+  void subscribeToServices();
   void advertiseServices();
   void startTimers();
 
@@ -137,9 +136,8 @@ class MapServer {
   }
   void requestNewSubmap();
 
-  std::map<CliId, comm::ClientHandler::Ptr> client_handlers_;
-
   ros::ServiceServer set_target_srv_;
+  ros::ServiceClient get_submap_mesh_with_traj_cli_;
   bool setTargetPositionCallback(
       coxgraph_msgs::SetTargetPoseRequest& request,     // NOLINT
       coxgraph_msgs::SetTargetPoseResponse& response);  // NOLINT

@@ -16,16 +16,14 @@ class MeshCollection {
  public:
   typedef std::shared_ptr<MeshCollection> Ptr;
 
-  using CSIdMeshMap =
-      std::map<CIdCSIdPair, coxgraph_msgs::MeshWithTrajectory::Ptr>;
+  using CSIdMeshMap = std::map<CIdCSIdPair, coxgraph_msgs::MeshWithTrajectory>;
   using CSIdMeshMapPtr = std::shared_ptr<CSIdMeshMap>;
 
   MeshCollection() : csid_mesh_map_ptr_(new CSIdMeshMap()) {}
   ~MeshCollection() = default;
 
-  void addSubmapMesh(
-      const coxgraph_msgs::MeshWithTrajectory::Ptr& mesh_with_traj, CliId cid,
-      CliSmId csid) {
+  void addSubmapMesh(const coxgraph_msgs::MeshWithTrajectory& mesh_with_traj,
+                     CliId cid, CliSmId csid) {
     std::lock_guard<std::mutex> mesh_lock(mesh_mutex_);
     if (!csid_mesh_map_ptr_->count(std::make_pair(cid, csid)))
       csid_mesh_map_ptr_->emplace(std::make_pair(cid, csid), mesh_with_traj);

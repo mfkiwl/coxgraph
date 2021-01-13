@@ -36,6 +36,12 @@ void MapServer::advertiseTopics() {
       "submap_bbox", 10, true);
 }
 
+void MapServer::subscribeToServices() {
+  get_submap_mesh_with_traj_cli_ =
+      nh_private_.serviceClient<coxgraph_msgs::GetSubmapMeshWithTraj>(
+          "get_submap_mesh_with_traj");
+}
+
 void MapServer::advertiseServices() {
   set_target_srv_ = nh_private_.advertiseService(
       "set_target", &MapServer::setTargetPositionCallback, this);
@@ -84,16 +90,29 @@ bool MapServer::setTargetPositionCallback(
     coxgraph_msgs::SetTargetPoseResponse& response) {  // NOLINT
   Transformation T_G_Cli, T_G_Tgt;
   TransformationD T_Cli_Tgt;
-  submap_info_listener_.lookupTfGlobalToCli(client_id_, &T_G_Cli);
+  if (!submap_info_listener_.lookupTfGlobalToCli(client_id_, &T_G_Cli)) {
+    response.result = coxgraph_msgs::SetTargetPoseResponse::NOT_MERGED;
+    return true;
+  }
   tf::poseMsgToKindr(request.target_pose, &T_Cli_Tgt);
   T_G_Tgt = T_G_Cli * T_Cli_Tgt.cast<FloatingPoint>();
   CIdCSIdPair target_submap_id;
   if (submap_info_listener_.getUnknownSubmapNearClient(
           T_G_Tgt, submap_collection_ptr_->getSubmapCsidPairs(client_id_),
           &target_submap_id)) {
-    response.result = coxgraph_msgs::SetTargetPoseResponse::SUCCESS;
+    coxgraph_msgs::GetSubmapMeshWithTraj get_submap_mesh_srv;
+    get_submap_mesh_srv.request.cid = target_submap_id.first;
+    get_submap_mesh_srv.request.csid = target_submap_id.second;
+    if (get_submap_mesh_with_traj_cli_.call(get_submap_mesh_srv)) {
+      submap_collection_ptr_->addSubmapFromMeshAsync(
+          get_submap_mesh_srv.response.mesh_with_traj,
+          get_submap_mesh_srv.request.cid, get_submap_mesh_srv.request.csid);
+      response.result = coxgraph_msgs::SetTargetPoseResponse::SUCCESS;
+    } else {
+      response.result = coxgraph_msgs::SetTargetPoseResponse::NO_AVAILABLE;
+    }
   } else {
-    response.result = coxgraph_msgs::SetTargetPoseResponse::NOT_MERGED;
+    response.result = coxgraph_msgs::SetTargetPoseResponse::NO_AVAILABLE;
   }
 
   return true;
