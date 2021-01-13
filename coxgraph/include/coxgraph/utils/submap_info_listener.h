@@ -69,25 +69,25 @@ class SubmapInfoListener {
     } else {
       CIdCSIdPair csid_pair = utils::resolveSubmapFrame(submap_frame);
       Transformation T_G_Cli;
-
-      if (!transformer_.lookupTransform(
-              map_frame_prefix_ + "_g",
-              map_frame_prefix_ + "_" + std::to_string(csid_pair.first),
-              ros::Time(0), &T_G_Cli)) {
-        LOG(INFO) << "Failed to look up tf from " << map_frame_prefix_ + "_g"
-                  << " to "
-                  << map_frame_prefix_ + "_" + std::to_string(csid_pair.first);
-        return false;
-      } else {
+      if (lookupTfGlobalToCli(csid_pair.first, &T_G_Cli))
         *T_G_Sm = T_G_Cli * submap_pose_map_.find(submap_frame)->second;
-      }
+      else
+        return false;
     }
     return true;
   }
-
-  CIdCSIdPair getUnknownSubmapNearClient(
-      const Transformation& T_G_C, const std::set<CIdCSIdPair>& known_submap_id,
-      CIdCSIdPair* target_submap_id) {
+  /**
+   * @brief Get the Unknown Submap Near Client object
+   *
+   * @param T_G_C Tf from GLOBAL frame to target position
+   * @param known_submap_id
+   * @param target_submap_id
+   * @return CIdCSIdPair
+   */
+  bool getUnknownSubmapNearClient(const Transformation& T_G_C,
+                                  const std::set<CIdCSIdPair>& known_submap_id,
+                                  CIdCSIdPair* target_submap_id) {
+    CHECK(target_submap_id != nullptr);
     float min_max_overlap = 1.0;
     float min_dist = std::numeric_limits<float>().max();
     std::string csid_min_overlap;
@@ -119,7 +119,25 @@ class SubmapInfoListener {
         }
       }
     }
-    return utils::resolveSubmapFrame(csid_min_overlap);
+
+    if (csid_min_overlap.size()) {
+      *target_submap_id = utils::resolveSubmapFrame(csid_min_overlap);
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  bool lookupTfGlobalToCli(const CliId& cid, Transformation* T_G_Cli) {
+    if (!transformer_.lookupTransform(
+            map_frame_prefix_ + "_g",
+            map_frame_prefix_ + "_" + std::to_string(cid), ros::Time(0),
+            T_G_Cli)) {
+      LOG(WARNING) << "Failed to look up tf from " << map_frame_prefix_ + "_g"
+                   << " to " << map_frame_prefix_ + "_" + std::to_string(cid);
+      return false;
+    }
+    return true;
   }
 
  private:
@@ -150,10 +168,15 @@ class SubmapInfoListener {
     std::string submap_name =
         utils::getSubmapFrame(std::make_pair(bbox_msg.cid, bbox_msg.csid));
     auto submap_abb_kv = submap_aabb_map_.find(submap_name);
+    Transformation T_G_Cli;
+    lookupTfGlobalToCli(bbox_msg.cid, &T_G_Cli);
+    // TODO(mikexyl): verify this
+    BoundingBox submap_aabb_g = BoundingBox::getAabbFromObbAndPose(
+        utils::getBBoxFromMsg(bbox_msg), T_G_Cli);
     if (submap_abb_kv != submap_aabb_map_.end())
-      submap_abb_kv->second = utils::getBBoxFromMsg(bbox_msg);
+      submap_abb_kv->second = submap_aabb_g;
     else
-      submap_aabb_map_.emplace(submap_name, utils::getBBoxFromMsg(bbox_msg));
+      submap_aabb_map_.emplace(submap_name, submap_aabb_g);
   }
 
   bool use_tf_submap_pose_;

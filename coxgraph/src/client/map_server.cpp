@@ -13,21 +13,9 @@ namespace client {
 MapServer::Config MapServer::getConfigFromRosParam(
     const ros::NodeHandle& nh_private) {
   Config config;
-  nh_private.param<float>("publish_combined_maps_every_n_sec",
-                          config.publish_combined_maps_every_n_sec,
-                          config.publish_combined_maps_every_n_sec);
-  nh_private.param<bool>("publish_traversable", config.publish_traversable,
-                         config.publish_traversable);
-  nh_private.param<float>("traversability_radius", config.traversability_radius,
-                          config.traversability_radius);
-  nh_private.param<bool>("publish_on_update", config.publish_on_update,
-                         config.publish_on_update);
   nh_private.param<bool>("publish_mesh_with_trajectory",
                          config.publish_mesh_with_trajectory,
                          config.publish_mesh_with_trajectory);
-  nh_private.param<float>("request_new_submap_every_n_sec",
-                          config.request_new_submap_every_n_sec,
-                          config.request_new_submap_every_n_sec);
   return config;
 }
 
@@ -37,21 +25,6 @@ void MapServer::subscribeToTopics() {
 }
 
 void MapServer::advertiseTopics() {
-  tsdf_pub_ =
-      nh_private_.advertise<voxblox_msgs::Layer>("combined_tsdf_out", 10, true);
-  esdf_pub_ =
-      nh_private_.advertise<voxblox_msgs::Layer>("combined_esdf_out", 10, true);
-
-  if (config_.publish_combined_maps_every_n_sec > 0.0) {
-    map_pub_timer_ = nh_private_.createTimer(
-        ros::Duration(config_.publish_combined_maps_every_n_sec),
-        &MapServer::publishMapEvent, this);
-  }
-
-  if (config_.publish_traversable)
-    traversable_pub_ = nh_private_.advertise<pcl::PointCloud<pcl::PointXYZI> >(
-        "traversable", 10, true);
-
   if (config_.publish_mesh_with_trajectory)
     submap_mesh_pub_ = nh_private_.advertise<coxgraph_msgs::MeshWithTrajectory>(
         "submap_mesh_with_traj", 10, true);
@@ -63,73 +36,12 @@ void MapServer::advertiseTopics() {
       "submap_bbox", 10, true);
 }
 
-void MapServer::startTimers() {
-  if (config_.request_new_submap_every_n_sec > 0) {
-    request_new_submap_timer_ = nh_private_.createTimer(
-        ros::Duration(config_.request_new_submap_every_n_sec),
-        &MapServer::requestNewSubmapEvent, this);
-  }
+void MapServer::advertiseServices() {
+  set_target_srv_ = nh_private_.advertiseService(
+      "set_target", &MapServer::setTargetPositionCallback, this);
 }
 
-void MapServer::updatePastTsdf() {
-  if (tsdf_pub_.getNumSubscribers() == 0 &&
-      esdf_pub_.getNumSubscribers() == 0 &&
-      traversable_pub_.getNumSubscribers() == 0)
-    return;
-
-  tsdf_map_->getTsdfLayerPtr()->removeAllBlocks();
-  for (auto const& submap_ptr : submap_collection_ptr_->getSubmapPtrs()) {
-    voxblox::mergeLayerAintoLayerB(submap_ptr->getTsdfMapPtr()->getTsdfLayer(),
-                                   submap_ptr->getPose(),
-                                   tsdf_map_->getTsdfLayerPtr());
-  }
-
-  if (config_.publish_on_update) publishMap();
-}
-
-void MapServer::publishMapEvent(const ros::TimerEvent& event) { publishMap(); }
-
-void MapServer::publishMap() {
-  publishTsdf();
-  publishEsdf();
-  publishTraversable();
-}
-
-void MapServer::publishTsdf() {
-  if (tsdf_pub_.getNumSubscribers() > 0) {
-    std::lock_guard<std::mutex> tsdf_layer_update_lock(
-        tsdf_layer_update_mutex_);
-    voxblox_msgs::Layer layer_msg;
-    voxblox::serializeLayerAsMsg<voxblox::TsdfVoxel>(tsdf_map_->getTsdfLayer(),
-                                                     false, &layer_msg);
-    layer_msg.action = voxblox_msgs::Layer::ACTION_RESET;
-    tsdf_pub_.publish(layer_msg);
-  }
-}
-
-void MapServer::publishEsdf() {
-  if (esdf_pub_.getNumSubscribers() > 0) {
-    std::lock_guard<std::mutex> esdf_layer_update_lock(
-        esdf_layer_update_mutex_);
-    updateEsdfBatch();
-    voxblox_msgs::Layer layer_msg;
-    voxblox::serializeLayerAsMsg<voxblox::EsdfVoxel>(esdf_map_->getEsdfLayer(),
-                                                     false, &layer_msg);
-
-    layer_msg.action = voxblox_msgs::Layer::ACTION_RESET;
-    esdf_pub_.publish(layer_msg);
-  }
-}
-
-void MapServer::publishTraversable() {
-  if (traversable_pub_.getNumSubscribers() > 0) {
-    pcl::PointCloud<pcl::PointXYZI> pointcloud;
-    voxblox::createFreePointcloudFromEsdfLayer(
-        esdf_map_->getEsdfLayer(), config_.traversability_radius, &pointcloud);
-    pointcloud.header.frame_id = frame_names_.input_odom_frame;
-    traversable_pub_.publish(pointcloud);
-  }
-}
+void MapServer::startTimers() {}
 
 void MapServer::publishSubmapMesh(CliSmId csid, std::string /* world_frame */,
                                   const voxgraph::SubmapVisuals& submap_vis) {
@@ -166,6 +78,26 @@ void MapServer::publishSubmapMesh(CliSmId csid, std::string /* world_frame */,
 }
 
 void MapServer::requestNewSubmap() {}
+
+bool MapServer::setTargetPositionCallback(
+    coxgraph_msgs::SetTargetPoseRequest& request,      // NOLINT
+    coxgraph_msgs::SetTargetPoseResponse& response) {  // NOLINT
+  Transformation T_G_Cli, T_G_Tgt;
+  TransformationD T_Cli_Tgt;
+  submap_info_listener_.lookupTfGlobalToCli(client_id_, &T_G_Cli);
+  tf::poseMsgToKindr(request.target_pose, &T_Cli_Tgt);
+  T_G_Tgt = T_G_Cli * T_Cli_Tgt.cast<FloatingPoint>();
+  CIdCSIdPair target_submap_id;
+  if (submap_info_listener_.getUnknownSubmapNearClient(
+          T_G_Tgt, submap_collection_ptr_->getSubmapCsidPairs(client_id_),
+          &target_submap_id)) {
+    response.result = coxgraph_msgs::SetTargetPoseResponse::SUCCESS;
+  } else {
+    response.result = coxgraph_msgs::SetTargetPoseResponse::NOT_MERGED;
+  }
+
+  return true;
+}
 
 }  // namespace client
 }  // namespace coxgraph

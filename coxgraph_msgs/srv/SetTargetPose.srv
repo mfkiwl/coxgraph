@@ -1,0 +1,5 @@
+geometry_msgs/Pose target_pose
+---
+uint8 result
+uint8 SUCCESS = 0
+uint8 NOT_MERGED = 1

@@ -3,6 +3,7 @@
 #include <voxblox/integrator/merge_integration.h>
 
 #include <memory>
+#include <set>
 #include <utility>
 #include <vector>
 
@@ -120,6 +121,19 @@ voxblox::TsdfMap::Ptr SubmapCollection::getProjectedMap() {
       << combined_tsdf_map->getTsdfLayerPtr()->getNumberOfAllocatedBlocks();
 
   return combined_tsdf_map;
+}
+
+std::set<CIdCSIdPair> SubmapCollection::getSubmapCsidPairs(CliId cid) {
+  std::set<CIdCSIdPair> csid_pairs;
+  for (auto submap_ptr : getSubmapPtrs()) {
+    csid_pairs.emplace(cid, submap_ptr->getID());
+  }
+
+  for (auto submap_kv : recovered_submap_map_) {
+    csid_pairs.emplace(utils::resolveSubmapFrame(submap_kv.first));
+  }
+
+  return csid_pairs;
 }
 
 }  // namespace comm

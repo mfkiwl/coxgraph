@@ -9,6 +9,7 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <set>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -120,6 +121,14 @@ class SubmapCollection : public voxgraph::VoxgraphSubmapCollection {
   }
 
   voxblox::TsdfMap::Ptr getProjectedMap();
+
+  /**
+   * @brief Get the Submap Csid Pairs object, only for client mode
+   *
+   * @param cid client id of this client
+   * @return std::set<CIdCSIdPair>
+   */
+  std::set<CIdCSIdPair> getSubmapCsidPairs(CliId cid);
 
  private:
   typedef std::pair<CliId, CliId> CliIdPair;
