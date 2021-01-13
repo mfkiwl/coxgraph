@@ -1,6 +1,6 @@
 geometry_msgs/Pose target_pose
 ---
-uint8 result
-uint8 SUCCESS = 0
-uint8 NOT_MERGED = 1
-uint8 NO_AVAILABLE = 2
+int8 result
+int8 SUCCESS = 0
+int8 NOT_MERGED = 1
+int8 NO_AVAILABLE = 2

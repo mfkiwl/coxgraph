@@ -44,7 +44,7 @@ void MapServer::subscribeToServices() {
 
 void MapServer::advertiseServices() {
   set_target_srv_ = nh_private_.advertiseService(
-      "set_target", &MapServer::setTargetPositionCallback, this);
+      "set_target_pose", &MapServer::setTargetPositionCallback, this);
 }
 
 void MapServer::startTimers() {}
