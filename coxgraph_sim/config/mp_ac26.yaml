@@ -22,5 +22,5 @@ target_bounding_volume:
   x_max: 50.0
   y_min: -50.0
   y_max: 50.0
-  z_min: 0
+  z_min: -1
   z_max: 13

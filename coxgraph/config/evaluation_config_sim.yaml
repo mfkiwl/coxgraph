@@ -1,0 +1,13 @@
+node_names: ["/coxgraph/coxgraph_client_0", "/coxgraph/tsdf_client_0", "/pose_graph_backend", "/coxgraph/coxgraph_server_node", "planner_0/planner_node"]
+node_eval_mode:  [["cpu","mem"], ["cpu","mem"], ["cpu","mem"], ["cpu","mem"], ["cpu","mem"]]
+
+topic_names: ["/coxgraph/coxgraph_client_0/submap_mesh_with_traj", "/firefly_0/pose_graph_0/vins_keyframe", "/coxgraph/coxgraph_server_node/service_bandwidth"]
+topic_eval_mode: [["topic_bw"],["topic_bw"], ["bw_from_msg"]]
+
+sys_eval_mode: ["sys_bw"]
+
+traj_topic: ["/tf"]
+
+tsdf_map_topic: ["/coxgraph/coxgraph_server_node/projected_map_tsdf"]
+
+plot_dir: "/workspaces/voxgraph_melodic_ws/eval/node_evaluator"

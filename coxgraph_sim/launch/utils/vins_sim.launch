@@ -5,6 +5,7 @@
   <arg name="config_path" default = "$(find coxgraph_sim)/config/vins/vins_sim_agent_$(arg id).yaml" />
   <arg name="vins_path"   default = "$(find feature_tracker)/../config/../" />
 
+  <arg name="auto_toggle_mapping" default="true"/>
   <arg name="start_initializer" default="true"/>
   <arg name="enable_gazebo_tf" default="true"/>
   <arg name="odom_topic" default="/$(arg mav_name)_$(arg id)/repub/odometry" unless="$(arg enable_gazebo_tf)" />
@@ -28,11 +29,11 @@
       <remap from="vins_estimator_$(arg id)/features" to="feature_tracker_$(arg id)/feature" />
       <remap from="vins_estimator_$(arg id)/feature_restart" to="feature_tracker_$(arg id)/restart" />
 
-      <param name="toggle_mapping_srv_name" value="/coxgraph/tsdf_client_$(arg id)/toggle_mapping"/>
+      <param if="$(arg auto_toggle_mapping)" name="toggle_mapping_srv_name" value="/coxgraph/tsdf_client_$(arg id)/toggle_mapping"/>
     </node>
 
     <!-- Pose Graph -->
-    <node name="pose_graph_$(arg id)" pkg="pose_graph" type="pose_graph" output="screen" >
+    <node name="pose_graph_$(arg id)" pkg="pose_graph" type="pose_graph" output="screen">
       <remap from="~loop_closure_out" to="/coxgraph/coxgraph_client_$(arg id)/loop_closure_in"/>
       <param name="config_file" type="string" value="$(arg config_path)" />
       <param name="visualization_shift_x" type="int" value="0" />
@@ -69,7 +70,7 @@
     <param name="hovering_height" value="2"/>
     <param name="delta_d" value="1.0"/>
     <param name="delta_h" value="0.6"/>
-    <param name="delta_yaw" value="50.0"/>
+    <param name="delta_yaw" value="10.0"/>
     <param name="v_max" value="1.0"/>
     <param name="a_max" value="1.0"/>
     <param name="v_max_yaw" value="1.0"/>

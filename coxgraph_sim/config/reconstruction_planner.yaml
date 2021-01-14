@@ -22,12 +22,12 @@ system_constraints:
   a_max: 0.5
   yaw_rate_max: 0.5
   yaw_accel_max: 0.5
-  collision_radius: 2.0
+  collision_radius: 1
 
 trajectory_generator:
   collision_optimistic: false
   bounding_volume_args: "/map_bounding_volume"
-  clearing_radius: 0
+  clearing_radius: 0.1
 
   type: "RRTStar"
   all_semgents_feasible: false
@@ -91,7 +91,7 @@ trajectory_evaluator:
         downsampling_factor: 5.0
 
       cost_computer:
-        type: "InteragentDistanceROS"
+        type: "SegmentTime"
 
       value_computer:
         type: "GlobalNormalizedGain"

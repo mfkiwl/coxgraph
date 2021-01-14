@@ -39,25 +39,25 @@
   <arg name="time_limit" default="30" />
 
   <!-- Initial pose and control commands -->
-  <!-- <arg name="x_0"        default="-5.0"/> -->
-  <arg name="x_0"        default="-5.0"/>
-  <arg name="y_0"        default="0.0"/>
-  <arg name="z_0"        default="1.0"/>
-  
-  <arg name="x_ctrl_0"   default="0.0"/>
-  <arg name="y_ctrl_0"   default="0.0"/>
-  <arg name="z_ctrl_0"   default="2.0"/>
+  <!-- <arg name="x_0" default="-5.0"/> -->
+  <arg name="x_0" default="3.0"/>
+  <arg name="y_0" default="10.0"/>
+  <arg name="z_0" default="1.0"/>
+
+  <arg name="x_ctrl_0" default="0.0"/>
+  <arg name="y_ctrl_0" default="0.0"/>
+  <arg name="z_ctrl_0" default="2.0"/>
   <arg name="yaw_ctrl_0" default="0.0"/>
-    
-  <arg name="x_1"        default="-6.0"/>
-  <arg name="y_1"        default="0.0"/>
-  <arg name="z_1"        default="1.0"/>
-    
-  <arg name="x_ctrl_1"   default="0.0"/>
-  <arg name="y_ctrl_1"   default="0.0"/>
-  <arg name="z_ctrl_1"   default="2.0"/>
+
+  <arg name="x_1" default="2.0"/>
+  <arg name="y_1" default="3.0"/>
+  <arg name="z_1" default="1.0"/>
+
+  <arg name="x_ctrl_1" default="0.0"/>
+  <arg name="y_ctrl_1" default="0.0"/>
+  <arg name="z_ctrl_1" default="2.0"/>
   <arg name="yaw_ctrl_1" default="0.0"/>
-    
+
   <arg name="enable_logging" default="false"/>
   <arg name="enable_ground_truth" default="true"/>
   <arg name="enable_gazebo_tf" default="false"/>
@@ -126,16 +126,18 @@
   </group>
 
   <group if="$(arg use_vins)">
-    <include file="$(find coxgraph_sim)/launch/utils/vins_sim.launch" >
+    <include file="$(find coxgraph_sim)/launch/utils/vins_sim.launch">
       <arg name="id" value="0"/>
       <arg name="mav_name" value="$(arg mav_name)"/>
       <arg name="enable_gazebo_tf" value="$(arg enable_gazebo_tf)"/>
+      <arg name="auto_toggle_mapping" default="false"/>
     </include>
 
-    <include file="$(find coxgraph_sim)/launch/utils/vins_sim.launch" >
+    <include file="$(find coxgraph_sim)/launch/utils/vins_sim.launch">
       <arg name="id" value="1"/>
       <arg name="mav_name" value="$(arg mav_name)"/>
       <arg name="enable_gazebo_tf" value="$(arg enable_gazebo_tf)"/>
+      <arg name="auto_toggle_mapping" default="false"/>
     </include>
 
     <include file="$(find coxgraph_sim)/launch/utils/pose_graph_backend.launch">
@@ -166,5 +168,12 @@
   <include file="$(find coxgraph_sim)/launch/utils/reconstruction_planner.launch" pass_all_args="true">
     <arg name="id" value="1"/>
   </include>
+
+  <include file="$(find node_evaluator)/launch/evaluate.launch">
+    <arg name="config_file" default="$(find coxgraph)/config/evaluation_config_sim.yaml"/>
+    <arg name="result_dir" default="/workspaces/voxgraph_melodic_ws/eval/node_evaluator"/>
+    <arg name="debug" default="false"/>
+  </include>
+
 
 </launch>
