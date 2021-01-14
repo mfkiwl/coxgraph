@@ -11,6 +11,7 @@
 #include <voxgraph_msgs/LoopClosure.h>
 #include <Eigen/Dense>
 
+#include <map>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -57,6 +58,14 @@ class ClientHandler {
   };
 
   typedef std::shared_ptr<ClientHandler> Ptr;
+
+  static void initClientHandlers(
+      const ros::NodeHandle& nh, const ros::NodeHandle& nh_private,
+      std::string map_frame_prefix, const CliSmConfig& submap_config,
+      const SubmapCollection::Ptr& submap_collection_ptr, int client_number,
+      std::map<CliId, ClientHandler::Ptr>* client_handlers,
+      const CliId& cid = -1,
+      TimeLineUpdateCallback time_line_callback = TimeLineUpdateCallback());
 
   ClientHandler(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private,
                 const CliId& client_id, std::string map_frame_prefix,
@@ -179,9 +188,9 @@ class ClientHandler {
 
   ros::Subscriber submap_mesh_sub_;
   void submapMeshCallback(
-      const coxgraph_msgs::MeshWithTrajectory::Ptr& mesh_with_traj) {
+      const coxgraph_msgs::MeshWithTrajectory& mesh_with_traj) {
     CIdCSIdPair csid_pair =
-        utils::resolveSubmapFrame(mesh_with_traj->mesh.header.frame_id);
+        utils::resolveSubmapFrame(mesh_with_traj.mesh.header.frame_id);
     CHECK_EQ(csid_pair.first, client_id_);
     LOG(INFO) << log_prefix_ << " Received mesh of submap " << csid_pair.second;
     submap_collection_ptr_->addSubmapFromMeshAsync(mesh_with_traj, client_id_,

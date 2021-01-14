@@ -3,8 +3,8 @@
       <arg name="client_number" default="2"/>
       <arg name="sim_server" default="false" doc="Publish a static unit transform between client maps, without running the server"/>
       <arg name="map_frame_prefix" default="map"/>
-      <arg name="tsdf_voxel_size" default="0.05"/>
-      <arg name="truncation_distance" default="0.15"/>
+      <arg name="tsdf_voxel_size" default="0.10"/>
+      <arg name="truncation_distance" default="0.30"/>
       <arg name="debug" default="false"/>
 
       <group if="$(arg sim_server)">

@@ -15,6 +15,7 @@
 
 #include "coxgraph/client/map_server.h"
 #include "coxgraph/common.h"
+#include "coxgraph/map_comm/mesh_collection.h"
 #include "coxgraph/utils/msg_converter.h"
 
 namespace coxgraph {
@@ -23,9 +24,11 @@ namespace client {
 class CoxgraphClient : public voxgraph::VoxgraphMapper {
  public:
   CoxgraphClient(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private)
-      : VoxgraphMapper(nh, nh_private) {
+      : VoxgraphMapper(nh, nh_private), mesh_collection_() {
     int client_id;
     nh_private.param<int>("client_id", client_id, -1);
+    int client_number;
+    nh_private.param<int>("client_number", client_number, 1);
     client_id_ = static_cast<CliId>(client_id);
     subscribeToClientTopics();
     advertiseClientTopics();
@@ -37,9 +40,18 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
     }
     log_prefix_ = "Client " + std::to_string(client_id_) + ": ";
 
-    map_server_.reset(new MapServer(nh_, nh_private_, client_id_,
+    cox_submap_collection_ptr_.reset(
+        new comm::SubmapCollection(*submap_collection_ptr_, client_id_,
+                                   mesh_collection_, nh_, nh_private_));
+    submap_collection_ptr_ =
+        static_cast<voxgraph::VoxgraphSubmapCollection::Ptr>(
+            cox_submap_collection_ptr_);
+
+    pose_graph_interface_.setSubmapCollectionPtr(submap_collection_ptr_);
+
+    map_server_.reset(new MapServer(nh_, nh_private_, client_id_, client_number,
                                     submap_config_, frame_names_,
-                                    submap_collection_ptr_));
+                                    cox_submap_collection_ptr_));
   }
 
   ~CoxgraphClient() = default;
@@ -97,6 +109,9 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
   std::timed_mutex submap_proc_mutex_;
 
   MapServer::Ptr map_server_;
+  comm::MeshCollection::Ptr mesh_collection_;
+
+  comm::SubmapCollection::Ptr cox_submap_collection_ptr_;
 };
 
 }  // namespace client

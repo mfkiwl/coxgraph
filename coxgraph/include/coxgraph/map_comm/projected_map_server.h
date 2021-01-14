@@ -43,8 +43,7 @@ class ProjectedMapServer {
       voxblox::serializeLayerAsMsg<voxblox::TsdfVoxel>(
           submap_collection->getProjectedMap()->getTsdfLayer(), false,
           &projected_tsdf_layer_msg);
-      projected_tsdf_layer_msg.action = voxblox_msgs::Layer::ACTION_RESET;
-      projected_tsdf_layer_msg.frame_id = world_frame;
+      projected_tsdf_layer_msg.action = voxblox_msgs::Layer::ACTION_UPDATE;
 
       projected_map_publisher.publish(projected_tsdf_layer_msg);
       LOG(INFO) << "Published projected map";

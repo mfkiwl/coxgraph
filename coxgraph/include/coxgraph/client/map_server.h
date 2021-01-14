@@ -1,8 +1,12 @@
 #ifndef COXGRAPH_CLIENT_MAP_SERVER_H_
 #define COXGRAPH_CLIENT_MAP_SERVER_H_
 
+#include <coxgraph_msgs/GetSubmapMeshWithTraj.h>
+#include <coxgraph_msgs/MeshWithTrajectory.h>
+#include <coxgraph_msgs/SetTargetPose.h>
 #include <nav_msgs/Odometry.h>
 #include <ros/ros.h>
+#include <trajectory_msgs/MultiDOFJointTrajectory.h>
 #include <voxblox_msgs/Layer.h>
 #include <voxblox_ros/ptcloud_vis.h>
 #include <voxblox_ros/ros_params.h>
@@ -10,12 +14,16 @@
 #include <voxgraph/frontend/submap_collection/voxgraph_submap_collection.h>
 #include <voxgraph/tools/visualization/submap_visuals.h>
 
+#include <map>
 #include <memory>
 #include <mutex>
 #include <set>
 #include <string>
 
 #include "coxgraph/common.h"
+#include "coxgraph/map_comm/client_handler.h"
+#include "coxgraph/map_comm/projected_map_server.h"
+#include "coxgraph/map_comm/submap_collection.h"
 #include "coxgraph/utils/msg_converter.h"
 #include "coxgraph/utils/submap_info_listener.h"
 
@@ -25,32 +33,12 @@ namespace client {
 class MapServer {
  public:
   struct Config {
-    Config()
-        : publish_combined_maps_every_n_sec(0.0),
-          publish_on_update(true),
-          publish_traversable(false),
-          traversability_radius(1.0),
-          publish_mesh_with_trajectory(true) {}
-    float publish_combined_maps_every_n_sec;
-    bool publish_on_update;
-    bool publish_traversable;
-    float traversability_radius;
+    Config() : publish_mesh_with_trajectory(true) {}
     bool publish_mesh_with_trajectory;
 
     friend inline std::ostream& operator<<(std::ostream& s, const Config& v) {
       s << std::endl
         << "Map Server using Config:" << std::endl
-        << "  Publish maps every: " << v.publish_combined_maps_every_n_sec
-        << "s" << std::endl
-        << "  Publish maps on update: "
-        << static_cast<std::string>(v.publish_on_update ? "enabled"
-                                                        : "disabled")
-        << std::endl
-        << "  Publish traversable: "
-        << static_cast<std::string>(v.publish_traversable ? "enabled"
-                                                          : "disabled")
-        << std::endl
-        << "  Traversability radius: " << v.traversability_radius << std::endl
         << "  Publish mesh with trjectory: "
         << static_cast<std::string>(v.publish_mesh_with_trajectory ? "enabled"
                                                                    : "disabled")
@@ -66,35 +54,30 @@ class MapServer {
   using VoxgraphSubmapCollection = voxgraph::VoxgraphSubmapCollection;
 
   MapServer(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private,
-            CliId client_id, const voxgraph::VoxgraphSubmap::Config& map_config,
+            CliId client_id, int client_number,
+            const voxgraph::VoxgraphSubmap::Config& map_config,
             const FrameNames& frame_names,
-            const VoxgraphSubmapCollection::Ptr& submap_collection_ptr)
-      : MapServer(nh, nh_private, client_id, getConfigFromRosParam(nh_private),
-                  map_config, frame_names,
-                  voxblox::getEsdfIntegratorConfigFromRosParam(nh_private),
+            const comm::SubmapCollection::Ptr& submap_collection_ptr)
+      : MapServer(nh, nh_private, client_id, client_number,
+                  getConfigFromRosParam(nh_private), map_config, frame_names,
                   submap_collection_ptr) {}
 
   MapServer(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private,
-            CliId client_id, const Config& config,
+            CliId client_id, int client_number, const Config& config,
             const voxgraph::VoxgraphSubmap::Config& map_config,
             const FrameNames& frame_names,
-            const voxblox::EsdfIntegrator::Config& esdf_integrator_config,
-            const VoxgraphSubmapCollection::Ptr& submap_collection_ptr)
+            const comm::SubmapCollection::Ptr& submap_collection_ptr)
       : nh_(nh),
         nh_private_(nh_private),
         config_(getConfigFromRosParam(nh_private)),
         client_id_(client_id),
         frame_names_(frame_names),
-        submap_collection_ptr_(submap_collection_ptr) {
-    tsdf_map_.reset(new voxblox::TsdfMap(
-        static_cast<voxblox::TsdfMap::Config>(map_config)));
-    esdf_map_.reset(new voxblox::EsdfMap(
-        static_cast<voxblox::EsdfMap::Config>(map_config)));
-    esdf_integrator_.reset(new voxblox::EsdfIntegrator(
-        esdf_integrator_config, tsdf_map_->getTsdfLayerPtr(),
-        esdf_map_->getEsdfLayerPtr()));
-    subscribeTopics();
+        submap_collection_ptr_(submap_collection_ptr),
+        projected_map_server_(nh_private) {
+    subscribeToTopics();
     advertiseTopics();
+    advertiseServices();
+    startTimers();
 
     LOG(INFO) << config_;
   }
@@ -104,11 +87,24 @@ class MapServer {
   void publishSubmapMesh(CliSmId csid, std::string world_frame,
                          const voxgraph::SubmapVisuals& submap_vis);
 
-  void updatePastTsdf();
+  // Publish bounding box in client odom frame
+  void publishSubmapBBox(CliSmId csid) {
+    submap_bbox_pub_.publish(utils::msgFromBb(
+        submap_collection_ptr_->getSubmap(csid).getOdomFrameSubmapAabb()));
+  }
+
+  void publishProjectedMap() {
+    projected_map_server_.publishProjectedMap(submap_collection_ptr_,
+                                              frame_names_.input_odom_frame,
+                                              ros::Time::now());
+  }
 
  private:
-  void subscribeTopics();
+  void subscribeToTopics();
   void advertiseTopics();
+  void subscribeToServices();
+  void advertiseServices();
+  void startTimers();
 
   void publishMapEvent(const ros::TimerEvent& event);
   void publishMap();
@@ -123,29 +119,14 @@ class MapServer {
 
   FrameNames frame_names_;
 
-  VoxgraphSubmapCollection::Ptr submap_collection_ptr_;
+  comm::SubmapCollection::Ptr submap_collection_ptr_;
 
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
 
-  ros::Timer map_pub_timer_;
-  ros::Publisher tsdf_pub_;
-  ros::Publisher esdf_pub_;
-  ros::Publisher traversable_pub_;
-
-  voxblox::TsdfMap::Ptr tsdf_map_;
-  std::mutex tsdf_layer_update_mutex_;
-
-  voxblox::EsdfMap::Ptr esdf_map_;
-  std::unique_ptr<voxblox::EsdfIntegrator> esdf_integrator_;
-  std::mutex esdf_layer_update_mutex_;
-  inline void updateEsdfBatch() {
-    if (tsdf_map_->getTsdfLayer().getNumberOfAllocatedBlocks() > 0) {
-      esdf_integrator_->updateFromTsdfLayerBatch();
-    }
-  }
-
+  // TODO(mikexyl): better move pubs to submap_info_listener
   ros::Publisher submap_mesh_pub_;
+  ros::Publisher submap_bbox_pub_;
 
   ros::Subscriber kf_pose_sub_;
   std::set<ros::Time> kf_timestamp_set_;
@@ -157,6 +138,27 @@ class MapServer {
   constexpr static int kKfTimestampQueueSize = 400;
 
   utils::SubmapInfoListener submap_info_listener_;
+
+  ros::Timer request_new_submap_timer_;
+  void requestNewSubmapEvent(const ros::TimerEvent& event) {
+    requestNewSubmap();
+  }
+  void requestNewSubmap();
+
+  ros::ServiceServer set_target_pose_srv_;
+  ros::ServiceClient get_submap_mesh_with_traj_cli_;
+  bool setTargetPoseCallback(
+      coxgraph_msgs::SetTargetPoseRequest& request,     // NOLINT
+      coxgraph_msgs::SetTargetPoseResponse& response);  // NOLINT
+
+  enum SetTargetResult { SUCCESS = 0, NOT_MERGED = 1, NO_AVAILABLE = 2 };
+  bool setTargetPose(const Transformation& T_Cli_Tgt, int8_t* result);
+
+  ros::Subscriber traj_command_sub_;
+  void trajCommandCallback(
+      const trajectory_msgs::MultiDOFJointTrajectory& command_msg);
+
+  comm::ProjectedMapServer projected_map_server_;
 };
 
 }  // namespace client

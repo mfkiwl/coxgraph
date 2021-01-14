@@ -4,7 +4,9 @@
 #include <cblox_msgs/MapPoseUpdates.h>
 #include <minkindr_conversions/kindr_msg.h>
 
+#include <limits>
 #include <map>
+#include <set>
 #include <string>
 #include <utility>
 
@@ -67,18 +69,73 @@ class SubmapInfoListener {
     } else {
       CIdCSIdPair csid_pair = utils::resolveSubmapFrame(submap_frame);
       Transformation T_G_Cli;
-
-      if (!transformer_.lookupTransform(
-              map_frame_prefix_ + "_g",
-              map_frame_prefix_ + "_" + std::to_string(csid_pair.first),
-              ros::Time(0), &T_G_Cli)) {
-        LOG(INFO) << "Failed to look up tf from " << map_frame_prefix_ + "_g"
-                  << " to "
-                  << map_frame_prefix_ + "_" + std::to_string(csid_pair.first);
-        return false;
-      } else {
+      if (lookupTfGlobalToCli(csid_pair.first, &T_G_Cli))
         *T_G_Sm = T_G_Cli * submap_pose_map_.find(submap_frame)->second;
+      else
+        return false;
+    }
+    return true;
+  }
+  /**
+   * @brief Get the Unknown Submap Near Client object
+   *
+   * @param T_G_C Tf from GLOBAL frame to target position
+   * @param known_submap_id
+   * @param target_submap_id
+   * @return CIdCSIdPair
+   */
+  bool getUnknownSubmapNearClient(const Transformation& T_G_C,
+                                  const std::set<CIdCSIdPair>& known_submap_id,
+                                  CIdCSIdPair* target_submap_id) {
+    CHECK(target_submap_id != nullptr);
+    float min_max_overlap = 1.0;
+    float min_dist = std::numeric_limits<float>().max();
+    std::string csid_min_overlap;
+    for (auto submap_bbox_kv : submap_aabb_map_) {
+      if (known_submap_id.count(
+              utils::resolveSubmapFrame(submap_bbox_kv.first)))
+        continue;
+      if (submap_bbox_kv.second.hasPosition(T_G_C.getPosition())) {
+        float max_overlap_ratio = 0.0;
+        for (auto csid_pair : known_submap_id) {
+          CHECK(submap_aabb_map_.count(utils::getSubmapFrame(csid_pair)));
+          BoundingBox other_bbox =
+              submap_aabb_map_[utils::getSubmapFrame(csid_pair)];
+          float overlap_ratio = submap_bbox_kv.second.overlapRatioWith(
+                                    other_bbox) > max_overlap_ratio;
+          if (overlap_ratio > kMaxOverlapRatio) continue;
+          if (overlap_ratio > max_overlap_ratio) {
+            max_overlap_ratio = overlap_ratio;
+          }
+        }
+        if (max_overlap_ratio < min_max_overlap) {
+          min_max_overlap = max_overlap_ratio;
+          csid_min_overlap = submap_bbox_kv.first;
+        } else if (max_overlap_ratio == min_max_overlap &&
+                   submap_bbox_kv.second.distToPosition(T_G_C.getPosition()) <
+                       min_dist) {
+          min_dist = submap_bbox_kv.second.distToPosition(T_G_C.getPosition());
+          csid_min_overlap = submap_bbox_kv.first;
+        }
       }
+    }
+
+    if (csid_min_overlap.size()) {
+      *target_submap_id = utils::resolveSubmapFrame(csid_min_overlap);
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  bool lookupTfGlobalToCli(const CliId& cid, Transformation* T_G_Cli) {
+    if (!transformer_.lookupTransform(
+            map_frame_prefix_ + "_g",
+            map_frame_prefix_ + "_" + std::to_string(cid), ros::Time(0),
+            T_G_Cli)) {
+      LOG(WARNING) << "Failed to look up tf from " << map_frame_prefix_ + "_g"
+                   << " to " << map_frame_prefix_ + "_" + std::to_string(cid);
+      return false;
     }
     return true;
   }
@@ -106,20 +163,27 @@ class SubmapInfoListener {
   }
 
   ros::Subscriber submap_abb_sub_;
-  std::map<std::string, BoundingBox> submap_abb_map_;
+  std::map<std::string, BoundingBox> submap_aabb_map_;
   void submapBBoxCallback(const coxgraph_msgs::BoundingBox& bbox_msg) {
     std::string submap_name =
         utils::getSubmapFrame(std::make_pair(bbox_msg.cid, bbox_msg.csid));
-    auto submap_abb_kv = submap_abb_map_.find(submap_name);
-    if (submap_abb_kv != submap_abb_map_.end())
-      submap_abb_kv->second = utils::getBBoxFromMsg(bbox_msg);
+    auto submap_abb_kv = submap_aabb_map_.find(submap_name);
+    Transformation T_G_Cli;
+    lookupTfGlobalToCli(bbox_msg.cid, &T_G_Cli);
+    // TODO(mikexyl): verify this
+    BoundingBox submap_aabb_g = BoundingBox::getAabbFromObbAndPose(
+        utils::getBBoxFromMsg(bbox_msg), T_G_Cli);
+    if (submap_abb_kv != submap_aabb_map_.end())
+      submap_abb_kv->second = submap_aabb_g;
     else
-      submap_abb_map_.emplace(submap_name, utils::getBBoxFromMsg(bbox_msg));
+      submap_aabb_map_.emplace(submap_name, submap_aabb_g);
   }
 
   bool use_tf_submap_pose_;
   float submap_pose_time_tolerance_ms_;
   std::string map_frame_prefix_;
+
+  constexpr static float kMaxOverlapRatio = 0.4;
 };
 
 }  // namespace utils

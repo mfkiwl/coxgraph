@@ -4,6 +4,7 @@
 #include <coxgraph_msgs/SubmapsSrv.h>
 #include <coxgraph_msgs/TimeLine.h>
 
+#include <map>
 #include <string>
 #include <vector>
 
@@ -32,6 +33,21 @@ ClientHandler::Config ClientHandler::getConfigFromRosParam(
                          config.enable_client_loop_closure,
                          config.enable_client_loop_closure);
   return config;
+}
+
+void ClientHandler::initClientHandlers(
+    const ros::NodeHandle& nh, const ros::NodeHandle& nh_private,
+    std::string map_frame_prefix, const CliSmConfig& submap_config,
+    const SubmapCollection::Ptr& submap_collection_ptr, int client_number,
+    std::map<CliId, ClientHandler::Ptr>* client_handlers, const CliId& cid,
+    TimeLineUpdateCallback time_line_callback) {
+  for (int i = 0; i < client_number; i++) {
+    if (i == cid) continue;
+    client_handlers->emplace(
+        i, new comm::ClientHandler(nh, nh_private, i, map_frame_prefix,
+                                   submap_config, submap_collection_ptr,
+                                   time_line_callback));
+  }
 }
 
 void ClientHandler::subscribeToTopics() {

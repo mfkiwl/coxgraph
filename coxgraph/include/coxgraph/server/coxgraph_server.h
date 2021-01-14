@@ -3,6 +3,7 @@
 
 #include <coxgraph_msgs/ControlTrigger.h>
 #include <coxgraph_msgs/FilePath.h>
+#include <coxgraph_msgs/GetSubmapMeshWithTraj.h>
 #include <coxgraph_msgs/MapFusion.h>
 #include <coxgraph_msgs/NeedToFuseSrv.h>
 #include <ros/ros.h>
@@ -110,16 +111,18 @@ class CoxgraphServer {
         verbose_(false),
         config_(config),
         submap_config_(submap_config),
-        server_vis_(
-            new ServerVisualizer(nh, nh_private, submap_config, mesh_config)),
-        projected_map_server_(nh_private) {
+        projected_map_server_(nh_private),
+        mesh_collection_ptr_(new comm::MeshCollection()) {
     nh_private_.param<bool>("verbose", verbose_, verbose_);
     LOG(INFO) << "Verbose: " << verbose_;
     LOG(INFO) << config_;
 
+    server_vis_.reset(new ServerVisualizer(nh, nh_private, submap_config,
+                                           mesh_config, mesh_collection_ptr_));
+
     submap_collection_ptr_.reset(new comm::SubmapCollection(
-        submap_config_, config_.client_number,
-        server_vis_->getMeshCollectionPtr(), nh_, nh_private_, verbose_));
+        submap_config_, config_.client_number, mesh_collection_ptr_, nh_,
+        nh_private_, verbose_));
 
     pose_graph_interface_.reset(
         new PoseGraphInterface(nh_private_, submap_collection_ptr_, mesh_config,
@@ -244,7 +247,7 @@ class CoxgraphServer {
   PoseGraphInterface::Ptr pose_graph_interface_;
   std::mutex submap_add_mutex_;
 
-  std::vector<comm::ClientHandler::Ptr> client_handlers_;
+  std::map<CliId, comm::ClientHandler::Ptr> client_handlers_;
 
   // Map fusion msg process related
   std::deque<std::pair<coxgraph_msgs::MapFusion, int>> map_fusion_msgs_future_;
@@ -260,12 +263,16 @@ class CoxgraphServer {
 
   GlobalTfController::Ptr tf_controller_;
 
-  // Visualization
+  comm::MeshCollection::Ptr mesh_collection_ptr_;
   ServerVisualizer::Ptr server_vis_;
   ros::ServiceServer get_final_global_mesh_srv_;
   ros::ServiceServer get_pose_history_srv_;
   ros::ServiceServer need_to_fuse_srv_;
   std::timed_mutex final_mesh_gen_mutex_;
+  ros::ServiceServer get_submap_mesh_with_traj_srv_;
+  bool getSubmapMeshWithTrajCallback(
+      coxgraph_msgs::GetSubmapMeshWithTrajRequest& request,     // NOLINT
+      coxgraph_msgs::GetSubmapMeshWithTrajResponse& response);  // NOLINT
 
   DistributionController::Ptr distrib_ctl_ptr_;
   inline bool inControl() const { return distrib_ctl_ptr_->inControl(); }

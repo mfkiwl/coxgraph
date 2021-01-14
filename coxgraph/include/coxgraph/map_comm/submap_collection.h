@@ -9,6 +9,7 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <set>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -42,6 +43,21 @@ class SubmapCollection : public voxgraph::VoxgraphSubmapCollection {
                                    "projective");
   }
 
+  SubmapCollection(const voxgraph::VoxgraphSubmapCollection& submap_collection,
+                   int8_t client_number,
+                   MeshCollection::Ptr mesh_collection_ptr,
+                   const ros::NodeHandle& nh, const ros::NodeHandle& nh_private)
+      : voxgraph::VoxgraphSubmapCollection(submap_collection),
+        nh_private_(nh_private),
+        client_number_(client_number),
+        tsdf_integrator_config_(
+            voxblox::getTsdfIntegratorConfigFromRosParam(nh_private)),
+        mesh_collection_ptr_(mesh_collection_ptr),
+        submap_info_listener_(nh, nh_private) {
+    nh_private_.param<std::string>("method", tsdf_integrator_method_,
+                                   "projective");
+  }
+
   // Copy constructor without copy mutex
   SubmapCollection(const SubmapCollection& rhs)
       : voxgraph::VoxgraphSubmapCollection(
@@ -58,13 +74,12 @@ class SubmapCollection : public voxgraph::VoxgraphSubmapCollection {
   void addSubmap(const CliSm::Ptr& submap_ptr, const CliId& cid,
                  const CliSmId& csid);
 
-  void addSubmapFromMesh(
-      const coxgraph_msgs::MeshWithTrajectory::Ptr& submap_mesh,
-      const CliId& cid, const CliSmId& csid);
+  void addSubmapFromMesh(const coxgraph_msgs::MeshWithTrajectory& submap_mesh,
+                         const CliId& cid, const CliSmId& csid);
 
   void addSubmapFromMeshAsync(
-      const coxgraph_msgs::MeshWithTrajectory::Ptr& submap_mesh,
-      const CliId& cid, const CliSmId& csid);
+      const coxgraph_msgs::MeshWithTrajectory& submap_mesh, const CliId& cid,
+      const CliSmId& csid);
 
   inline bool getSerSmIdsByCliId(const CliId& cid,
                                  std::vector<SerSmId>* ser_sids) {
@@ -120,6 +135,14 @@ class SubmapCollection : public voxgraph::VoxgraphSubmapCollection {
   }
 
   voxblox::TsdfMap::Ptr getProjectedMap();
+
+  /**
+   * @brief Get the Submap Csid Pairs object, only for client mode
+   *
+   * @param cid client id of this client
+   * @return std::set<CIdCSIdPair>
+   */
+  std::set<CIdCSIdPair> getSubmapCsidPairs(CliId cid);
 
  private:
   typedef std::pair<CliId, CliId> CliIdPair;

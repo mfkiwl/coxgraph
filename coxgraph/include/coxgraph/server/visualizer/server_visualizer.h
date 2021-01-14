@@ -55,14 +55,15 @@ class ServerVisualizer {
 
   ServerVisualizer(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private,
                    const CliSmConfig& submap_config,
-                   const MeshIntegratorConfig& mesh_config)
+                   const MeshIntegratorConfig& mesh_config,
+                   const comm::MeshCollection::Ptr& mesh_collection_ptr)
       : nh_(nh),
         nh_private_(nh_private),
         config_(getConfigFromRosParam(nh_private)),
         submap_config_(submap_config),
         mesh_config_(mesh_config),
         submap_vis_(submap_config, mesh_config),
-        mesh_collection_ptr_(new comm::MeshCollection()) {
+        mesh_collection_ptr_(mesh_collection_ptr) {
     LOG(INFO) << config_;
 
     setMeshOpacity(config_.mesh_opacity);
@@ -101,9 +102,8 @@ class ServerVisualizer {
     return mesh_collection_ptr_;
   }
 
-  void addSubmapMesh(
-      const coxgraph_msgs::MeshWithTrajectory::Ptr& mesh_with_traj, CliId cid,
-      CliSmId csid) {
+  void addSubmapMesh(const coxgraph_msgs::MeshWithTrajectory& mesh_with_traj,
+                     CliId cid, CliSmId csid) {
     mesh_collection_ptr_->addSubmapMesh(mesh_with_traj, cid, csid);
   }
 
@@ -156,12 +156,12 @@ class ServerVisualizer {
       // Publish an empty multi mesh to reset rviz
       voxblox_msgs::MultiMesh empty_mesh_msg;
       empty_mesh_msg.header.stamp = ros::Time::now();
-      empty_mesh_msg.header.frame_id = kv.second->mesh.header.frame_id;
+      empty_mesh_msg.header.frame_id = kv.second.mesh.header.frame_id;
       separated_mesh_pub_.publish(empty_mesh_msg);
 
-      kv.second->mesh.header.stamp = ros::Time::now();
-      kv.second->mesh.mesh.header.stamp = ros::Time::now();
-      separated_mesh_pub_.publish(kv.second->mesh);
+      kv.second.mesh.header.stamp = ros::Time::now();
+      kv.second.mesh.mesh.header.stamp = ros::Time::now();
+      separated_mesh_pub_.publish(kv.second.mesh);
     }
   }
 };  // namespace server

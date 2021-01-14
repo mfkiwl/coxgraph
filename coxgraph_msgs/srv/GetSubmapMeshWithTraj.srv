@@ -1,0 +1,4 @@
+int8 cid
+int8 csid
+---
+coxgraph_msgs/MeshWithTrajectory mesh_with_traj

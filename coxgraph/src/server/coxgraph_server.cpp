@@ -63,12 +63,13 @@ CoxgraphServer::Config CoxgraphServer::getConfigFromRosParam(
 void CoxgraphServer::initClientHandlers(const ros::NodeHandle& nh,
                                         const ros::NodeHandle& nh_private) {
   CHECK_LT(config_.fixed_map_client_id, kMaxClientNum);
-  for (int i = 0; i < config_.client_number; i++) {
-    client_handlers_.emplace_back(new comm::ClientHandler(
-        nh, nh_private, i, config_.map_frame_prefix, submap_config_,
-        submap_collection_ptr_,
-        std::bind(&CoxgraphServer::timeLineUpdateCallback, this)));
 
+  comm::ClientHandler::initClientHandlers(
+      nh_, nh_private_, config_.map_frame_prefix, submap_config_,
+      submap_collection_ptr_, config_.client_number, &client_handlers_, -1,
+      std::bind(&CoxgraphServer::timeLineUpdateCallback, this));
+
+  for (int i = 0; i < config_.client_number; i++) {
     force_fuse_.emplace_back(true);
     fused_time_line_.emplace_back(TimeLine());
   }
@@ -94,6 +95,9 @@ void CoxgraphServer::advertiseServices() {
       "get_pose_history", &CoxgraphServer::getPoseHistoryCallback, this);
   need_to_fuse_srv_ = nh_private_.advertiseService(
       "need_to_fuse", &CoxgraphServer::needToFuseCallback, this);
+  get_submap_mesh_with_traj_srv_ = nh_private_.advertiseService(
+      "get_submap_mesh_with_traj",
+      &CoxgraphServer::getSubmapMeshWithTrajCallback, this);
 }
 
 // TODO(mikexyl): move this to server_vis
@@ -121,7 +125,7 @@ bool CoxgraphServer::getFinalGlobalMeshCallback(
   SerSmId start_ser_sm_id = submap_collection_ptr_->getNextSubmapID();
   for (auto const& ch : client_handlers_) {
     std::vector<CliSmIdPack> submaps_in_client;
-    CHECK(ch->requestAllSubmaps(&submaps_in_client, &start_ser_sm_id));
+    CHECK(ch.second->requestAllSubmaps(&submaps_in_client, &start_ser_sm_id));
     all_submaps.insert(all_submaps.end(), submaps_in_client.begin(),
                        submaps_in_client.end());
   }
@@ -145,11 +149,11 @@ bool CoxgraphServer::getPoseHistoryCallback(
   LOG(INFO) << "Generating pose history for all clients";
 
   std::vector<PoseStampedVector> pose_histories(config_.client_number);
-  for (auto const& ch : client_handlers_) {
-    if (!ch->requestPoseHistory(request.file_path,
-                                &pose_histories[ch->getCliId()])) {
-      LOG(ERROR) << "Request pose history of Client " << ch->getCliId()
-                 << " failed";
+  for (auto const& ch_kv : client_handlers_) {
+    if (!ch_kv.second->requestPoseHistory(
+            request.file_path, &pose_histories[ch_kv.second->getCliId()])) {
+      LOG(ERROR) << "Request pose history of Client "
+                 << ch_kv.second->getCliId() << " failed";
       return false;
     }
   }
@@ -183,6 +187,19 @@ bool CoxgraphServer::getPoseHistoryCallback(
   LOG(INFO) << ok_str;
   response.message = ok_str;
   return true;
+}
+
+bool CoxgraphServer::getSubmapMeshWithTrajCallback(
+    coxgraph_msgs::GetSubmapMeshWithTrajRequest& request,      // NOLINT
+    coxgraph_msgs::GetSubmapMeshWithTrajResponse& response) {  // NOLINT
+  auto submap_mesh_it = mesh_collection_ptr_->getSubmapMeshesPtr()->find(
+      std::make_pair(request.cid, request.csid));
+  if (submap_mesh_it != mesh_collection_ptr_->getSubmapMeshesPtr()->end()) {
+    response.mesh_with_traj = submap_mesh_it->second;
+    return true;
+  } else {
+    return false;
+  }
 }
 
 bool CoxgraphServer::needToFuseCallback(
@@ -247,8 +264,8 @@ bool CoxgraphServer::mapFusionCallback(
   bool has_time_b = client_handlers_[cid_b]->hasTime(t2);
 
   if (has_time_a && has_time_b) {
-    // TODO(mikexyl): add a service to request submap id, publish submap only if
-    // submap id not requested before
+    // TODO(mikexyl): add a service to request submap id, publish submap only
+    // if submap id not requested before
     ok_a = client_handlers_[cid_a]->requestSubmapByTime(
         t1, submap_collection_ptr_->getNextSubmapID(), &cli_sm_id_a, &submap_a,
         &T_A_t1);
@@ -428,8 +445,8 @@ bool CoxgraphServer::fuseMap(const CliId& cid_a, const ros::Time& t1,
   // TODO(mikexyl): add a duplicate check before adding
   SerSmId ser_sm_id_a, ser_sm_id_b;
   if (submap_a->getPoseHistory().empty()) {
-    // TODO(mikexyl): no need to update submap pose here, because if a submap is
-    // already before, its pose will be updated via map pose update topic
+    // TODO(mikexyl): no need to update submap pose here, because if a submap
+    // is already before, its pose will be updated via map pose update topic
     CHECK(submap_collection_ptr_->getSerSmIdByCliSmId(cid_a, cli_sm_id_a,
                                                       &ser_sm_id_a));
   } else {
@@ -473,10 +490,10 @@ bool CoxgraphServer::fuseMap(const CliId& cid_a, const ros::Time& t1,
 
 void CoxgraphServer::updateSubmapRPConstraints() {
   if (config_.use_tf_submap_pose) {
-    LOG(FATAL)
-        << "Don't turn on use_tf_submap_pose, somehow it doesn't work for now";
-    // Update submap poses in collection by looking up tf. Do this here because
-    // it's only needed when adding rp constraints.
+    LOG(FATAL) << "Don't turn on use_tf_submap_pose, somehow it doesn't work "
+                  "for now";
+    // Update submap poses in collection by looking up tf. Do this here
+    // because it's only needed when adding rp constraints.
     for (int cid = 0; cid < submap_collection_ptr_->getClientNumber(); cid++) {
       std::vector<CliSmId> cli_sids;
       if (!submap_collection_ptr_->getCliSmIdsByCliId(cid, &cli_sids)) continue;

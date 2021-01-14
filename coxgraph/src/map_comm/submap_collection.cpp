@@ -3,6 +3,7 @@
 #include <voxblox/integrator/merge_integration.h>
 
 #include <memory>
+#include <set>
 #include <utility>
 #include <vector>
 
@@ -26,7 +27,7 @@ void SubmapCollection::addSubmap(const CliSm::Ptr& submap_ptr, const CliId& cid,
 }
 
 void SubmapCollection::addSubmapFromMeshAsync(
-    const coxgraph_msgs::MeshWithTrajectory::Ptr& submap_mesh, const CliId& cid,
+    const coxgraph_msgs::MeshWithTrajectory& submap_mesh, const CliId& cid,
     const CliSmId& csid) {
   if (!recover_threads_.count(cid))
     recover_threads_.emplace(cid, std::thread());
@@ -37,7 +38,7 @@ void SubmapCollection::addSubmapFromMeshAsync(
 }
 
 void SubmapCollection::addSubmapFromMesh(
-    const coxgraph_msgs::MeshWithTrajectory::Ptr& submap_mesh, const CliId& cid,
+    const coxgraph_msgs::MeshWithTrajectory& submap_mesh, const CliId& cid,
     const CliSmId& csid) {
   voxblox::timing::Timer recover_tsdf_timer("recover_tsdf");
 
@@ -48,7 +49,7 @@ void SubmapCollection::addSubmapFromMesh(
   mesh_collection_ptr_->addSubmapMesh(submap_mesh, cid, csid);
 
   CIdCSIdPair csid_pair =
-      utils::resolveSubmapFrame(submap_mesh->mesh.header.frame_id);
+      utils::resolveSubmapFrame(submap_mesh.mesh.header.frame_id);
 
   CliSm submap = draftNewSubmap();
   voxblox::MeshConverter mesh_converter(nh_private_);
@@ -60,8 +61,8 @@ void SubmapCollection::addSubmapFromMesh(
   Transformation T_Sm_C;
   voxblox::Pointcloud points_C;
 
-  mesh_converter.setMesh(submap_mesh->mesh.mesh);
-  mesh_converter.setTrajectory(submap_mesh->trajectory);
+  mesh_converter.setMesh(submap_mesh.mesh.mesh);
+  mesh_converter.setTrajectory(submap_mesh.trajectory);
   mesh_converter.convertToPointCloud();
 
   while (mesh_converter.getPointcloudInNextFOV(&T_Sm_C, &points_C)) {
@@ -76,7 +77,7 @@ void SubmapCollection::addSubmapFromMesh(
   {
     std::lock_guard<std::mutex> recovered_submap_map_lock(
         recovered_submap_map_mutex_);
-    recovered_submap_map_.emplace(submap_mesh->mesh.header.frame_id,
+    recovered_submap_map_.emplace(submap_mesh.mesh.header.frame_id,
                                   std::make_shared<CliSm>(std::move(submap)));
   }
 
@@ -120,6 +121,19 @@ voxblox::TsdfMap::Ptr SubmapCollection::getProjectedMap() {
       << combined_tsdf_map->getTsdfLayerPtr()->getNumberOfAllocatedBlocks();
 
   return combined_tsdf_map;
+}
+
+std::set<CIdCSIdPair> SubmapCollection::getSubmapCsidPairs(CliId cid) {
+  std::set<CIdCSIdPair> csid_pairs;
+  for (auto submap_ptr : getSubmapPtrs()) {
+    csid_pairs.emplace(cid, submap_ptr->getID());
+  }
+
+  for (auto submap_kv : recovered_submap_map_) {
+    csid_pairs.emplace(utils::resolveSubmapFrame(submap_kv.first));
+  }
+
+  return csid_pairs;
 }
 
 }  // namespace comm
