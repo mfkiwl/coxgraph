@@ -22,6 +22,8 @@ MapServer::Config MapServer::getConfigFromRosParam(
 void MapServer::subscribeToTopics() {
   kf_pose_sub_ = nh_private_.subscribe("keyframe_pose", 10,
                                        &MapServer::kfPoseCallback, this);
+  traj_command_sub_ = nh_private_.subscribe(
+      "command/trajectory", 10, &MapServer::trajCommandCallback, this);
 }
 
 void MapServer::advertiseTopics() {
@@ -38,13 +40,13 @@ void MapServer::advertiseTopics() {
 
 void MapServer::subscribeToServices() {
   get_submap_mesh_with_traj_cli_ =
-      nh_private_.serviceClient<coxgraph_msgs::GetSubmapMeshWithTraj>(
-          "get_submap_mesh_with_traj");
+      nh_.serviceClient<coxgraph_msgs::GetSubmapMeshWithTraj>(
+          "/coxgraph/coxgraph_server_node/get_submap_mesh_with_traj");
 }
 
 void MapServer::advertiseServices() {
-  set_target_srv_ = nh_private_.advertiseService(
-      "set_target_pose", &MapServer::setTargetPositionCallback, this);
+  set_target_pose_srv_ = nh_private_.advertiseService(
+      "set_target_pose", &MapServer::setTargetPoseCallback, this);
 }
 
 void MapServer::startTimers() {}
@@ -85,16 +87,16 @@ void MapServer::publishSubmapMesh(CliSmId csid, std::string /* world_frame */,
 
 void MapServer::requestNewSubmap() {}
 
-bool MapServer::setTargetPositionCallback(
+bool MapServer::setTargetPoseCallback(
     coxgraph_msgs::SetTargetPoseRequest& request,      // NOLINT
     coxgraph_msgs::SetTargetPoseResponse& response) {  // NOLINT
-  Transformation T_G_Cli, T_G_Tgt;
   TransformationD T_Cli_Tgt;
-  if (!submap_info_listener_.lookupTfGlobalToCli(client_id_, &T_G_Cli)) {
-    response.result = coxgraph_msgs::SetTargetPoseResponse::NOT_MERGED;
-    return true;
-  }
   tf::poseMsgToKindr(request.target_pose, &T_Cli_Tgt);
+  return setTargetPose(T_Cli_Tgt.cast<FloatingPoint>(), &response.result);
+}
+
+bool MapServer::setTargetPose(const Transformation& T_Cli_Tgt, int8_t* result) {
+  Transformation T_G_Cli, T_G_Tgt;
   T_G_Tgt = T_G_Cli * T_Cli_Tgt.cast<FloatingPoint>();
   CIdCSIdPair target_submap_id;
   if (submap_info_listener_.getUnknownSubmapNearClient(
@@ -107,15 +109,26 @@ bool MapServer::setTargetPositionCallback(
       submap_collection_ptr_->addSubmapFromMeshAsync(
           get_submap_mesh_srv.response.mesh_with_traj,
           get_submap_mesh_srv.request.cid, get_submap_mesh_srv.request.csid);
-      response.result = coxgraph_msgs::SetTargetPoseResponse::SUCCESS;
+      *result = SetTargetResult::SUCCESS;
     } else {
-      response.result = coxgraph_msgs::SetTargetPoseResponse::NO_AVAILABLE;
+      *result = SetTargetResult::NO_AVAILABLE;
     }
   } else {
-    response.result = coxgraph_msgs::SetTargetPoseResponse::NO_AVAILABLE;
+    *result = SetTargetResult::NO_AVAILABLE;
   }
 
   return true;
+}
+
+void MapServer::trajCommandCallback(
+    const trajectory_msgs::MultiDOFJointTrajectory& command_msg) {
+  // TODO(mikexyl): assume trajectory is in client odom frame for now
+  int8_t result;
+  TransformationD T_Cli_Tgt;
+  CHECK_EQ(command_msg.points.rbegin()->transforms.size(), 1);
+  tf::transformMsgToKindr(command_msg.points.rbegin()->transforms[0],
+                          &T_Cli_Tgt);
+  setTargetPose(T_Cli_Tgt.cast<FloatingPoint>(), &result);
 }
 
 }  // namespace client

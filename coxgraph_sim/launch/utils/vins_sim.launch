@@ -69,7 +69,7 @@
     <param name="hovering_height" value="2"/>
     <param name="delta_d" value="1.0"/>
     <param name="delta_h" value="0.6"/>
-    <param name="delta_yaw" value="10.0"/>
+    <param name="delta_yaw" value="50.0"/>
     <param name="v_max" value="1.0"/>
     <param name="a_max" value="1.0"/>
     <param name="v_max_yaw" value="1.0"/>

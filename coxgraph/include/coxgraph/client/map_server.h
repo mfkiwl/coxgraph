@@ -6,6 +6,7 @@
 #include <coxgraph_msgs/SetTargetPose.h>
 #include <nav_msgs/Odometry.h>
 #include <ros/ros.h>
+#include <trajectory_msgs/MultiDOFJointTrajectory.h>
 #include <voxblox_msgs/Layer.h>
 #include <voxblox_ros/ptcloud_vis.h>
 #include <voxblox_ros/ros_params.h>
@@ -21,6 +22,7 @@
 
 #include "coxgraph/common.h"
 #include "coxgraph/map_comm/client_handler.h"
+#include "coxgraph/map_comm/projected_map_server.h"
 #include "coxgraph/map_comm/submap_collection.h"
 #include "coxgraph/utils/msg_converter.h"
 #include "coxgraph/utils/submap_info_listener.h"
@@ -70,7 +72,8 @@ class MapServer {
         config_(getConfigFromRosParam(nh_private)),
         client_id_(client_id),
         frame_names_(frame_names),
-        submap_collection_ptr_(submap_collection_ptr) {
+        submap_collection_ptr_(submap_collection_ptr),
+        projected_map_server_(nh_private) {
     subscribeToTopics();
     advertiseTopics();
     advertiseServices();
@@ -88,6 +91,12 @@ class MapServer {
   void publishSubmapBBox(CliSmId csid) {
     submap_bbox_pub_.publish(utils::msgFromBb(
         submap_collection_ptr_->getSubmap(csid).getOdomFrameSubmapAabb()));
+  }
+
+  void publishProjectedMap() {
+    projected_map_server_.publishProjectedMap(submap_collection_ptr_,
+                                              frame_names_.input_odom_frame,
+                                              ros::Time::now());
   }
 
  private:
@@ -136,11 +145,20 @@ class MapServer {
   }
   void requestNewSubmap();
 
-  ros::ServiceServer set_target_srv_;
+  ros::ServiceServer set_target_pose_srv_;
   ros::ServiceClient get_submap_mesh_with_traj_cli_;
-  bool setTargetPositionCallback(
+  bool setTargetPoseCallback(
       coxgraph_msgs::SetTargetPoseRequest& request,     // NOLINT
       coxgraph_msgs::SetTargetPoseResponse& response);  // NOLINT
+
+  enum SetTargetResult { SUCCESS = 0, NOT_MERGED = 1, NO_AVAILABLE = 2 };
+  bool setTargetPose(const Transformation& T_Cli_Tgt, int8_t* result);
+
+  ros::Subscriber traj_command_sub_;
+  void trajCommandCallback(
+      const trajectory_msgs::MultiDOFJointTrajectory& command_msg);
+
+  comm::ProjectedMapServer projected_map_server_;
 };
 
 }  // namespace client

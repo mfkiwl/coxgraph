@@ -41,11 +41,13 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
     log_prefix_ = "Client " + std::to_string(client_id_) + ": ";
 
     cox_submap_collection_ptr_.reset(
-        new comm::SubmapCollection(submap_config_, client_id_, mesh_collection_,
-                                   nh_, nh_private_, verbose_));
+        new comm::SubmapCollection(*submap_collection_ptr_, client_id_,
+                                   mesh_collection_, nh_, nh_private_));
     submap_collection_ptr_ =
         static_cast<voxgraph::VoxgraphSubmapCollection::Ptr>(
             cox_submap_collection_ptr_);
+
+    pose_graph_interface_.setSubmapCollectionPtr(submap_collection_ptr_);
 
     map_server_.reset(new MapServer(nh_, nh_private_, client_id_, client_number,
                                     submap_config_, frame_names_,

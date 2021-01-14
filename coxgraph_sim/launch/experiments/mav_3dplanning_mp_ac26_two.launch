@@ -138,9 +138,9 @@
       <arg name="enable_gazebo_tf" value="$(arg enable_gazebo_tf)"/>
     </include>
 
-    <!-- <include file="$(find coxgraph_sim)/launch/utils/pose_graph_backend.launch">
+    <include file="$(find coxgraph_sim)/launch/utils/pose_graph_backend.launch">
       <arg name="num_agents" default="2"/>
-    </include> -->
+    </include>
   </group>
 
   <include file="$(find coxgraph)/launch/firefly/coxgraph_client.launch">

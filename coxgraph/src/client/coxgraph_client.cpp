@@ -106,6 +106,7 @@ bool CoxgraphClient::submapCallback(
     map_server_->publishSubmapMesh(submap_collection_ptr_->getLastSubmapId(),
                                    frame_names_.input_odom_frame, submap_vis_);
     map_server_->publishSubmapBBox(submap_collection_ptr_->getLastSubmapId());
+    map_server_->publishProjectedMap();
   }
   return true;
 }

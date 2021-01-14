@@ -43,6 +43,21 @@ class SubmapCollection : public voxgraph::VoxgraphSubmapCollection {
                                    "projective");
   }
 
+  SubmapCollection(const voxgraph::VoxgraphSubmapCollection& submap_collection,
+                   int8_t client_number,
+                   MeshCollection::Ptr mesh_collection_ptr,
+                   const ros::NodeHandle& nh, const ros::NodeHandle& nh_private)
+      : voxgraph::VoxgraphSubmapCollection(submap_collection),
+        nh_private_(nh_private),
+        client_number_(client_number),
+        tsdf_integrator_config_(
+            voxblox::getTsdfIntegratorConfigFromRosParam(nh_private)),
+        mesh_collection_ptr_(mesh_collection_ptr),
+        submap_info_listener_(nh, nh_private) {
+    nh_private_.param<std::string>("method", tsdf_integrator_method_,
+                                   "projective");
+  }
+
   // Copy constructor without copy mutex
   SubmapCollection(const SubmapCollection& rhs)
       : voxgraph::VoxgraphSubmapCollection(

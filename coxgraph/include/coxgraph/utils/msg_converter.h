@@ -152,9 +152,6 @@ inline uint64_t sizeOfMsg(const coxgraph_msgs::ClientSubmap& msg) {
   total_size += sizeof(msg.layer_with_traj.layer.voxels_per_side);
   total_size += sizeof(msg.layer_with_traj.layer.layer_type);
   total_size += sizeof(msg.layer_with_traj.layer.action);
-  if (msg.layer_with_traj.layer.frame_id.size())
-    total_size += msg.layer_with_traj.layer.frame_id.size() *
-                  sizeof(msg.layer_with_traj.layer.frame_id[0]);
   total_size += sizeof(msg.layer_with_traj.trajectory.header);
   if (msg.layer_with_traj.trajectory.poses.size())
     total_size += msg.layer_with_traj.trajectory.poses.size() *
