@@ -6,7 +6,7 @@ map_bounding_volume:
   x_max: 60.0
   y_min: -60.0
   y_max: 60.0
-  z_min: -1
+  z_min: -4
   z_max: 15
 
 evaluation_bounding_volum:
@@ -20,7 +20,7 @@ evaluation_bounding_volum:
 target_bounding_volume:
   x_min: -50.0
   x_max: 50.0
-  y_min: -50.0
-  y_max: 50.0
+  y_min: -1.0
+  y_max: 30.0
   z_min: -1
-  z_max: 13
+  z_max: 20

@@ -3,7 +3,7 @@ verbose: false
 world_frame: "world"
 color_mode: "color"
 
-method: "projective"
+method: "fast"
 sensor_horizontal_resolution: 400
 sensor_vertical_resolution: 250
 sensor_vertical_field_of_view_degrees: 360

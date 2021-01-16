@@ -72,10 +72,9 @@
     <node pkg="coxgraph_sim" type="odometry_transform_publisher_node" name="odom_tf_publisher" args="-alsologtostderr">
       <remap from="~odom_groundtruth" to="/$(arg mav_name)_$(arg id)/ground_truth/odometry" />
       <remap from="~odom_repub" to="/$(arg mav_name)_$(arg id)/repub/odometry"/>
-      <param name="odom_frame" value="odom_$(arg id)"/>
+      <param name="odom_frame" value="map_$(arg id)"/>
       <param name="base_link_frame" value="$(arg mav_name)_$(arg id)/base_link"/>
-      <param name="tf_pub_frequency" value="100"/>
-      <param name="publish_tf" value="true" unless="$(arg use_vins)"/>
+      <param name="tf_pub_frequency" value="0"/>
       <param name="origin_x" value="$(arg x)"/>
       <param name="origin_y" value="$(arg y)"/>
       <param name="origin_z" value="$(arg z)"/>
