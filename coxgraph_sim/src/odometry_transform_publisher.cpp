@@ -17,33 +17,16 @@ OdometryTransformPublisher::getConfigFromRosParam(
                                 config.base_link_frame);
   nh_private.param<float>("tf_pub_frequency", config.tf_pub_frequency,
                           config.tf_pub_frequency);
-  nh_private.param<float>("origin_x", config.origin_pos[0],
-                          config.origin_pos[0]);
-  nh_private.param<float>("origin_y", config.origin_pos[1],
-                          config.origin_pos[1]);
-  nh_private.param<float>("origin_z", config.origin_pos[2],
-                          config.origin_pos[2]);
-  nh_private.param<float>("origin_yaw", config.origin_yaw, config.origin_yaw);
   return config;
 }
 
-void OdometryTransformPublisher::setOrigin() {
-  tf::Transform transform;
-  tf::Vector3 position;
-  position.setX(config_.origin_pos[0]);
-  position.setY(config_.origin_pos[1]);
-  position.setZ(config_.origin_pos[2]);
-  transform.setOrigin(position);
-
-  tf::Quaternion quaternion = tf::createQuaternionFromYaw(config_.origin_yaw);
-  transform.setRotation(quaternion);
-
-  tf::transformTFToKindr(transform, &T_G_O_);
-}
-
-void OdometryTransformPublisher::subscribeTopics() {
+void OdometryTransformPublisher::subscribeToTopics() {
   gt_odom_sub_ = nh_private_.subscribe(
-      "odom_groundtruth", 10, &OdometryTransformPublisher::odomCallback, this);
+      "odom_gt", 10, &OdometryTransformPublisher::gtOdomCallback, this);
+  vio_img_sub_ = nh_private_.subscribe(
+      "vio_img", 1, &OdometryTransformPublisher::vioImgCallback, this);
+  vio_odom_sub_ = nh_private_.subscribe(
+      "vio_odom", 1, &OdometryTransformPublisher::vioOdomCallback, this);
 }
 
 void OdometryTransformPublisher::advertiseTopics() {
@@ -58,7 +41,7 @@ void OdometryTransformPublisher::advertiseTf() {
         std::bind(&OdometryTransformPublisher::publishTfEvent, this));
 }
 
-void OdometryTransformPublisher::odomCallback(
+void OdometryTransformPublisher::gtOdomCallback(
     const nav_msgs::Odometry& odom_msg) {
   CHECK_EQ(odom_msg.child_frame_id, config_.base_link_frame);
   CHECK_EQ(odom_msg.header.frame_id, "world");
@@ -67,6 +50,7 @@ void OdometryTransformPublisher::odomCallback(
   TransformationD T_G_B;
   tf::poseMsgToKindr(odom_msg.pose.pose, &T_G_B);
   T_O_B_ = T_G_O_.inverse() * T_G_B;
+  if (!initialized_) return;
 
   nav_msgs::Odometry odom_msg_o_b;
   odom_msg_o_b = odom_msg;
@@ -98,10 +82,38 @@ void OdometryTransformPublisher::odomCallback(
   fk_odom_pub_.publish(odom_msg_o_b);
 }
 
+void OdometryTransformPublisher::vioImgCallback(
+    const sensor_msgs::ImageConstPtr& odom_msg) {
+  initTGO();
+}
+
+void OdometryTransformPublisher::vioOdomCallback(
+    const nav_msgs::Odometry& odom_msg) {
+  initTGO();
+}
+
+void OdometryTransformPublisher::initTGO() {
+  if (!initialized_) {
+    CHECK(T_G_O_ == TransformationD());
+
+    // Before T_G_O is initialized, T_O_B_ = T_G_B_;
+    T_G_O_ = T_O_B_;
+    T_O_B_ = T_G_O_.inverse() * T_O_B_;
+
+    initialized_ = true;
+
+    ROS_INFO_STREAM("Set T_G_O to " << T_G_O_);
+  }
+  vio_img_sub_.shutdown();
+  vio_odom_sub_.shutdown();
+}
+
 void OdometryTransformPublisher::publishTfEvent() { publishTf(); }
 
 void OdometryTransformPublisher::publishTf() {
+  if (!initialized_) return;
   std::lock_guard<std::mutex> pose_update_lock(pose_update_mutex_);
+
   tf::Transform T_O_B_msg;
   tf::transformKindrToTF(T_O_B_, &T_O_B_msg);
   tf_pub_.sendTransform(tf::StampedTransform(T_O_B_msg, ros::Time::now(),

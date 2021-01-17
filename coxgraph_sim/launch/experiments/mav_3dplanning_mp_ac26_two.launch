@@ -39,7 +39,6 @@
   <arg name="time_limit" default="30" />
 
   <!-- Initial pose and control commands -->
-  <!-- <arg name="x_0" default="-5.0"/> -->
   <arg name="x_0" default="6.0"/>
   <arg name="y_0" default="0.0"/>
   <arg name="z_0" default="1.0"/>
@@ -90,7 +89,7 @@
       <arg name="enable_ground_truth" value="$(arg enable_ground_truth)" />
       <arg name="enable_gazebo_tf" value="$(arg enable_gazebo_tf)" />
       <arg name="log_file" value="$(arg log_file)"/>
-      <arg name="hover" default="true"/>
+      <arg name="hover" default="false"/>
 
       <arg name="x" value="$(arg x_0)"/>
       <arg name="y" value="$(arg y_0)"/>

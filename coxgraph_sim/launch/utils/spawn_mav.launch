@@ -69,16 +69,14 @@
   <node pkg="tf" type="static_transform_publisher" name="map_to_odom_$(arg id)" args="0 0 0 0 0 0 1 map_$(arg id) odom_$(arg id) 100" />
 
   <group unless="$(arg enable_gazebo_tf)">
-    <node pkg="coxgraph_sim" type="odometry_transform_publisher_node" name="odom_tf_publisher" args="-alsologtostderr">
-      <remap from="~odom_groundtruth" to="/$(arg mav_name)_$(arg id)/ground_truth/odometry" />
+    <node pkg="coxgraph_sim" type="odometry_transform_publisher_node" name="odom_tf_publisher" args="-alsologtostderr" output="screen">
+      <remap from="~odom_gt" to="/$(arg mav_name)_$(arg id)/ground_truth/odometry" />
+      <remap from="~vio_img" to="/$(arg mav_name)_$(arg id)/vi_sensor/left/image_raw"/>
+      <!-- <remap from="~vio_odom" to="/$(arg mav_name)_$(arg id)/vins_estimator_$(arg id)/odometry"/> -->
       <remap from="~odom_repub" to="/$(arg mav_name)_$(arg id)/repub/odometry"/>
       <param name="odom_frame" value="map_$(arg id)"/>
       <param name="base_link_frame" value="$(arg mav_name)_$(arg id)/base_link"/>
       <param name="tf_pub_frequency" value="0"/>
-      <param name="origin_x" value="$(arg x)"/>
-      <param name="origin_y" value="$(arg y)"/>
-      <param name="origin_z" value="$(arg z)"/>
-      <param name="origin_yaw" value="$(arg yaw_ctrl)"/>
     </node>
   </group>
 
