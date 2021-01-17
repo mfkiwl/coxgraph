@@ -62,7 +62,7 @@
   <arg name="enable_gazebo_tf" default="false"/>
   <arg name="log_file" default="$(arg mav_name)"/>
   <arg name="run_gazebo_gui" default="true"/>
-  <arg name="world" default="chemical-plant"/>
+  <arg name="world" default="mp_ac26"/>
 
   <!-- *** Experiment Execution *** -->
 

@@ -727,7 +727,7 @@
       <xacro:vi_sensor_stereo_camera_macro
         namespace="${namespace}" parent_link="${namespace}/vi_sensor_link"
         frame_rate="30.0" origin_offset_x="0.015" baseline_y="${0.055*2}"
-        origin_offset_z="0.0065" max_range="30">
+        origin_offset_z="0.0065" max_range="100">
       </xacro:vi_sensor_stereo_camera_macro>
     </xacro:if>
 
