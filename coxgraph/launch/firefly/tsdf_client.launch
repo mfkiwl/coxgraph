@@ -22,6 +22,7 @@
   <node name="tsdf_client_$(arg id)" pkg="voxblox_ros" type="tsdf_server" output="screen" args="-alsologtostderr" clear_params="true" launch-prefix="$(arg launch_prefix)">
     <remap from="pointcloud" to="$(arg pointcloud_topic)"/>
     <remap from="~active_tsdf_out" to="/tsdf_map_out_$(arg id)"/>
+    <remap from="~active_esdf_out" to="/esdf_map_out_$(arg id)"/>
     <rosparam file="$(arg tw_voxblox_config_file)"/>
     <param name="meshing/visualize" value="$(arg visualize)" />
     <param name="enable_segment_map" value="false" />

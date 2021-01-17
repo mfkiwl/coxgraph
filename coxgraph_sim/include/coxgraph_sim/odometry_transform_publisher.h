@@ -4,6 +4,7 @@
 #include <coxgraph/common.h>
 #include <nav_msgs/Odometry.h>
 #include <ros/ros.h>
+#include <sensor_msgs/Image.h>
 #include <tf/transform_broadcaster.h>
 
 #include <mutex>
@@ -18,14 +19,10 @@ class OdometryTransformPublisher {
     Config()
         : odom_frame("odom"),
           base_link_frame("base_link"),
-          tf_pub_frequency(0.0),
-          origin_pos(3, 0),
-          origin_yaw(0) {}
+          tf_pub_frequency(0.0) {}
     std::string odom_frame;
     std::string base_link_frame;
     float tf_pub_frequency;
-    std::vector<float> origin_pos;
-    float origin_yaw;
 
     friend inline std::ostream& operator<<(std::ostream& s, const Config& v) {
       s << std::endl
@@ -51,8 +48,7 @@ class OdometryTransformPublisher {
       : nh_(nh), nh_private_(nh_private), config_(config), initialized_(false) {
     LOG(INFO) << config_;
 
-    setOrigin();
-    subscribeTopics();
+    subscribeToTopics();
     advertiseTopics();
     advertiseTf();
   }
@@ -60,11 +56,13 @@ class OdometryTransformPublisher {
   ~OdometryTransformPublisher() = default;
 
  private:
-  void setOrigin();
-  void subscribeTopics();
+  void subscribeToTopics();
   void advertiseTopics();
   void advertiseTf();
-  void odomCallback(const nav_msgs::Odometry& odom_msg);
+  void gtOdomCallback(const nav_msgs::Odometry& odom_msg);
+  void vioImgCallback(const sensor_msgs::ImageConstPtr& odom_msg);
+  void vioOdomCallback(const nav_msgs::Odometry& odom_msg);
+  void initTGO();
   void publishTfEvent();
   void publishTf();
 
@@ -74,6 +72,8 @@ class OdometryTransformPublisher {
   ros::NodeHandle nh_private_;
 
   ros::Subscriber gt_odom_sub_;
+  ros::Subscriber vio_img_sub_;
+  ros::Subscriber vio_odom_sub_;
   ros::Publisher fk_odom_pub_;
   ros::Timer tf_pub_timer_;
   tf::TransformBroadcaster tf_pub_;

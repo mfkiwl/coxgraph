@@ -55,6 +55,7 @@
     <!-- Planner -->
     <node name="planner_node" pkg="active_3d_planning_app_reconstruction" type="reconstruction_planner_node" output="screen" args="-alsologtostderr">
       <remap from="planner_node/tsdf_map_in" to="/tsdf_map_out_$(arg id)" />
+      <remap from="planner_node/esdf_map_in" to="/esdf_map_out_$(arg id)" />
       <param name="client_number" value="2"/>
       <param name="client_id" value="$(arg id)"/>
       <param name="use_tf_transforms" value="false" />

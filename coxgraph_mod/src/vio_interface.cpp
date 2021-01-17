@@ -102,8 +102,8 @@ class VIOInterface {
   }
 
  private:
-  ros::NodeHandle* nh_;
-  ros::NodeHandle* nh_private_;
+  ros::NodeHandle* nh_ = nullptr;
+  ros::NodeHandle* nh_private_ = nullptr;
 
   enum InitModule { nh = 0, tf, lc, mapping };
 
