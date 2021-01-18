@@ -16,100 +16,19 @@
 #include <opencv2/opencv.hpp>
 
 #include <deque>
+#include <memory>
+#include <queue>
+#include <string>
+#include <utility>
 #include <vector>
 
 #include "DBoW2/FBRISK.h"
 #include "DBoW2/TemplatedVocabulary.h"
+#include "coxgraph/client/keyframe.h"
 #include "coxgraph/common.h"
 
 namespace coxgraph {
 namespace client {
-
-// Borrowed from vins_client_server
-class Keyframe {
- public:
-  Keyframe(const ros::Time& timestamp, int index, CliId cid,
-           const cv::Mat& rgb_image, const cv::Mat& depth_image,
-           const TransformationD T_G_C,
-           const brisk::BriskDescriptorExtractor& brisk_extractor)
-      : timestamp_(timestamp),
-        index_(index),
-        cid_(cid),
-        rgb_image_(rgb_image),
-        depth_image_(depth_image),
-        T_G_C_(T_G_C) {
-    computeBRIEFPoint(brisk_extractor);
-  }
-
-  virtual ~Keyframe() = default;
-
-  void computeBRIEFPoint(
-      const brisk::BriskDescriptorExtractor& brisk_extractor) {
-    //  brisk::ScaleSpaceFeatureDetector<brisk::HarrisScoreCalculator>
-    //      brisk_detector(0, 10.0, 300.0, 200);
-    keypoints_.clear();
-    vector<cv::Point2f> tmp_pts;
-    cv::goodFeaturesToTrack(rgb_image_, tmp_pts, 500, 0.01, 10);
-    for (size_t i = 0; i < tmp_pts.size(); ++i) {
-      cv::KeyPoint key;
-      key.pt = tmp_pts[i];
-      key.octave = 0;
-      keypoints_.push_back(key);
-    }
-
-    brisk_extractor.compute(rgb_image_, keypoints_, descriptors_);
-  }
-
-  const cv::Mat& getDescriptors() const { return descriptors_; }
-
-  comm_msgs::keyframe toKeyframeMsg(int num_odom_connections) {
-    comm_msgs::keyframe kf_msg;
-    kf_msg.header.stamp = timestamp_;
-    kf_msg.frameId = index_;
-    kf_msg.agentId = cid_;
-
-    kf_msg.header.stamp = timestamp_;
-    tf::poseKindrToMsg(T_G_C_, &kf_msg.odometry.pose.pose);
-
-    cv::Mat combined_descriptor(window_descriptors_.rows + descriptors_.rows,
-                                window_descriptors_.cols, descriptors_.type());
-    if (window_descriptors_.rows > 0) {
-      window_descriptors_.copyTo(
-          combined_descriptor.rowRange(0, window_descriptors_.rows));
-    }
-    if (descriptors_.rows > 0) {
-      descriptors_.copyTo(combined_descriptor.rowRange(
-          window_descriptors_.rows,
-          window_descriptors_.rows + descriptors_.rows));
-    }
-    sensor_msgs::fillImage(
-        kf_msg.keyPtsDescriptors, sensor_msgs::image_encodings::MONO8,
-        combined_descriptor.rows, combined_descriptor.cols,
-        combined_descriptor.step.buf[0], combined_descriptor.data);
-    for (int i = 1; i < num_odom_connections; i++) {
-      kf_msg.connections.emplace_back(index_ - i);
-    }
-    const size_t num_total_keypoints = combined_descriptor.rows;
-
-    kf_msg.numKeyPts = num_total_keypoints;
-
-    // TODO(mikexyl): unfinished
-
-    return kf_msg;
-  }
-
- private:
-  ros::Time timestamp_;
-  int index_;
-  CliId cid_;
-  TransformationD T_G_C_;
-  cv::Mat rgb_image_;
-  cv::Mat depth_image_;
-  std::vector<cv::KeyPoint> keypoints_;
-  std::vector<cv::KeyPoint> window_keypoints_;
-  cv::Mat window_descriptors_;
-  cv::Mat descriptors_;
-};
 
 class KeyframeTracker {
  public:
@@ -122,7 +41,8 @@ class KeyframeTracker {
           voc_file(""),
           camera_k(),
           camera_d(),
-          sensor(static_cast<SensorType>(0)) {}
+          sensor(static_cast<SensorType>(0)),
+          depth_factor(1.0) {}
     std::vector<double> camera_k;
     std::vector<double> camera_d;
     float min_dist_m;
@@ -131,6 +51,8 @@ class KeyframeTracker {
     int min_kf_n;
     std::string voc_file;
     int sensor;
+    int kf_window_size;
+    float depth_factor;
 
     friend inline std::ostream& operator<<(std::ostream& s, const Config& v) {
       s << std::endl
@@ -140,6 +62,8 @@ class KeyframeTracker {
         << "  Min KF Every: " << v.min_kf_n << " frames" << std::endl
         << "  Min Local Score: " << v.min_local_score << std::endl
         << "  Sensor Type: " << v.sensor << std::endl
+        << "  Keyframe Window Size: " << v.kf_window_size << std::endl
+        << "  Depth Factor: " << v.depth_factor << std::endl
         << "-------------------------------------------" << std::endl;
       return (s);
     }
@@ -159,17 +83,18 @@ class KeyframeTracker {
     nh_private.param<std::vector<double>>("camera_d", config.camera_d,
                                           config.camera_d);
     nh_private.param<int>("sensor", config.sensor, config.sensor);
+    nh_private.param<int>("kf_window_size", config.kf_window_size,
+                          config.kf_window_size);
+    nh_private.param<float>("depth_factor", config.depth_factor,
+                            config.depth_factor);
     return config;
   }
-
-  typedef DBoW2::TemplatedVocabulary<DBoW2::FBRISK::TDescriptor, DBoW2::FBRISK>
-      BRISKVocabulary;
 
   KeyframeTracker(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private)
       : config_(getConfigFromRosParam(nh_private)),
         kf_index(0),
         n_since_last_kf(0) {
-    nh_private_.param<CliId>("client_id", cid_, cid_);
+    nh_private_.param<int>("client_id", cid_, cid_);
     if (config_.voc_file.empty()) {
       LOG(FATAL) << "No voc file path given";
     }
@@ -197,7 +122,7 @@ class KeyframeTracker {
     sync_.reset(new message_filters::Synchronizer<sync_pol>(
         sync_pol(10), *rgb_subscriber_, *depth_subscriber_, *odom_subscriber_));
     sync_->registerCallback(
-        boost::bind(&KeyframeTracker::imageRGBDCallback, this, _1, _2, _3));
+        boost::bind(&KeyframeTracker::imageCallback, this, _1, _2, _3));
 
     if (config_.camera_k.empty() || config_.camera_d.empty())
       camera_info_sub_ = nh_private_.subscribe(
@@ -209,15 +134,15 @@ class KeyframeTracker {
   }
 
  private:
-  CliId cid_;
+  int cid_;
   enum SensorType { MONOCULAR = 0, STEREO, RGBD };
   Config config_;
 
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
 
-  typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image,
-                                                          sensor_msgs::Image>
+  typedef message_filters::sync_policies::ApproximateTime<
+      sensor_msgs::Image, sensor_msgs::Image, nav_msgs::Odometry>
       sync_pol;
   std::shared_ptr<message_filters::Subscriber<sensor_msgs::Image>>
       rgb_subscriber_;
@@ -229,9 +154,10 @@ class KeyframeTracker {
 
   std::shared_ptr<BRISKVocabulary> voc_;
   std::shared_ptr<brisk::BriskDescriptorExtractor> brisk_extractor_;
-  void imageRGBDCallback(const sensor_msgs::ImageConstPtr& rgb_msg,
+  std::vector<cv::Point2f> prev_pts_, cur_pts_, forw_pts_;
+  void imageCallback(const sensor_msgs::ImageConstPtr& rgb_msg,
                      const sensor_msgs::ImageConstPtr& depth_msg,
-                     const nav_msgs::Odometry& odom_msg) {
+                     const nav_msgs::OdometryConstPtr& odom_msg) {
     odomCallback(odom_msg);
 
     TransformationD T_G_C = T_G_C_queue_.back().second;
@@ -241,8 +167,7 @@ class KeyframeTracker {
     if (n_since_last_kf++ > config_.min_kf_n &&
         (T_lastKF_C.getPosition().norm() > config_.min_dist_m ||
          T_lastKF_C.getRotation().norm() > config_.min_yaw_rad)) {
-      cv_bridge::CvImageConstPtr rgb_image_ptr, depth_image_ptr;
-
+      cv_bridge::CvImageConstPtr rgb_image_ptr;
       try {
         rgb_image_ptr = cv_bridge::toCvShare(rgb_msg);
       } catch (cv_bridge::Exception& e) {
@@ -250,20 +175,29 @@ class KeyframeTracker {
         return;
       }
 
+      cv_bridge::CvImageConstPtr depth_image_ptr;
       try {
-        depth_image_ptr = cv_bridge::toCvShare(depth_msg);
+        depth_image_ptr = cv_bridge::toCvShare(rgb_msg);
       } catch (cv_bridge::Exception& e) {
         ROS_ERROR("cv_bridge exception: %s", e.what());
         return;
       }
 
-      Keyframe new_kf(rgb_msg->header.stamp, kf_index, cid_,
-                      rgb_image_ptr->image, depth_image_ptr->image, T_G_C,
-                      *brisk_extractor_);
-      DBoW2::BowVector new_bow_vec;
-      voc_->transform(new_kf.getDescriptors(), new_bow_vec);
-      if (voc_->score(new_bow_vec, bow_vec_lastKF) < config_.min_local_score) {
+      cv::Mat depth_image = depth_image_ptr->image;
+      if ((fabs(config_.depth_factor - 1.0f) > 1e-5) ||
+          depth_image.type() != CV_32F)
+        depth_image.convertTo(depth_image, CV_32F, config_.depth_factor);
+
+      Keyframe::Ptr new_kf(new Keyframe(
+          rgb_msg->header.stamp, kf_index, cid_, rgb_image_ptr->image,
+          depth_image, T_G_C, *brisk_extractor_, *voc_, k_, dist_coef_,
+          kf_queue_.empty() ? nullptr : kf_queue_.front()));
+      addKeyframe(new_kf);
+
+      if (voc_->score(new_kf->getBowVec(), bow_vec_lastKF) <
+          config_.min_local_score) {
         kf_index++;
+        bow_vec_lastKF = new_kf->getBowVec();
         n_since_last_kf = 0;
         T_G_lastKF = T_G_C;
       }
@@ -273,11 +207,11 @@ class KeyframeTracker {
   }
 
   ros::Subscriber odom_sub_;
-  void odomCallback(const nav_msgs::Odometry& odom_msg) {
+  void odomCallback(const nav_msgs::OdometryConstPtr& odom_msg) {
     TransformationD T_G_C;
-    tf::poseMsgToKindr(odom_msg.pose.pose, &T_G_C);
+    tf::poseMsgToKindr(odom_msg->pose.pose, &T_G_C);
     if (T_G_C_queue_.size() == kOdomQueueSize) T_G_C_queue_.pop_front();
-    T_G_C_queue_.emplace_back(odom_msg.header.stamp, T_G_C);
+    T_G_C_queue_.emplace_back(odom_msg->header.stamp, T_G_C);
   }
 
   ros::Subscriber camera_info_sub_;
@@ -317,6 +251,13 @@ class KeyframeTracker {
   int n_since_last_kf;
   TransformationD T_G_lastKF;
   DBoW2::BowVector bow_vec_lastKF;
+  std::queue<Keyframe::Ptr> kf_queue_;
+  void addKeyframe(const Keyframe::Ptr& kf) {
+    if (kf_queue_.size() == config_.kf_window_size) {
+      kf_queue_.pop();
+    }
+    kf_queue_.emplace(kf);
+  }
   std::deque<std::pair<ros::Time, TransformationD>> T_G_C_queue_;
 
   ros::Publisher kf_pub_;

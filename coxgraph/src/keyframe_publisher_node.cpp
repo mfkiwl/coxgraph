@@ -1,7 +1,7 @@
 #include <glog/logging.h>
 #include <ros/ros.h>
 
-#include "coxgraph/client/keyframe_publisher.h"
+#include "coxgraph/client/keyframe_tracker.h"
 
 int main(int argc, char** argv) {
   // Start logging
@@ -17,7 +17,7 @@ int main(int argc, char** argv) {
   ros::NodeHandle nh_private("~");
 
   // Create the mapper
-  coxgraph::client::KeyframePublisher keyframe_publiser(nh, nh_private);
+  coxgraph::client::KeyframeTracker keyframe_tracker(nh, nh_private);
 
   // Spin
   ros::spin();
