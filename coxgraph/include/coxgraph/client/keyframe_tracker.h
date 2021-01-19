@@ -9,6 +9,7 @@
 #include <message_filters/time_sequencer.h>
 #include <minkindr_conversions/kindr_msg.h>
 #include <nav_msgs/Odometry.h>
+#include <pcl_ros/point_cloud.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/fill_image.h>
@@ -26,6 +27,7 @@
 #include "DBoW2/TemplatedVocabulary.h"
 #include "coxgraph/client/keyframe.h"
 #include "coxgraph/common.h"
+#include "pcl/point_cloud.h"
 
 namespace coxgraph {
 namespace client {
@@ -43,7 +45,8 @@ class KeyframeTracker {
           camera_d(),
           sensor(static_cast<SensorType>(0)),
           depth_factor(1.0),
-          window_size(3) {}
+          window_size(3),
+          publish_landmarks(true) {}
     std::vector<double> camera_k;
     std::vector<double> camera_d;
     float min_dist_m;
@@ -52,9 +55,9 @@ class KeyframeTracker {
     int min_kf_n;
     std::string voc_file;
     int sensor;
-    int kf_window_size;
     float depth_factor;
     int window_size;
+    bool publish_landmarks;
 
     friend inline std::ostream& operator<<(std::ostream& s, const Config& v) {
       s << std::endl
@@ -64,9 +67,9 @@ class KeyframeTracker {
         << "  Min KF Every: " << v.min_kf_n << " frames" << std::endl
         << "  Min Local Score: " << v.min_local_score << std::endl
         << "  Sensor Type: " << v.sensor << std::endl
-        << "  Keyframe Window Size: " << v.kf_window_size << std::endl
         << "  Depth Factor: " << v.depth_factor << std::endl
         << "  Window Size: " << v.window_size << std::endl
+        << "  Publsih Landmark Pointcloud: " << v.publish_landmarks << std::endl
         << "-------------------------------------------" << std::endl;
       return (s);
     }
@@ -86,12 +89,12 @@ class KeyframeTracker {
     nh_private.param<std::vector<double>>("camera_d", config.camera_d,
                                           config.camera_d);
     nh_private.param<int>("sensor", config.sensor, config.sensor);
-    nh_private.param<int>("kf_window_size", config.kf_window_size,
-                          config.kf_window_size);
     nh_private.param<float>("depth_factor", config.depth_factor,
                             config.depth_factor);
     nh_private.param<int>("window_size", config.window_size,
                           config.window_size);
+    nh_private.param<bool>("publish_landmarks", config.publish_landmarks,
+                           config.publish_landmarks);
     return config;
   }
 
@@ -114,6 +117,8 @@ class KeyframeTracker {
 
     subscribeToTopics();
     advertiseTopics();
+
+    CHECK_EQ(config_.window_size, 2) << "Only window size 2 supported";
   }
 
   ~KeyframeTracker() = default;
@@ -137,6 +142,8 @@ class KeyframeTracker {
 
   void advertiseTopics() {
     kf_pub_ = nh_private_.advertise<comm_msgs::keyframe>("keyframe", 10, true);
+    landmark_pc_pub_ = nh_private_.advertise<pcl::PointCloud<pcl::PointXYZ>>(
+        "landmarks", 10, true);
   }
 
  private:
@@ -197,19 +204,29 @@ class KeyframeTracker {
 
       Keyframe::Ptr new_kf(new Keyframe(rgb_msg->header.stamp, kf_index, cid_,
                                         rgb_image_ptr->image, depth_image,
-                                        T_G_C, *brisk_extractor_, *voc_, k_,
-                                        dist_coef_, tracking_config_));
-      for (int i = 0; i < config_.window_size - 1; i++) {
+                                        T_G_C, brisk_extractor_, k_, dist_coef_,
+                                        tracking_config_));
+      for (int i = 0; i < std::min(static_cast<size_t>(config_.window_size) - 1,
+                                   kf_queue_.size());
+           i++) {
         new_kf->addRefKeyframe(kf_queue_.at(i));
       }
       addKeyframe(new_kf);
 
       if (voc_->score(new_kf->getBowVec(), bow_vec_lastKF) <
           config_.min_local_score) {
+        new_kf->trackKeypointsRef(true);
+
+        kf_pub_.publish(new_kf->asKeyframeMsg());
+        if (config_.publish_landmarks)
+          landmark_pc_pub_.publish(new_kf->getLandmarksAsPcl());
+
         kf_index++;
         bow_vec_lastKF = new_kf->getBowVec();
         n_since_last_kf = 0;
         T_G_lastKF = T_G_C;
+      } else {
+        new_kf->trackKeypointsRef(false);
       }
     }
 
@@ -263,7 +280,7 @@ class KeyframeTracker {
   DBoW2::BowVector bow_vec_lastKF;
   std::deque<Keyframe::Ptr> kf_queue_;
   void addKeyframe(const Keyframe::Ptr& kf) {
-    if (kf_queue_.size() == config_.kf_window_size) {
+    if (kf_queue_.size() == config_.window_size) {
       kf_queue_.pop_front();
     }
     kf_queue_.emplace_back(kf);
@@ -271,6 +288,7 @@ class KeyframeTracker {
   std::deque<std::pair<ros::Time, TransformationD>> T_G_C_queue_;
 
   ros::Publisher kf_pub_;
+  ros::Publisher landmark_pc_pub_;
 
   constexpr static size_t kOdomQueueSize = 10;
 };
