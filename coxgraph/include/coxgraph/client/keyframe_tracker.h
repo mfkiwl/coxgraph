@@ -98,7 +98,8 @@ class KeyframeTracker {
   KeyframeTracker(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private)
       : config_(getConfigFromRosParam(nh_private)),
         kf_index(0),
-        n_since_last_kf(0) {
+        n_since_last_kf(0),
+        tracking_config_(getTrackingConfigFromRosParam(nh_private)) {
     nh_private_.param<int>("client_id", cid_, cid_);
     if (config_.voc_file.empty()) {
       LOG(FATAL) << "No voc file path given";
@@ -142,6 +143,7 @@ class KeyframeTracker {
   int cid_;
   enum SensorType { MONOCULAR = 0, STEREO, RGBD };
   Config config_;
+  TrackingConfig tracking_config_;
 
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
@@ -193,9 +195,10 @@ class KeyframeTracker {
           depth_image.type() != CV_32F)
         depth_image.convertTo(depth_image, CV_32F, config_.depth_factor);
 
-      Keyframe::Ptr new_kf(new Keyframe(
-          rgb_msg->header.stamp, kf_index, cid_, rgb_image_ptr->image,
-          depth_image, T_G_C, *brisk_extractor_, *voc_, k_, dist_coef_));
+      Keyframe::Ptr new_kf(new Keyframe(rgb_msg->header.stamp, kf_index, cid_,
+                                        rgb_image_ptr->image, depth_image,
+                                        T_G_C, *brisk_extractor_, *voc_, k_,
+                                        dist_coef_, tracking_config_));
       for (int i = 0; i < config_.window_size - 1; i++) {
         new_kf->addRefKeyframe(kf_queue_.at(i));
       }
