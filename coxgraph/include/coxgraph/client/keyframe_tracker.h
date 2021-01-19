@@ -42,7 +42,8 @@ class KeyframeTracker {
           camera_k(),
           camera_d(),
           sensor(static_cast<SensorType>(0)),
-          depth_factor(1.0) {}
+          depth_factor(1.0),
+          window_size(3) {}
     std::vector<double> camera_k;
     std::vector<double> camera_d;
     float min_dist_m;
@@ -53,6 +54,7 @@ class KeyframeTracker {
     int sensor;
     int kf_window_size;
     float depth_factor;
+    int window_size;
 
     friend inline std::ostream& operator<<(std::ostream& s, const Config& v) {
       s << std::endl
@@ -64,6 +66,7 @@ class KeyframeTracker {
         << "  Sensor Type: " << v.sensor << std::endl
         << "  Keyframe Window Size: " << v.kf_window_size << std::endl
         << "  Depth Factor: " << v.depth_factor << std::endl
+        << "  Window Size: " << v.window_size << std::endl
         << "-------------------------------------------" << std::endl;
       return (s);
     }
@@ -87,6 +90,8 @@ class KeyframeTracker {
                           config.kf_window_size);
     nh_private.param<float>("depth_factor", config.depth_factor,
                             config.depth_factor);
+    nh_private.param<int>("window_size", config.window_size,
+                          config.window_size);
     return config;
   }
 
@@ -190,8 +195,10 @@ class KeyframeTracker {
 
       Keyframe::Ptr new_kf(new Keyframe(
           rgb_msg->header.stamp, kf_index, cid_, rgb_image_ptr->image,
-          depth_image, T_G_C, *brisk_extractor_, *voc_, k_, dist_coef_,
-          kf_queue_.empty() ? nullptr : kf_queue_.front()));
+          depth_image, T_G_C, *brisk_extractor_, *voc_, k_, dist_coef_));
+      for (int i = 0; i < config_.window_size - 1; i++) {
+        new_kf->addRefKeyframe(kf_queue_.at(i));
+      }
       addKeyframe(new_kf);
 
       if (voc_->score(new_kf->getBowVec(), bow_vec_lastKF) <
@@ -251,12 +258,12 @@ class KeyframeTracker {
   int n_since_last_kf;
   TransformationD T_G_lastKF;
   DBoW2::BowVector bow_vec_lastKF;
-  std::queue<Keyframe::Ptr> kf_queue_;
+  std::deque<Keyframe::Ptr> kf_queue_;
   void addKeyframe(const Keyframe::Ptr& kf) {
     if (kf_queue_.size() == config_.kf_window_size) {
-      kf_queue_.pop();
+      kf_queue_.pop_front();
     }
-    kf_queue_.emplace(kf);
+    kf_queue_.emplace_back(kf);
   }
   std::deque<std::pair<ros::Time, TransformationD>> T_G_C_queue_;
 

@@ -27,22 +27,30 @@ class Keyframe {
            const TransformationD T_G_C,
            const brisk::BriskDescriptorExtractor& brisk_extractor,
            const BRISKVocabulary& voc, const cv::Mat& k,
-           const cv::Mat& dist_coef, const Keyframe::Ptr& ref_kf)
+           const cv::Mat& dist_coef)
       : timestamp_(timestamp),
         index_(index),
         cid_(cid),
         rgb_image_(rgb_image),
         depth_image_(depth_image),
         T_G_C_(T_G_C),
-        ref_kf_(ref_kf),
         k_(k),
         dist_coef_(dist_coef) {
     computeBRIEFPoint(brisk_extractor);
     voc.transform(descriptors_, bow_vec_);
-    computeKeypointZfromDepth();
   }
 
   virtual ~Keyframe() = default;
+
+  void addRefKeyframe(const Keyframe::Ptr& ref_kf) {
+    ref_kfs_.emplace_back(ref_kf);
+  }
+
+  void addKeypointsFromDepth() {
+    // remove bad keypoints if depth map gradient is too big
+    for (int i = 0; i < keypoints_.size(); i++) {
+    }
+  }
 
   void computeBRIEFPoint(
       const brisk::BriskDescriptorExtractor& brisk_extractor) {
@@ -57,6 +65,7 @@ class Keyframe {
       key.octave = 0;
       keypoints_.push_back(key);
     }
+    addKeypointsFromDepth();
 
     brisk_extractor.compute(rgb_image_, keypoints_, descriptors_);
   }
@@ -120,7 +129,7 @@ class Keyframe {
     }
   }
 
-  void computeKeypointZfromDepth() {
+  void computeKeypointZFromDepth() {
     z_from_depth_.resize(keypoints_.size());
     for (int i = 0; i < keypoints_.size(); i++) {
       auto keypoint = keypoints_[i];
@@ -167,7 +176,7 @@ class Keyframe {
     return kf_msg;
   }
 
-  const Keyframe::Ptr& getRefKfPtr() const { return ref_kf_; }
+  const std::vector<Keyframe::Ptr>& getRefKfsPtr() const { return ref_kfs_; }
   const cv::Mat& getRgbImage() const { return rgb_image_; }
   const TransformationD& getTGC() const { return T_G_C_; }
 
@@ -175,10 +184,10 @@ class Keyframe {
     // optical flow tracking
     vector<uchar> status;
     vector<float> err;
-    std::vector<cv::Point2f> prev_pts = ref_kf_->getKeyPointAsPoint();
-    cv::calcOpticalFlowPyrLK(ref_kf_->getRgbImage(), rgb_image_,
-                             ref_kf_->getKeyPointAsPoint(), cur_pts_, status,
-                             err, cv::Size(21, 21), 3);
+    std::vector<cv::Point2f> prev_pts = ref_kfs_[0]->getKeyPointAsPoint();
+    cv::calcOpticalFlowPyrLK(ref_kfs_[0]->getRgbImage(), rgb_image_,
+                             ref_kfs_[0]->getKeyPointAsPoint(), cur_pts_,
+                             status, err, cv::Size(21, 21), 3);
 
     for (int i = 0; i < cur_pts_.size(); i++)
       if (status[i] && !inBorder(cur_pts_[i])) status[i] = 0;
@@ -225,7 +234,7 @@ class Keyframe {
  private:
   ros::Time timestamp_;
   int index_;
-  Keyframe::Ptr ref_kf_;
+  std::vector<Keyframe::Ptr> ref_kfs_;
   CliId cid_;
   TransformationD T_G_C_;
   cv::Mat rgb_image_;
