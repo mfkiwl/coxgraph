@@ -11,6 +11,7 @@
 
 #include <map>
 #include <memory>
+#include <utility>
 #include <vector>
 
 #include "DBoW2/FBRISK.h"

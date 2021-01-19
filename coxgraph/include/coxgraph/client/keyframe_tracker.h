@@ -16,6 +16,7 @@
 #include <Eigen/Dense>
 #include <opencv2/opencv.hpp>
 
+#include <algorithm>
 #include <deque>
 #include <memory>
 #include <queue>
