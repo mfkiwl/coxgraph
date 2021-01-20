@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<launch>
+        <arg name="debug" default="false" />
+        <arg unless="$(arg debug)" name="launch_prefix" value="" />
+        <arg if="$(arg debug)" name="launch_prefix" value="xterm -e gdb --args" />
+
+        <include file="$(find coxgraph)/launch/asl_flights/rovio.launch"></include>
+
+        <node name="keyframe_tracker" pkg="coxgraph" type="keyframe_tracker_node" args="-alsologtostderr" output="screen" launch-prefix="$(arg launch_prefix)">
+                <remap from="~rgb/image_raw" to="/jay/cam0/image_raw" />
+                <remap from="~odometry" to="/jay/rovio/odometry" />
+                <rosparam file="$(find coxgraph)/config/keyframe_tracker.yaml" />
+        </node>
+</launch>

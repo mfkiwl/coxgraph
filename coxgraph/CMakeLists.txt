@@ -49,8 +49,8 @@ cs_add_executable(voxblox_eval_node
     src/voxblox_eval_node.cpp)
 target_link_libraries(voxblox_eval_node ${PROJECT_NAME})
 
-cs_add_executable(keyframe_publisher_node
-    src/keyframe_publisher_node.cpp)
-target_link_libraries(keyframe_publisher_node ${PROJECT_NAME})
+cs_add_executable(keyframe_tracker_node
+    src/keyframe_tracker_node.cpp)
+target_link_libraries(keyframe_tracker_node ${PROJECT_NAME})
 
 cs_export()
