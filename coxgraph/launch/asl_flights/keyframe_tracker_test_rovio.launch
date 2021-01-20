@@ -2,7 +2,7 @@
 <launch>
         <arg name="debug" default="false" />
         <arg unless="$(arg debug)" name="launch_prefix" value="" />
-        <arg if="$(arg debug)" name="launch_prefix" value="xterm -e gdb --args" />
+        <arg if="$(arg debug)" name="launch_prefix" value="gdb --args" />
 
         <include file="$(find coxgraph)/launch/asl_flights/rovio.launch"></include>
 

@@ -216,27 +216,27 @@ class Keyframe {
   std::vector<int> good_ids_;
   const std::vector<int>& getGoodIds() const { return good_ids_; }
   void getGoodPtsToTrack(std::vector<cv::Point2f>* good_pts,
-                         const std::vector<int>* good_ids) {
+                         std::vector<int>* good_ids) {
     for (int i = 0; i < track_pts_.size(); i++) {
       if (i >= track_pts_status_.size() || track_pts_status_[i]) {
         good_pts->emplace_back(track_pts_[i]);
         good_ids_.emplace_back(i);
       }
     }
-    good_ids = &good_ids_;
+    *good_ids = good_ids_;
   }
 
   void trackKeypointsRef(bool prepare_publish_data) {
     if (ref_kfs_.size()) {
-      std::vector<cv::Point2f> prev_good_pts;
+      std::vector<cv::Point2f> prev_pts_0;
       std::vector<int> prev_good_ids;
-      ref_kfs_[0]->getGoodPtsToTrack(&prev_good_pts, &prev_good_ids);
+      ref_kfs_[0]->getGoodPtsToTrack(&prev_pts_0, &prev_good_ids);
 
       // optical flow tracking
       std::vector<float> err;
       cv::calcOpticalFlowPyrLK(ref_kfs_[0]->getRgbImage(), rgb_image_,
-                               prev_good_pts, track_pts_, track_pts_status_,
-                               err, cv::Size(21, 21), 3);
+                               prev_pts_0, track_pts_, track_pts_status_, err,
+                               cv::Size(21, 21), 3);
 
       LOG(INFO) << "tracked pts: " << track_pts_.size();
 
@@ -246,23 +246,20 @@ class Keyframe {
 
       for (int i = 0; i < track_pts_.size(); i++) {
         if (track_pts_status_[i]) {
-          pointTracked(i);
-          ref_kfs_[0]->pointTracked(prev_good_ids[i]);
+          pointTracked(i, prev_pts_0[i]);
 
           if (prepare_publish_data && ref_kfs_.size() == 2) {
             // this logic only support tracked 2 times
-            if (ref_kfs_[0]->getPointTrackedNum(prev_good_ids[i]) == 2) {
+            cv::Point2f prev_pt_1;
+            if (ref_kfs_[0]->getPointHistory(prev_good_ids[i], &prev_pt_1)) {
               // If can't get descriptor, skip it
               cv::Mat descriptor;
               descriptor = computeBRIEFDescriptors({track_pts_[i]}, nullptr);
               if (descriptor.rows == 0) continue;
 
               auto point_c_un = undistortKeyPoint(track_pts_[i]);
-              auto point_0_un = undistortKeyPoint(
-                  ref_kfs_[0]->getTrackPts()[prev_good_ids[i]]);
-              auto point_1_un = undistortKeyPoint(
-                  ref_kfs_[1]->getTrackPts()
-                      [ref_kfs_[1]->getGoodIds()[prev_good_ids[i]]]);
+              auto point_0_un = undistortKeyPoint(prev_pts_0[i]);
+              auto point_1_un = undistortKeyPoint(prev_pt_1);
 
               TransformationD T_C_0, T_C_1, T_G_0, T_G_1;
               T_G_0 = ref_kfs_[0]->getTGC();
@@ -302,18 +299,24 @@ class Keyframe {
 
   void extractExtraKeypoints() {}
 
-  void pointTracked(int i) {
-    auto pt_it = pts_tracked_.find(i);
-    if (pt_it == pts_tracked_.end())
-      pts_tracked_.emplace(i, 1);
+  void pointTracked(int i, cv::Point2f prev_pt) {
+    auto pt_it = pts_track_history_.find(i);
+    if (pt_it == pts_track_history_.end())
+      pts_track_history_.emplace(i, prev_pt);
     else
-      pt_it->second++;
+      pt_it->second = prev_pt;
   }
 
-  int getPointTrackedNum(int i) {
-    CHECK(pts_tracked_.count(i));
-    return pts_tracked_[i];
+  bool getPointHistory(int i, cv::Point2f* prev_pt) {
+    if (!pts_track_history_.count(i)) {
+      return false;
+    } else {
+      *prev_pt = pts_track_history_[i];
+      return true;
+    }
   }
+
+  bool pointWasTracked(int i) { return pts_track_history_.count(i); }
 
   std::vector<uchar> track_pts_status_;
   const std::vector<uchar>& getTrackPtsStatus() const {
@@ -402,7 +405,7 @@ class Keyframe {
   std::vector<std::pair<cv::Point3f, int>> landmarks_;
   std::vector<cv::Point2f> track_pts_;
   std::vector<int> track_pts_id_;
-  std::map<int, int> pts_tracked_;
+  std::map<int, cv::Point2f> pts_track_history_;
   std::map<cv::Point2f, int> n_tracked_;
   std::vector<float> z_from_depth_;
   std::vector<cv::Mat> descriptors_to_pub_;
