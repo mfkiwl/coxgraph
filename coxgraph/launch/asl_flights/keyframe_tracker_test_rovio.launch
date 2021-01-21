@@ -4,11 +4,44 @@
         <arg unless="$(arg debug)" name="launch_prefix" value="" />
         <arg if="$(arg debug)" name="launch_prefix" value="gdb --args" />
 
-        <include file="$(find coxgraph)/launch/asl_flights/rovio.launch"></include>
+        <arg name="bag_file0" default="/home/lxy/Datasets/asl-flights/flight_3.bag" />
+        <arg name="bag_file1" default="/home/lxy/Datasets/asl-flights/flight_5.bag" />
 
-        <node name="keyframe_tracker" pkg="coxgraph" type="keyframe_tracker_node" args="-alsologtostderr" output="screen" launch-prefix="$(arg launch_prefix)">
-                <remap from="~rgb/image_raw" to="/jay/cam0/image_raw" />
-                <remap from="~odometry" to="/jay/rovio/odometry" />
-                <rosparam file="$(find coxgraph)/config/keyframe_tracker.yaml" />
-        </node>
+        <arg name="mav_name" default="jay" />
+
+        <include file="$(find coxgraph)/launch/asl_flights/rovio.launch">
+                <arg name="id" value="0" />
+        </include>
+
+        <include file="$(find coxgraph)/launch/asl_flights/rovio.launch">
+                <arg name="id" value="1" />
+        </include>
+
+        <group ns="$(arg mav_name)_0">
+                <node name="keyframe_tracker" pkg="coxgraph" type="keyframe_tracker_node" args="-alsologtostderr" output="screen" launch-prefix="$(arg launch_prefix)">
+                        <remap from="~rgb/image_raw" to="/$(arg mav_name)_0/cam0/image_raw" />
+                        <remap from="~odometry" to="/$(arg mav_name)_0/rovio/odometry" />
+                        <rosparam file="$(find coxgraph)/config/keyframe_tracker.yaml" />
+                        <param name="map_frame" value="map_0" />
+                </node>
+        </group>
+
+        <group ns="$(arg mav_name)_1">
+                <node name="keyframe_tracker" pkg="coxgraph" type="keyframe_tracker_node" args="-alsologtostderr" output="screen" launch-prefix="$(arg launch_prefix)">
+                        <remap from="~rgb/image_raw" to="/$(arg mav_name)_1/cam0/image_raw" />
+                        <remap from="~odometry" to="/$(arg mav_name)_1/rovio/odometry" />
+                        <rosparam file="$(find coxgraph)/config/keyframe_tracker.yaml" />
+                        <param name="map_frame" value="map_1" />
+                </node>
+        </group>
+
+        <include file="$(find coxgraph_sim)/launch/utils/pose_graph_backend.launch">
+                <arg name="mav_name" value="jay" />
+                <arg name="num_agents" value="2" />
+                <arg name="odom_node" value="rovio" />
+                <arg name="keyframe_node" value="keyframe_tracker" />
+        </include>
+
+        <node name="player_0" pkg="rosbag" type="play" args="$(arg bag_file0) -q /jay/cam0/image_raw:=/$(arg mav_name)_0/cam0/image_raw /jay/imu0:=/$(arg mav_name)_0/imu0 /jay/depth/color/points:=/$(arg mav_name)_0/depth/color/points" output="screen"/>
+        <node name="player_1" pkg="rosbag" type="play" args="$(arg bag_file1) -q /jay/cam0/image_raw:=/$(arg mav_name)_1/cam0/image_raw /jay/imu0:=/$(arg mav_name)_1/imu0 /jay/depth/color/points:=/$(arg mav_name)_1/depth/color/points" output="screen"/>
 </launch>

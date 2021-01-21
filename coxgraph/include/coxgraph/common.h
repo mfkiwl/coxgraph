@@ -16,8 +16,6 @@
 #include <utility>
 #include <vector>
 
-#include "DBoW2/DBoW2.h"
-
 namespace coxgraph {
 
 typedef int16_t CliId;
@@ -90,8 +88,6 @@ typedef std::function<void()> TimeLineUpdateCallback;
 
 typedef std::vector<geometry_msgs::PoseStamped> PoseStampedVector;
 
-typedef DBoW2::TemplatedVocabulary<DBoW2::FBRISK::TDescriptor, DBoW2::FBRISK>
-    BRISKVocabulary;
 }  // namespace coxgraph
 
 #endif  // COXGRAPH_COMMON_H_

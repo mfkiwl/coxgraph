@@ -108,8 +108,8 @@ class KeyframeTracker {
       : nh_(nh),
         nh_private_(nh_private),
         config_(getConfigFromRosParam(nh_private)),
-        kf_index(0),
-        n_since_last_kf(0),
+        kf_index_(0),
+        n_since_last_kf_(0),
         tracking_config_(getTrackingConfigFromRosParam(nh_private)) {
     nh_private_.param<int>("client_id", cid_, cid_);
     if (config_.voc_file.empty()) {
@@ -200,13 +200,13 @@ class KeyframeTracker {
   void process(const ros::Time& timestamp, const cv::Mat& rgb_image,
                const cv::Mat& depth_image) {
     TransformationD T_G_C = T_G_C_queue_.back().second;
-    TransformationD T_lastKF_C = T_G_lastKF.inverse() * T_G_C;
+    TransformationD T_lastKF_C = T_G_lastKF_.inverse() * T_G_C;
 
     // TODO(mikexyl): forgot how to convert kindr quaternion to rpy
-    if (n_since_last_kf++ > config_.min_kf_n &&
+    if (n_since_last_kf_++ > config_.min_kf_n &&
         (T_lastKF_C.getPosition().norm() > config_.min_dist_m ||
          T_lastKF_C.getRotation().norm() > config_.min_yaw_rad)) {
-      Keyframe::Ptr new_kf(new Keyframe(timestamp, kf_index, cid_, rgb_image,
+      Keyframe::Ptr new_kf(new Keyframe(timestamp, kf_index_, cid_, rgb_image,
                                         T_G_C, brisk_extractor_, k_, dist_coef_,
                                         tracking_config_, depth_image));
       for (int i = 0; i < std::min(static_cast<size_t>(config_.window_size) - 1,
@@ -216,7 +216,7 @@ class KeyframeTracker {
       }
       addKeyframe(new_kf);
 
-      if (voc_->score(new_kf->getBowVec(), bow_vec_lastKF) <
+      if (voc_->score(new_kf->getBowVec(), bow_vec_lastKF_) <
           config_.min_local_score) {
         new_kf->trackKeypointsRef(true);
 
@@ -229,10 +229,10 @@ class KeyframeTracker {
           landmark_pc_pub_.publish(landmark_pc_);
         }
 
-        kf_index++;
-        bow_vec_lastKF = new_kf->getBowVec();
-        n_since_last_kf = 0;
-        T_G_lastKF = T_G_C;
+        kf_index_++;
+        bow_vec_lastKF_ = new_kf->getBowVec();
+        n_since_last_kf_ = 0;
+        T_G_lastKF_ = T_G_C;
       } else {
         new_kf->trackKeypointsRef(false);
       }
@@ -329,10 +329,10 @@ class KeyframeTracker {
   };
   TrackingState state_;
 
-  int kf_index;
-  int n_since_last_kf;
-  TransformationD T_G_lastKF;
-  DBoW2::BowVector bow_vec_lastKF;
+  int kf_index_;
+  int n_since_last_kf_;
+  TransformationD T_G_lastKF_;
+  DBoW2::BowVector bow_vec_lastKF_;
   std::deque<Keyframe::Ptr> kf_queue_;
   void addKeyframe(const Keyframe::Ptr& kf) {
     if (kf_queue_.size() == config_.window_size) {

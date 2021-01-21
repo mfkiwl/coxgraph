@@ -25,6 +25,9 @@
 namespace coxgraph {
 namespace client {
 
+typedef DBoW2::TemplatedVocabulary<DBoW2::FBRISK::TDescriptor, DBoW2::FBRISK>
+    BRISKVocabulary;
+
 struct TrackingConfig {
   TrackingConfig() : min_features(150), odom_connection_num(3) {}
   int min_features;
