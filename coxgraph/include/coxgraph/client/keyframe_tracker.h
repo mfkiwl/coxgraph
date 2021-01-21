@@ -47,7 +47,8 @@ class KeyframeTracker {
           depth_factor(1.0),
           window_size(3),
           publish_landmarks(true),
-          map_frame("map") {}
+          map_frame("map"),
+          publish_point_tracking_image(true) {}
     std::vector<double> camera_k;
     std::vector<double> camera_d;
     float min_dist_m;
@@ -61,6 +62,7 @@ class KeyframeTracker {
     int window_size;
     bool publish_landmarks;
     std::string map_frame;
+    bool publish_point_tracking_image;
 
     friend inline std::ostream& operator<<(std::ostream& s, const Config& v) {
       s << std::endl
@@ -74,6 +76,8 @@ class KeyframeTracker {
         << "  Window Size: " << v.window_size << std::endl
         << "  Publsih Landmark Pointcloud: " << v.publish_landmarks << std::endl
         << "  Map Frame: " << v.map_frame << std::endl
+        << "  Publish Point Tracking Image: " << v.publish_point_tracking_image
+        << std::endl
         << "-------------------------------------------" << std::endl;
       return (s);
     }
@@ -101,6 +105,9 @@ class KeyframeTracker {
                            config.publish_landmarks);
     nh_private.param<std::string>("map_frame", config.map_frame,
                                   config.map_frame);
+    nh_private.param<bool>("publish_point_tracking_image",
+                           config.publish_point_tracking_image,
+                           config.publish_point_tracking_image);
     return config;
   }
 
@@ -110,7 +117,12 @@ class KeyframeTracker {
         config_(getConfigFromRosParam(nh_private)),
         kf_index_(0),
         n_since_last_kf_(0),
-        tracking_config_(getTrackingConfigFromRosParam(nh_private)) {
+        tracking_config_(getTrackingConfigFromRosParam(
+            ros::NodeHandle(nh_private, "tracking"))),
+        last_kf_(nullptr),
+        kf_pose_map_(new std::map<int, TransformationD>()) {
+    LOG(INFO) << config_;
+    LOG(INFO) << tracking_config_;
     nh_private_.param<int>("client_id", cid_, cid_);
     if (config_.voc_file.empty()) {
       LOG(FATAL) << "No voc file path given";
@@ -166,6 +178,8 @@ class KeyframeTracker {
     kf_pub_ = nh_private_.advertise<comm_msgs::keyframe>("keyframe", 10, true);
     landmark_pc_pub_ = nh_private_.advertise<pcl::PointCloud<pcl::PointXYZ>>(
         "landmarks", 10, true);
+    point_tracking_image_pub_ = nh_private_.advertise<sensor_msgs::Image>(
+        "point_tracking_image", 10, true);
   }
 
  private:
@@ -197,44 +211,42 @@ class KeyframeTracker {
   std::shared_ptr<brisk::BriskDescriptorExtractor> brisk_extractor_;
   std::vector<cv::Point2f> prev_pts_, cur_pts_, forw_pts_;
 
-  void process(const ros::Time& timestamp, const cv::Mat& rgb_image,
-               const cv::Mat& depth_image) {
-    TransformationD T_G_C = T_G_C_queue_.back().second;
+  void process(const ros::Time& timestamp, const TransformationD& T_G_C,
+               const cv::Mat& rgb_image, const cv::Mat& depth_image) {
     TransformationD T_lastKF_C = T_G_lastKF_.inverse() * T_G_C;
 
     // TODO(mikexyl): forgot how to convert kindr quaternion to rpy
-    if (n_since_last_kf_++ > config_.min_kf_n &&
-        (T_lastKF_C.getPosition().norm() > config_.min_dist_m ||
-         T_lastKF_C.getRotation().norm() > config_.min_yaw_rad)) {
-      Keyframe::Ptr new_kf(new Keyframe(timestamp, kf_index_, cid_, rgb_image,
-                                        T_G_C, brisk_extractor_, k_, dist_coef_,
+    if (T_lastKF_C.getPosition().norm() > config_.min_dist_m ||
+        T_lastKF_C.getRotation().norm() > config_.min_yaw_rad) {
+      Keyframe::Ptr new_kf(new Keyframe(timestamp, kf_index_++, cid_, rgb_image,
+                                        T_G_C, kf_pose_map_, last_kf_,
+                                        brisk_extractor_, k_, dist_coef_,
                                         tracking_config_, depth_image));
-      for (int i = 0; i < std::min(static_cast<size_t>(config_.window_size) - 1,
-                                   kf_queue_.size());
-           i++) {
-        new_kf->addRefKeyframe(kf_queue_.at(i));
-      }
-      addKeyframe(new_kf);
+      kf_pose_map_->emplace(new_kf->getID(), T_G_C);
+      last_kf_ = new_kf;
 
-      if (voc_->score(new_kf->getBowVec(), bow_vec_lastKF_) <
-          config_.min_local_score) {
-        new_kf->trackKeypointsRef(true);
+      pcl::PointCloud<pcl::PointXYZ> landmark_pc;
+
+      if (n_since_last_kf_++ > config_.min_kf_n &&
+          voc_->score(new_kf->getBowVec(), bow_vec_lastKF_) <
+              config_.min_local_score) {
+        new_kf->trackKeypointsRef(true, &landmark_pc);
 
         if (new_kf->goodToPublish()) kf_pub_.publish(new_kf->asKeyframeMsg());
-        if (config_.publish_landmarks) {
-          const pcl::PointCloud<pcl::PointXYZ>& landmark_pc =
-              new_kf->getLandmarksAsPcl();
-          landmark_pc_.insert(landmark_pc_.end(), landmark_pc.begin(),
-                              landmark_pc.end());
-          landmark_pc_pub_.publish(landmark_pc_);
-        }
 
-        kf_index_++;
+        // TODO(mikexyl): no bow vec computed for now
         bow_vec_lastKF_ = new_kf->getBowVec();
         n_since_last_kf_ = 0;
         T_G_lastKF_ = T_G_C;
       } else {
-        new_kf->trackKeypointsRef(false);
+        new_kf->trackKeypointsRef(true, &landmark_pc);
+      }
+
+      if (config_.publish_landmarks &&
+          landmark_pc_pub_.getNumSubscribers() > 0) {
+        landmark_pc_.insert(landmark_pc_.end(), landmark_pc.begin(),
+                            landmark_pc.end());
+        landmark_pc_pub_.publish(landmark_pc_);
       }
     }
 
@@ -243,7 +255,8 @@ class KeyframeTracker {
 
   void rgbImageCallback(const sensor_msgs::ImageConstPtr& rgb_msg,
                         const nav_msgs::OdometryConstPtr& odom_msg) {
-    odomCallback(odom_msg);
+    TransformationD T_G_C;
+    tf::poseMsgToKindr(odom_msg->pose.pose, &T_G_C);
 
     cv_bridge::CvImageConstPtr rgb_image_ptr;
     try {
@@ -253,13 +266,14 @@ class KeyframeTracker {
       return;
     }
 
-    process(rgb_msg->header.stamp, rgb_image_ptr->image, cv::Mat());
+    process(rgb_msg->header.stamp, T_G_C, rgb_image_ptr->image, cv::Mat());
   }
 
   void rgbdImageCallback(const sensor_msgs::ImageConstPtr& rgb_msg,
                          const sensor_msgs::ImageConstPtr& depth_msg,
                          const nav_msgs::OdometryConstPtr& odom_msg) {
-    odomCallback(odom_msg);
+    TransformationD T_G_C;
+    tf::poseMsgToKindr(odom_msg->pose.pose, &T_G_C);
 
     cv_bridge::CvImageConstPtr rgb_image_ptr;
     try {
@@ -281,15 +295,7 @@ class KeyframeTracker {
     if ((fabs(config_.depth_factor - 1.0f) > 1e-5) ||
         depth_image.type() != CV_32F)
       depth_image.convertTo(depth_image, CV_32F, config_.depth_factor);
-    process(rgb_msg->header.stamp, rgb_image_ptr->image, depth_image);
-  }
-
-  ros::Subscriber odom_sub_;
-  void odomCallback(const nav_msgs::OdometryConstPtr& odom_msg) {
-    TransformationD T_G_C;
-    tf::poseMsgToKindr(odom_msg->pose.pose, &T_G_C);
-    if (T_G_C_queue_.size() == kOdomQueueSize) T_G_C_queue_.pop_front();
-    T_G_C_queue_.emplace_back(odom_msg->header.stamp, T_G_C);
+    process(rgb_msg->header.stamp, T_G_C, rgb_image_ptr->image, depth_image);
   }
 
   ros::Subscriber camera_info_sub_;
@@ -333,17 +339,11 @@ class KeyframeTracker {
   int n_since_last_kf_;
   TransformationD T_G_lastKF_;
   DBoW2::BowVector bow_vec_lastKF_;
-  std::deque<Keyframe::Ptr> kf_queue_;
-  void addKeyframe(const Keyframe::Ptr& kf) {
-    if (kf_queue_.size() == config_.window_size) {
-      kf_queue_.pop_front();
-    }
-    kf_queue_.emplace_back(kf);
-  }
-  std::deque<std::pair<ros::Time, TransformationD>> T_G_C_queue_;
-
+  Keyframe::Ptr last_kf_;
+  std::shared_ptr<KfPoseMap> kf_pose_map_;
   ros::Publisher kf_pub_;
   ros::Publisher landmark_pc_pub_;
+  ros::Publisher point_tracking_image_pub_;
   pcl::PointCloud<pcl::PointXYZ> landmark_pc_;
 
   constexpr static size_t kOdomQueueSize = 10;

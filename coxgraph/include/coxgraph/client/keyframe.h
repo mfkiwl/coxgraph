@@ -27,19 +27,35 @@ namespace client {
 
 typedef DBoW2::TemplatedVocabulary<DBoW2::FBRISK::TDescriptor, DBoW2::FBRISK>
     BRISKVocabulary;
+typedef std::map<int, TransformationD> KfPoseMap;
 
 struct TrackingConfig {
-  TrackingConfig() : min_features(150), odom_connection_num(3) {}
-  int min_features;
+  TrackingConfig()
+      : min_features_num(150), odom_connection_num(3), min_tracked_num(5) {}
+  int min_features_num;
+  int min_tracked_num;
   int odom_connection_num;
+
+  friend inline std::ostream& operator<<(std::ostream& s,
+                                         const TrackingConfig& v) {
+    s << std::endl
+      << "Keyframe Tracking Config:" << std::endl
+      << "  Min Features: " << v.min_features_num << std::endl
+      << "  Min Tracked Num: " << v.min_tracked_num << std::endl
+      << "  Odom Connection Num: " << v.odom_connection_num << std::endl
+      << "-------------------------------------------" << std::endl;
+    return (s);
+  }
 };
 
 static TrackingConfig getTrackingConfigFromRosParam(
     const ros::NodeHandle& nh_private) {
   TrackingConfig config;
-  nh_private.param<int>("tracking/min_freatures", config.min_features,
-                        config.min_features);
+  nh_private.param<int>("min_features_num", config.min_features_num,
+                        config.min_features_num);
   nh_private.param<int>("odom_connection_num", config.odom_connection_num,
+                        config.odom_connection_num);
+  nh_private.param<int>("min_trakced_num", config.odom_connection_num,
                         config.odom_connection_num);
   return config;
 }
@@ -52,6 +68,8 @@ class Keyframe {
   Keyframe(
       const ros::Time& timestamp, int index, CliId cid,
       const cv::Mat& rgb_image, const TransformationD T_G_C,
+      const std::shared_ptr<KfPoseMap>& kf_pose_map,
+      const Keyframe::Ptr& ref_kf,
       const std::shared_ptr<brisk::BriskDescriptorExtractor>& brisk_extractor,
       const cv::Mat& k, const cv::Mat& dist_coef,
       TrackingConfig tracking_config, const cv::Mat& depth_image = cv::Mat())
@@ -61,6 +79,8 @@ class Keyframe {
         rgb_image_(rgb_image),
         depth_image_(depth_image),
         T_G_C_(T_G_C),
+        kf_pose_map_(kf_pose_map),
+        ref_kf_(ref_kf),
         brisk_extractor_(brisk_extractor),
         k_(k),
         dist_coef_(dist_coef),
@@ -68,9 +88,7 @@ class Keyframe {
 
   virtual ~Keyframe() = default;
 
-  void addRefKeyframe(const Keyframe::Ptr& ref_kf) {
-    ref_kfs_.emplace_back(ref_kf);
-  }
+  void setRefKeyframe(const Keyframe::Ptr& ref_kf) { ref_kf_ = ref_kf; }
 
   void addKeypointsFromDepth() {}
 
@@ -94,41 +112,30 @@ class Keyframe {
     return descriptors;
   }
 
-  void getProjectionMap(TransformationD T_1_2, cv::Mat* R1, cv::Mat* R2,
-                        cv::Mat* P1, cv::Mat* P2) {
-    cv::Mat rot_mat;
-    cv::eigen2cv(T_1_2.getRotationMatrix(), rot_mat);
-    cv::Vec3d t;
-    cv::eigen2cv(T_1_2.getPosition(), t);
-
-    cv::Mat Q;
-    cv::stereoRectify(k_, dist_coef_, k_, dist_coef_, rgb_image_.size(),
-                      rot_mat, t, *R1, *R2, *P1, *P2, Q);
-  }
-
   void getProjectionMap(TransformationD T_1_2, Matrix34d* P1, Matrix34d* P2) {
     Eigen::Matrix3d k_eigen;
     cv::cv2eigen(k_, k_eigen);
     Matrix34d t_eigen;
     t_eigen.block(0, 0, 3, 3).setIdentity();
     t_eigen.col(3).setZero();
-    *P1 = k_eigen * t_eigen;
+    if (P1 != nullptr) *P1 = k_eigen * t_eigen;
 
     t_eigen.block(0, 0, 3, 3) = T_1_2.getRotationMatrix();
     t_eigen.col(3) = T_1_2.getPosition();
-    *P2 = k_eigen * t_eigen;
+    if (P2 != nullptr) *P2 = k_eigen * t_eigen;
   }
+
+  int getID() const { return index_; }
 
   auto undistortKeyPoint(const cv::Point2f& pt) {
     std::vector<cv::Point2f> pts_un;
-    undistortKeyPoints(k_, dist_coef_, {pt}, &pts_un);
+    undistortKeyPoints({pt}, &pts_un);
     return pts_un[0];
   }
 
-  static void undistortKeyPoints(const cv::Mat& k, const cv::Mat& dist_coef,
-                                 const std::vector<cv::Point2f>& pts,
-                                 std::vector<cv::Point2f>* pts_un) {
-    if (dist_coef.at<float>(0) == 0.0) {
+  void undistortKeyPoints(const std::vector<cv::Point2f>& pts,
+                          std::vector<cv::Point2f>* pts_un) {
+    if (dist_coef_.at<float>(0) == 0.0) {
       return;
     }
 
@@ -142,7 +149,7 @@ class Keyframe {
 
     // Undistort points
     mat = mat.reshape(2);
-    cv::undistortPoints(mat, mat, k, dist_coef, cv::Mat(), k);
+    cv::undistortPoints(mat, mat, k_, dist_coef_, cv::Mat(), k_);
     mat = mat.reshape(1);
 
     // Fill undistorted keypoint vector
@@ -202,16 +209,16 @@ class Keyframe {
       if (i < combined_descriptors.rows) {
         comm_msgs::landmark lm;
         lm.index = landmarks_[i].second;
-        lm.x = landmarks_[i].first.x;
-        lm.y = landmarks_[i].first.y;
-        lm.z = landmarks_[i].first.z;
+        lm.x = landmarks_[i].first[0];
+        lm.y = landmarks_[i].first[1];
+        lm.z = landmarks_[i].first[2];
         kf_msg.landmarks.emplace_back(lm);
       }
     }
     return kf_msg;
   }
 
-  const std::vector<Keyframe::Ptr>& getRefKfsPtr() const { return ref_kfs_; }
+  const Keyframe::Ptr& getRefKfPtr() const { return ref_kf_; }
   const cv::Mat& getRgbImage() const { return rgb_image_; }
   const TransformationD& getTGC() const { return T_G_C_; }
 
@@ -229,19 +236,35 @@ class Keyframe {
     *good_ids = good_ids_;
   }
 
-  void trackKeypointsRef(bool prepare_publish_data) {
-    if (ref_kfs_.size()) {
-      std::vector<cv::Point2f> prev_pts_0;
-      std::vector<int> prev_good_ids;
-      ref_kfs_[0]->getGoodPtsToTrack(&prev_pts_0, &prev_good_ids);
+  std::vector<cv::Point2f> getPointTrackHistory(int id) {
+    auto pt_it = pts_track_history_.find(id);
+    if (pt_it != pts_track_history_.end())
+      return pt_it->second;
+    else
+      return std::vector<cv::Point2f>();
+  }
+
+  void addPointTrackHistory(int id, cv::Point2f new_point,
+                            const std::vector<cv::Point2f>& prev_history) {
+    CHECK(!pts_track_history_.count(id));
+    pts_track_history_.emplace(id, prev_history);
+    pts_track_history_[id].emplace_back(new_point);
+    // LOG(INFO) << pts_track_history_[id].size();
+  }
+
+  void trackKeypointsRef(bool prepare_publish_data,
+                         pcl::PointCloud<pcl::PointXYZ>* landmarks) {
+    landmarks->clear();
+    if (ref_kf_ != nullptr) {
+      std::vector<cv::Point2f> prev_pts;
+      std::vector<int> prev_ids;
+      ref_kf_->getGoodPtsToTrack(&prev_pts, &prev_ids);
 
       // optical flow tracking
       std::vector<float> err;
-      cv::calcOpticalFlowPyrLK(ref_kfs_[0]->getRgbImage(), rgb_image_,
-                               prev_pts_0, track_pts_, track_pts_status_, err,
+      cv::calcOpticalFlowPyrLK(ref_kf_->getRgbImage(), rgb_image_, prev_pts,
+                               track_pts_, track_pts_status_, err,
                                cv::Size(21, 21), 3);
-
-      LOG(INFO) << "tracked pts: " << track_pts_.size();
 
       for (int i = 0; i < track_pts_.size(); i++)
         if (track_pts_status_[i] && !inBorder(track_pts_[i]))
@@ -249,40 +272,51 @@ class Keyframe {
 
       for (int i = 0; i < track_pts_.size(); i++) {
         if (track_pts_status_[i]) {
-          pointTracked(i, prev_pts_0[i]);
+          addPointTrackHistory(i, track_pts_[i],
+                               ref_kf_->getPointTrackHistory(prev_ids[i]));
+        } else {
+          auto history = ref_kf_->getPointTrackHistory(prev_ids[i]);
+          size_t n_history = history.size();
+          LOG(INFO) << "dead " << n_history;
+          if (prepare_publish_data &&
+              history.size() > tracking_config_.min_tracked_num) {
+            std::vector<cv::Point2f> points_un;
+            undistortKeyPoints(history, &points_un);
 
-          if (prepare_publish_data && ref_kfs_.size() == 2) {
-            // this logic only support tracked 2 times
-            cv::Point2f prev_pt_1;
-            if (ref_kfs_[0]->getPointHistory(prev_good_ids[i], &prev_pt_1)) {
-              // If can't get descriptor, skip it
-              cv::Mat descriptor;
-              descriptor = computeBRIEFDescriptors({track_pts_[i]}, nullptr);
-              if (descriptor.rows == 0) continue;
+            std::vector<Matrix34d> proj_mats;
+            Matrix34d proj_0;
+            getProjectionMap(TransformationD(), &proj_0, nullptr);
+            proj_mats.emplace_back(proj_0);
 
-              auto point_c_un = undistortKeyPoint(track_pts_[i]);
-              auto point_0_un = undistortKeyPoint(prev_pts_0[i]);
-              auto point_1_un = undistortKeyPoint(prev_pt_1);
+            TransformationD T_G_0 = (*kf_pose_map_)[index_ - n_history];
 
-              TransformationD T_C_0, T_C_1, T_G_0, T_G_1;
-              T_G_0 = ref_kfs_[0]->getTGC();
-              T_G_1 = ref_kfs_[1]->getTGC();
-              T_C_0 = T_G_C_.inverse() * T_G_0;
-              T_C_1 = T_G_C_.inverse() * T_G_1;
-              Matrix34d PC_0, PC_1, P0, P1;
-              getProjectionMap(T_C_0, &PC_0, &P0);
-              getProjectionMap(T_C_1, &PC_1, &P1);
-
-              cv::Point3f point3d;
-              if (!triangulatePoints({PC_0, P0, P1},
-                                     {point_c_un, point_0_un, point_1_un},
-                                     &point3d))
-                continue;
-
-              keypoints_to_pub_.emplace_back(point_c_un);
-              landmarks_.emplace_back(point3d, keypoints_to_pub_.size() - 1);
-              descriptors_to_pub_.emplace_back(descriptor);
+            for (int i = 1; i < history.size(); i--) {
+              TransformationD T_G_N = (*kf_pose_map_)[index_ - i];
+              TransformationD T_0_N = T_G_0.inverse() * T_G_N;
+              Matrix34d proj_n;
+              getProjectionMap(T_0_N, nullptr, &proj_n);
+              proj_mats.emplace_back(proj_n);
             }
+
+            Eigen::Vector3f point3d_eigen;
+            if (!triangulatePoints(proj_mats, points_un, &point3d_eigen)) {
+              LOG(INFO) << "triangulatePoints failed";
+              continue;
+            }
+
+            pcl::PointXYZ point3d_pcl(point3d_eigen[0], point3d_eigen[1],
+                                      point3d_eigen[2]);
+            point3d_pcl = pcl::transformPoint(
+                point3d_pcl, Eigen::Translation3d(T_G_0.getPosition()) *
+                                 T_G_0.getRotationMatrix());
+            landmarks->push_back(point3d_pcl);
+
+            //          keypoints_to_pub_.emplace_back(point_c_un);
+            // TODO(mikexyl): point not in current frame, this is only for debug
+            // counting
+            landmarks_.emplace_back(point3d_eigen,
+                                    keypoints_to_pub_.size() - 1);
+            //          descriptors_to_pub_.emplace_back(descriptor);
           }
         }
       }
@@ -291,33 +325,16 @@ class Keyframe {
           << "landmark size: " << landmarks_.size();
     }
 
-    if (track_pts_.size() < tracking_config_.min_features) {
+    if (track_pts_.size() < tracking_config_.min_features_num) {
       std::vector<cv::Point2f> new_pts;
-      cv::goodFeaturesToTrack(rgb_image_, new_pts,
-                              tracking_config_.min_features - track_pts_.size(),
-                              0.01, 10);
+      cv::goodFeaturesToTrack(
+          rgb_image_, new_pts,
+          tracking_config_.min_features_num - track_pts_.size(), 0.01, 10);
       track_pts_.insert(track_pts_.end(), new_pts.begin(), new_pts.end());
     }
   }
 
   void extractExtraKeypoints() {}
-
-  void pointTracked(int i, cv::Point2f prev_pt) {
-    auto pt_it = pts_track_history_.find(i);
-    if (pt_it == pts_track_history_.end())
-      pts_track_history_.emplace(i, prev_pt);
-    else
-      pt_it->second = prev_pt;
-  }
-
-  bool getPointHistory(int i, cv::Point2f* prev_pt) {
-    if (!pts_track_history_.count(i)) {
-      return false;
-    } else {
-      *prev_pt = pts_track_history_[i];
-      return true;
-    }
-  }
 
   bool pointWasTracked(int i) { return pts_track_history_.count(i); }
 
@@ -325,11 +342,10 @@ class Keyframe {
   const std::vector<uchar>& getTrackPtsStatus() const {
     return track_pts_status_;
   }
-  const std::vector<int>& getTrackPtsId() const { return track_pts_id_; }
 
   static bool triangulatePoints(const std::vector<Matrix34d>& proj_mats,
                                 const std::vector<cv::Point2f>& points,
-                                cv::Point3f* point3d) {
+                                Eigen::Vector3f* point3d) {
     CHECK(point3d != nullptr);
 
     Eigen::MatrixXd A(points.size() * 2, 4);
@@ -341,29 +357,8 @@ class Keyframe {
     }
     auto ev = A.jacobiSvd(Eigen::ComputeFullV).matrixV().col(3);
     if (ev[3] / ev[2] > 1e-2) return false;
-    *point3d = cv::Point3f(ev[0] / ev[3], ev[1] / ev[3], ev[2] / ev[3]);
+    *point3d = Eigen::Vector3f(ev[0] / ev[3], ev[1] / ev[3], ev[2] / ev[3]);
     return true;
-  }
-
-  void triangulateKeypointRef(const std::vector<cv::Point2f>& cur_pts,
-                              const std::vector<cv::Point2f>& prev_pts,
-                              const TransformationD& T_G_prev,
-                              const TransformationD& T_G_cur, cv::Mat* pts4d) {
-    CHECK(pts4d != nullptr);
-    CHECK_EQ(cur_pts.size(), prev_pts.size());
-    std::vector<cv::Point2f> cur_pts_un;
-    std::vector<cv::Point2f> prev_pts_un;
-    undistortKeyPoints(k_, dist_coef_, cur_pts, &cur_pts_un);
-    undistortKeyPoints(k_, dist_coef_, prev_pts, &prev_pts_un);
-
-    TransformationD T_prev_cur = T_G_prev.inverse() * T_G_cur;
-    cv::Mat R(3, 3, CV_32F, T_prev_cur.getRotationMatrix().data());
-    cv::Vec3f T(T_prev_cur.cast<float>().getPosition().data());
-    cv::Mat R1, R2, P1, P2, Q;
-    cv::stereoRectify(k_, dist_coef_, k_, dist_coef_, rgb_image_.size(), R, T,
-                      R1, R2, P1, P2, Q);
-
-    cv::triangulatePoints(P1, P2, prev_pts_un, cur_pts_un, *pts4d);
   }
 
   bool inBorder(const cv::Point2f& pt) {
@@ -387,7 +382,8 @@ class Keyframe {
     pcl::PointCloud<pcl::PointXYZ> landmark_pc;
     landmark_pc.header.frame_id = "world";
     for (auto const& lm : landmarks_)
-      landmark_pc.push_back(pcl::PointXYZ(lm.first.x, lm.first.y, lm.first.z));
+      landmark_pc.push_back(
+          pcl::PointXYZ(lm.first[0], lm.first[1], lm.first[2]));
     pcl::transformPointCloud(landmark_pc, landmark_pc,
                              T_G_C_.getTransformationMatrix());
     return landmark_pc;
@@ -397,7 +393,7 @@ class Keyframe {
   TrackingConfig tracking_config_;
   ros::Time timestamp_;
   int index_;
-  std::vector<Keyframe::Ptr> ref_kfs_;
+  Keyframe::Ptr ref_kf_;
   CliId cid_;
   TransformationD T_G_C_;
   cv::Mat rgb_image_;
@@ -405,15 +401,15 @@ class Keyframe {
   cv::Mat k_;
   cv::Mat dist_coef_;
   std::vector<cv::Point2f> keypoints_to_pub_;
-  std::vector<std::pair<cv::Point3f, int>> landmarks_;
+  std::vector<std::pair<Eigen::Vector3f, int>> landmarks_;
   std::vector<cv::Point2f> track_pts_;
-  std::vector<int> track_pts_id_;
-  std::map<int, cv::Point2f> pts_track_history_;
+  std::map<int, std::vector<cv::Point2f>> pts_track_history_;
   std::map<cv::Point2f, int> n_tracked_;
   std::vector<float> z_from_depth_;
   std::vector<cv::Mat> descriptors_to_pub_;
   DBoW2::BowVector bow_vec_;
   std::shared_ptr<brisk::BriskDescriptorExtractor> brisk_extractor_;
+  std::shared_ptr<KfPoseMap> kf_pose_map_;
 };  // namespace client
 
 }  // namespace client

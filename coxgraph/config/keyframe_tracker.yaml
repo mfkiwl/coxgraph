@@ -13,3 +13,6 @@ min_dist_m: 0.0
 min_yaw_rad: 0.0
 min_local_score: 1.0
 min_kf_n: 0
+
+tracking:
+  min_features_num: 2000

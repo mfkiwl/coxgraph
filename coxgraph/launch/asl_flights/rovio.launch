@@ -9,7 +9,7 @@
 
   <group ns="$(arg namespace)" >
 
-    <node name="rovio" pkg="rovio" type="rovio_node" output="screen" clear_params="true">
+    <node name="rovio" pkg="rovio" type="rovio_node" output="log" clear_params="true">
       <param name="filter_config" value="$(arg calibration_root)/rovio_filter_p23022.info" />
       <param name="camera0_config" value="$(arg calibration_root)/rovio_equidist_cam0_p23022.yaml" />
       <param name="world_frame" value="map_$(arg id)"/>
