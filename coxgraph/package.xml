@@ -25,5 +25,7 @@
   <depend>voxgraph_msgs</depend>
   <depend>voxgraph</depend>
   <depend>coxgraph_msgs</depend>
+  <depend>comm_msgs</depend>
+  <depend>brisk</depend>
 
 </package>
