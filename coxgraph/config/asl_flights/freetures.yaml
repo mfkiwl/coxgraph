@@ -1,0 +1,9 @@
+r_local_max: 5
+r_frame: 10
+k_axis: 0.5
+vis_scale: 0.1
+n_div: 10
+n_neighbors: 5
+n_max_ransac: 10000
+max_ransac_valid: 0.9
+max_corr_distance: 1.5

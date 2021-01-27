@@ -5,6 +5,7 @@
 #include <coxgraph_msgs/MeshWithTrajectory.h>
 #include <coxgraph_msgs/SetTargetPose.h>
 #include <nav_msgs/Odometry.h>
+#include <pcl/point_cloud.h>
 #include <ros/ros.h>
 #include <trajectory_msgs/MultiDOFJointTrajectory.h>
 #include <voxblox_msgs/Layer.h>
@@ -26,6 +27,7 @@
 #include "coxgraph/map_comm/submap_collection.h"
 #include "coxgraph/utils/msg_converter.h"
 #include "coxgraph/utils/submap_info_listener.h"
+#include "pcl/point_types.h"
 
 namespace coxgraph {
 namespace client {
@@ -99,6 +101,19 @@ class MapServer {
                                               ros::Time::now());
   }
 
+  void publishEsdfPointCloud2(const voxblox::Layer<voxblox::EsdfVoxel>& layer,
+                              CliSmId csid) {
+    if (esdf_pointcloud2_pub_.getNumSubscribers() > 0) {
+      pcl::PointCloud<voxblox::PointEsdf> pointcloud;
+      voxblox::createEsdfPointcloudFromLayer(layer, &pointcloud);
+      sensor_msgs::PointCloud2 pc_msg;
+      pcl::toROSMsg(pointcloud, pc_msg);
+      pc_msg.header.frame_id =
+          utils::getSubmapFrame(CIdCSIdPair(client_id_, csid));
+      esdf_pointcloud2_pub_.publish(pc_msg);
+    }
+  }
+
  private:
   void subscribeToTopics();
   void advertiseTopics();
@@ -159,6 +174,8 @@ class MapServer {
       const trajectory_msgs::MultiDOFJointTrajectory& command_msg);
 
   comm::ProjectedMapServer projected_map_server_;
+
+  ros::Publisher esdf_pointcloud2_pub_;
 };
 
 }  // namespace client

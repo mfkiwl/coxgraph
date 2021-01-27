@@ -1,3 +1,4 @@
+<?xml version="1.0"?>
 <launch>
   <arg name="mav_name" default="jay"/>
   <arg name="id" default="0" />
@@ -15,10 +16,10 @@
       <param name="world_frame" value="map_$(arg id)"/>
       <param name="map_frame" value="odom_$(arg id)"/>
       <param name="imu_frame" value="imu_$(arg id)"/>
-      <param name="camera_frame" value="camera0_$(arg id)"/>
+      <param name="camera_frame" value="camera_$(arg id)_"/>
     </node>
 
-    <node pkg="tf" type="static_transform_publisher" name="depth_tf_broadcaster" args="-0.0737 0.0232 0.0460 0.0122 0.0045 0.0041 0.9999 camera0_$(arg id) depth_$(arg id) 100"/>
+    <node pkg="tf" type="static_transform_publisher" name="depth_tf_broadcaster" args="-0.0737 0.0232 0.0460 0.0122 0.0045 0.0041 0.9999 camera_$(arg id)_0 depth_$(arg id) 100"/>
 
   </group>
 

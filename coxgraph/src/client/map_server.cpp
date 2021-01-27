@@ -2,6 +2,7 @@
 
 #include <coxgraph_msgs/BoundingBox.h>
 #include <coxgraph_msgs/MeshWithTrajectory.h>
+#include <sensor_msgs/PointCloud2.h>
 #include <voxblox_msgs/MultiMesh.h>
 
 #include <memory>
@@ -36,6 +37,8 @@ void MapServer::advertiseTopics() {
 
   submap_mesh_pub_ = nh_private_.advertise<coxgraph_msgs::BoundingBox>(
       "submap_bbox", 10, true);
+  esdf_pointcloud2_pub_ = nh_private_.advertise<sensor_msgs::PointCloud2>(
+      "esdf_pointcloud2", 10, true);
 }
 
 void MapServer::subscribeToServices() {

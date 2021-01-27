@@ -113,5 +113,27 @@ std::set<CIdCSIdPair> SubmapCollection::getSubmapCsidPairs(CliId cid) {
   return csid_pairs;
 }
 
+voxblox::TsdfMap::Ptr SubmapCollection::getProjectedMap() {
+  voxblox::TsdfMap::Ptr combined_tsdf_map =
+      voxgraph::VoxgraphSubmapCollection::getProjectedMap();
+
+  // Also project mesh-recovered submaps
+  for (auto const& submap_kv : recovered_submap_map_) {
+    Transformation T_G_Sm;
+    if (submap_info_listener_.getSubmapPoseBlocking(submap_kv.first, &T_G_Sm,
+                                                    true))
+      voxblox::mergeLayerAintoLayerB(
+          submap_kv.second->getTsdfMap().getTsdfLayer(), T_G_Sm,
+          combined_tsdf_map->getTsdfLayerPtr());
+    else
+      LOG(ERROR) << "Failed to project " << submap_kv.first;
+  }
+  LOG(INFO)
+      << "Projected tsdf blocks: "
+      << combined_tsdf_map->getTsdfLayerPtr()->getNumberOfAllocatedBlocks();
+
+  return combined_tsdf_map;
+}
+
 }  // namespace comm
 }  // namespace coxgraph
