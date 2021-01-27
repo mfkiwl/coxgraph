@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<launch>
+        <param name="use_sim_time" value="true" />
+        <arg name="mav_name" default="jay" />
+        <arg name="bag_file" default="/home/lxy/Datasets/deutsches_museum/deutsche_museum_s4.bag" />
+
+        <!--        <node name="map_to_map_0" pkg="tf" type="static_transform_publisher" output="screen" args="0 0 0 0 0 0 1 /map /map_0" />-->
+        <!--        <node name="base_to_horizontal" pkg="tf" type="static_transform_publisher" output="screen" args="0.010 0.000 0.190 0.087 0.000 0.996 -0.000 /base_link /horizontal_vlp16_link" />-->
+        <!--        <node name="base_to_vertical" pkg="tf" type="static_transform_publisher" output="screen" args="0.190 0.000 0.040 0.000 0.643 0.000 0.766 /base_link /vertical_vlp16_link" />-->
+
+        <include file="$(find coxgraph)/launch/firefly/coxgraph_client.launch">
+                <arg name="id" value="0" />
+                <arg name="pointcloud_topic" value="/horizontal_laser_3d" />
+                <arg name="world_frame_suffix" value="map" />
+                <arg name="debug_tsdf" value="false" />
+                <arg name="tw_voxblox_config_file" value="$(find coxgraph)/config/deutsche_museum/tsdf_server.yaml"/>
+        </include>
+
+        <!--  <node name="player_0" pkg="rosbag" type="play" args="$(arg bag_file) -q" output="screen" /> -->
+
+        <node name="recorder" pkg="rosbag" type="record" output="screen" args="-O /workspaces/voxgraph_melodic_ws/eval/esdf_pointcloud2.bag /coxgraph/coxgraph_client_0/esdf_pointcloud2" />
+</launch>

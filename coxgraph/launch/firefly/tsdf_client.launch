@@ -1,3 +1,4 @@
+<?xml version="1.0"?>
 <launch>
   <arg name="id" default=""/>
   <arg name="client_number" default="2"/>
@@ -36,7 +37,7 @@
     <param name="publish_traversable" value="true"/>
     <param name="update_esdf_every_n_sec " value="1"/>
     <param name="publish_active_tsdf_every_n_sec " value="1"/>
-    <param name="world_frame" value="$(arg world_frame_suffix)_$(arg id)"/>
+    <param name="world_frame" value="$(arg world_frame_suffix)"/>
     <param name="client_number" value="$(arg client_number)"/>
     <param name="client_id" value="$(arg id)"/>
     <param name="robot_namespace" value="$(arg robot_namespace)"/>
@@ -45,7 +46,7 @@
     <param name="tsdf_voxel_size" value="$(arg tsdf_voxel_size)"/>
     <param name="truncation_distance" value="$(arg truncation_distance)"/>
     <param name="pointcloud_frame" value="$(arg pointcloud_frame)"/>
-    <param name="publish_pointcloud_as_esdf" value="true"/>
+    <param name="publish_pointcloud_as_esdf" value="false"/>
   </node>
 
 </launch>
