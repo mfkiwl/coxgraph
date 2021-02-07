@@ -1,8 +1,10 @@
+<?xml version="1.0"?>
 <launch>
   <arg name="id" default=""/>
   <arg name="client_number" default="2"/>
   <arg name="robot_namespace" default="firefly"/>
   <arg name="world_frame_suffix" default="map"/>
+  <arg name="pointcloud_frame" default=""/>
 
   <!-- User supplied arguments -->
   <arg name="show_rviz" default="false" doc="Automatically launch Rviz." />
@@ -19,7 +21,7 @@
   <arg unless="$(arg debug)" name="launch_prefix" value=" " />
   <arg if="$(arg debug)" name="launch_prefix" value="xterm -e gdb -ex run --args" />
 
-  <node name="tsdf_client_$(arg id)" pkg="voxblox_ros" type="tsdf_server" output="screen" args="-alsologtostderr" clear_params="true" launch-prefix="$(arg launch_prefix)">
+  <node name="tsdf_client_$(arg id)" pkg="voxblox_ros" type="esdf_server" output="screen" args="-alsologtostderr" clear_params="true" launch-prefix="$(arg launch_prefix)">
     <remap from="pointcloud" to="$(arg pointcloud_topic)"/>
     <remap from="~active_tsdf_out" to="/tsdf_map_out_$(arg id)"/>
     <remap from="~active_esdf_out" to="/esdf_map_out_$(arg id)"/>
@@ -35,7 +37,7 @@
     <param name="publish_traversable" value="true"/>
     <param name="update_esdf_every_n_sec " value="1"/>
     <param name="publish_active_tsdf_every_n_sec " value="1"/>
-    <param name="world_frame" value="$(arg world_frame_suffix)_$(arg id)"/>
+    <param name="world_frame" value="$(arg world_frame_suffix)"/>
     <param name="client_number" value="$(arg client_number)"/>
     <param name="client_id" value="$(arg id)"/>
     <param name="robot_namespace" value="$(arg robot_namespace)"/>
@@ -43,6 +45,8 @@
     <param name="collision_radius" value="1.0"/>
     <param name="tsdf_voxel_size" value="$(arg tsdf_voxel_size)"/>
     <param name="truncation_distance" value="$(arg truncation_distance)"/>
+    <param name="pointcloud_frame" value="$(arg pointcloud_frame)"/>
+    <param name="publish_pointcloud_as_esdf" value="false"/>
   </node>
 
 </launch>

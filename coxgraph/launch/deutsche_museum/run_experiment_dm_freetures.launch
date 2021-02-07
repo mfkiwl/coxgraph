@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<launch>
+        <param name="use_sim_time" value="true" />
+        <arg name="mav_name" default="jay" />
+        <arg name="bag_file" default="/home/lxy/Datasets/deutsches_museum/b3-2015-12-10-13-10-17.bag" />
+        <arg name="debug" default="false" />
+
+        <include file="$(find cartographer_ros)/launch/backpack_3d.launch" />
+
+        <node name="relay_horizontal" pkg="topic_tools" type="relay" output="screen" args="/horizontal_laser_3d /pointcloud" />
+        <node name="relay_vertical" pkg="topic_tools" type="relay" output="screen" args="/vertical_laser_3d /pointcloud" />
+
+        <include file="$(find coxgraph)/launch/firefly/coxgraph_client.launch">
+                <arg name="id" value="0" />
+                <arg name="pointcloud_topic" value="/pointcloud" />
+                <arg name="world_frame_suffix" value="map" />
+                <arg name="debug_tsdf" value="false" />
+                <arg name="tw_voxblox_config_file" value="$(find coxgraph)/config/deutsche_museum/tsdf_server.yaml" />
+                <arg name="coxgraph_config" value="$(find coxgraph)/config/deutsche_museum/coxgraph_client.yaml" />
+        </include>
+
+        <arg if="$(arg debug)" name="launch-prefix" value="gdb -ex run --args" />
+        <arg unless="$(arg debug)" name="launch-prefix" value="" />
+
+        <group ns="coxgraph">
+                <node name="freeture_matcher_node" pkg="freeture_matcher" type="freeture_matcher_node" output="screen" args="-alsologtostderr" launch-prefix="$(arg launch-prefix)">
+                        <remap from="~loop_closure" to="coxgraph_client_0/loop_closure_in" />
+                        <remap from="~tsdf_map_in" to="tsdf_client_0/tsdf_map_out" />
+                        <rosparam file="$(find freeture_matcher)/config/example.yaml" />
+                </node>
+        </group>
+
+        <node name="player_0" pkg="rosbag" type="play" args="$(arg bag_file) --clock -q" output="screen" />
+
+        <node name="recorder" pkg="rosbag" type="record" output="screen" args="-o /workspaces/voxgraph_melodic_ws/eval/freeture_debug /coxgraph/coxgraph_client_0/esdf_pointcloud2" />
+</launch>

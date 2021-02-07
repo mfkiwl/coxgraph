@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<launch>
+        <arg name="bag_file" default="/workspaces/voxgraph_melodic_ws/eval/esdf_pointcloud2.bag"/>
+        <node name="player" pkg="rosbag" type="play" args="$(arg bag_file) -s 20" output="log" />
+
+        <node name="freetures_extractor_node" pkg="freetures_extractor" type="freetures_extractor_node.py" output="screen">
+                <remap from="esdf_pointcloud2" to="/coxgraph/coxgraph_client_0/esdf_pointcloud2"/>
+                <rosparam file="$(find coxgraph)/config/asl_flights/freetures.yaml" command="load" ns="" />
+                <param name="log_dir" value="/workspaces/voxgraph_melodic_ws/eval/freetures"/>
+        </node>
+</launch>

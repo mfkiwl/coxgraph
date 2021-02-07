@@ -12,18 +12,30 @@
 namespace coxgraph {
 namespace comm {
 
+void SubmapCollection::addSubmap(CliSm&& submap, const CliId& cid,
+                                 const CliSmId& csid) {
+  voxgraph::VoxgraphSubmapCollection::addSubmap(submap);
+
+  addSubmapID(submap.getID(), cid, csid);
+}
+
 void SubmapCollection::addSubmap(const CliSm::Ptr& submap_ptr, const CliId& cid,
                                  const CliSmId& csid) {
   CHECK(submap_ptr != nullptr);
   voxgraph::VoxgraphSubmapCollection::addSubmap(submap_ptr);
 
+  addSubmapID(submap_ptr->getID(), cid, csid);
+}
+
+void SubmapCollection::addSubmapID(const SerSmId& ssid, const CliId& cid,
+                                   const CliSmId& csid) {
   std::lock_guard<std::mutex> id_update_lock(id_update_mutex_);
-  sm_cli_id_map_.emplace(submap_ptr->getID(), CIdCSIdPair(cid, csid));
-  if (!cli_ser_sm_id_map_.count(submap_ptr->getID())) {
+  sm_cli_id_map_.emplace(ssid, CIdCSIdPair(cid, csid));
+  if (!cli_ser_sm_id_map_.count(ssid)) {
     cli_ser_sm_id_map_.emplace(cid, std::vector<SerSmId>());
   }
-  cli_ser_sm_id_map_[cid].emplace_back(submap_ptr->getID());
-  sm_id_ori_pose_map_.emplace(submap_ptr->getID(), submap_ptr->getPose());
+  cli_ser_sm_id_map_[cid].emplace_back(ssid);
+  sm_id_ori_pose_map_.emplace(ssid, getSubmapPtr(ssid)->getPose());
 }
 
 void SubmapCollection::addSubmapFromMeshAsync(
@@ -74,31 +86,31 @@ void SubmapCollection::addSubmapFromMesh(
                                          false);
   }
 
-  {
+  if (!optimize_recovered_map_) {
     std::lock_guard<std::mutex> recovered_submap_map_lock(
         recovered_submap_map_mutex_);
     recovered_submap_map_.emplace(submap_mesh.mesh.header.frame_id,
                                   std::make_shared<CliSm>(std::move(submap)));
+  } else {
+    CliSm new_submap = draftNewSubmap();
+    addSubmap(std::move(new_submap), cid, csid);
   }
 
   recover_tsdf_timer.Stop();
   LOG(INFO) << voxblox::timing::Timing::Print();
 }
 
-// TODO(mikexyl): delete this
-Transformation SubmapCollection::mergeToCliMap(const CliSm::Ptr& submap_ptr) {
-  CHECK(exists(submap_ptr->getID()));
+std::set<CIdCSIdPair> SubmapCollection::getSubmapCsidPairs(CliId cid) {
+  std::set<CIdCSIdPair> csid_pairs;
+  for (auto submap_ptr : getSubmapPtrs()) {
+    csid_pairs.emplace(cid, submap_ptr->getID());
+  }
 
-  auto const& cli_map_ptr = getSubmapPtr(submap_ptr->getID());
-  // TODO(mikexyl): only merge layers now, merge more if needed, and
-  // theoretically not need to transform layer since it's already done when
-  // generating submap from msg
-  voxblox::mergeLayerAintoLayerB(
-      submap_ptr->getTsdfMapPtr()->getTsdfLayer(),
-      cli_map_ptr->getTsdfMapPtr()->getTsdfLayerPtr());
+  for (auto submap_kv : recovered_submap_map_) {
+    csid_pairs.emplace(utils::resolveSubmapFrame(submap_kv.first));
+  }
 
-  cli_map_ptr->finishSubmap();
-  return submap_ptr->getPose() * cli_map_ptr->getPose().inverse();
+  return csid_pairs;
 }
 
 voxblox::TsdfMap::Ptr SubmapCollection::getProjectedMap() {
@@ -121,19 +133,6 @@ voxblox::TsdfMap::Ptr SubmapCollection::getProjectedMap() {
       << combined_tsdf_map->getTsdfLayerPtr()->getNumberOfAllocatedBlocks();
 
   return combined_tsdf_map;
-}
-
-std::set<CIdCSIdPair> SubmapCollection::getSubmapCsidPairs(CliId cid) {
-  std::set<CIdCSIdPair> csid_pairs;
-  for (auto submap_ptr : getSubmapPtrs()) {
-    csid_pairs.emplace(cid, submap_ptr->getID());
-  }
-
-  for (auto submap_kv : recovered_submap_map_) {
-    csid_pairs.emplace(utils::resolveSubmapFrame(submap_kv.first));
-  }
-
-  return csid_pairs;
 }
 
 }  // namespace comm

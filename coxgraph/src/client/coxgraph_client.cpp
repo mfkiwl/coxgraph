@@ -101,12 +101,16 @@ bool CoxgraphClient::submapCallback(
   if (!VoxgraphMapper::submapCallback(submap_msg)) return false;
   if (submap_collection_ptr_->size()) {
     publishTimeLine();
-    LOG(INFO) << "last submap id: "
-              << submap_collection_ptr_->getLastSubmapId();
-    map_server_->publishSubmapMesh(submap_collection_ptr_->getLastSubmapId(),
+    auto last_submap_id = submap_collection_ptr_->getLastSubmapId();
+    LOG(INFO) << "last submap id: " << last_submap_id;
+    map_server_->publishSubmapMesh(last_submap_id,
                                    frame_names_.input_odom_frame, submap_vis_);
-    map_server_->publishSubmapBBox(submap_collection_ptr_->getLastSubmapId());
+    map_server_->publishSubmapBBox(last_submap_id);
     map_server_->publishProjectedMap();
+    auto last_submap_ptr =
+        cox_submap_collection_ptr_->getSubmapPtr(last_submap_id);
+    map_server_->publishEsdfPointCloud2(
+        last_submap_ptr->getEsdfMapPtr()->getEsdfLayer(), last_submap_id);
   }
   return true;
 }

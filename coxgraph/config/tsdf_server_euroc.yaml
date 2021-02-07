@@ -1,6 +1,5 @@
 use_sim_time: true
 verbose: false
-world_frame: "world"
 color_mode: "color"
 
 method: "projective"

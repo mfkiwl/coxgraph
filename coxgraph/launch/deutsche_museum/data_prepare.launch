@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<launch>
+        <arg name="bag_file" default="/home/lxy/Datasets/deutsches_museum/b3-2015-12-10-13-55-20.bag" />
+        <arg name="bag_filenames" value="$(arg bag_file)" />
+
+        <!--       <include file="$(find cartographer_ros)/launch/offline_backpack_3d.launch" pass_all_args="true" /> -->
+
+        <node name="recorder" pkg="rosbag" type="record" output="screen" args="-O /home/lxy/Datasets/deutsches_museum/deutsche_museum_s4.bag /tf /horizontal_laser_3d /vertical_laser_3d /imu" />
+</launch>

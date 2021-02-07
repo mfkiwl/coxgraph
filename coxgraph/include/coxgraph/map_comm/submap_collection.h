@@ -41,6 +41,8 @@ class SubmapCollection : public voxgraph::VoxgraphSubmapCollection {
         submap_info_listener_(nh, nh_private) {
     nh_private_.param<std::string>("method", tsdf_integrator_method_,
                                    "projective");
+    nh_private_.param<bool>("optimize_recovered_map", optimize_recovered_map_,
+                            optimize_recovered_map_);
   }
 
   SubmapCollection(const voxgraph::VoxgraphSubmapCollection& submap_collection,
@@ -73,6 +75,10 @@ class SubmapCollection : public voxgraph::VoxgraphSubmapCollection {
 
   void addSubmap(const CliSm::Ptr& submap_ptr, const CliId& cid,
                  const CliSmId& csid);
+
+  void addSubmap(CliSm&& submap_ptr, const CliId& cid, const CliSmId& csid);
+
+  void addSubmapID(const SerSmId& ssid, const CliId& cid, const CliSmId& csid);
 
   void addSubmapFromMesh(const coxgraph_msgs::MeshWithTrajectory& submap_mesh,
                          const CliId& cid, const CliSmId& csid);
@@ -149,11 +155,10 @@ class SubmapCollection : public voxgraph::VoxgraphSubmapCollection {
   typedef std::unordered_map<SerSmId, CIdCSIdPair> SmCliIdMap;
   typedef std::map<CliId, std::vector<SerSmId>> CliSerSmIdMap;
 
-  Transformation mergeToCliMap(const CliSm::Ptr& submap_ptr);
-
   ros::NodeHandle nh_private_;
 
   const int8_t client_number_;
+  bool optimize_recovered_map_;
 
   SmCliIdMap sm_cli_id_map_;
   CliSerSmIdMap cli_ser_sm_id_map_;
