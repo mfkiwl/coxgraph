@@ -14,6 +14,7 @@
         <arg name="tsdf_voxel_size" default="0.10" />
         <arg name="truncation_distance" default="0.30" />
         <arg name="pointcloud_frame" default="" />
+        <arg name="coxgraph_config" default="$(find coxgraph)/config/coxgraph_client.yaml" />
 
         <group ns="coxgraph">
                 <arg unless="$(arg debug_cg)" name="launch_prefix" value="" />
@@ -25,7 +26,7 @@
                         <remap from="~submap_poses" to="submap_poses" />
                         <remap from="~keyframe_pose" to="/firefly_$(arg id)/vins_estimator_$(arg id)/keyframe_pose" />
                         <remap from="/loop_closure_in" to="coxgraph_client_$(arg id)/loop_closure_in" />
-                        <rosparam file="$(find coxgraph)/config/coxgraph_client.yaml" />
+                        <rosparam file="$(arg coxgraph_config)" />
                         <param name="input_odom_frame" value="$(arg world_frame_suffix)_$(arg id)" />
                         <param name="input_base_link_frame" value="firefly_$(arg id)/base_link" />
                         <param name="output_odom_frame" value="$(arg world_frame_suffix)_$(arg id)" />
