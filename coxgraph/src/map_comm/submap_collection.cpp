@@ -39,7 +39,7 @@ void SubmapCollection::addSubmapID(const SerSmId& ssid, const CliId& cid,
 }
 
 void SubmapCollection::addSubmapFromMeshAsync(
-    const coxgraph_msgs::MeshWithTrajectory& submap_mesh, const CliId& cid,
+    const voxblox_msgs::Mesh& submap_mesh, const CliId& cid,
     const CliSmId& csid) {
   if (!recover_threads_.count(cid))
     recover_threads_.emplace(cid, std::thread());
@@ -49,9 +49,9 @@ void SubmapCollection::addSubmapFromMeshAsync(
                                       this, submap_mesh, cid, csid);
 }
 
-void SubmapCollection::addSubmapFromMesh(
-    const coxgraph_msgs::MeshWithTrajectory& submap_mesh, const CliId& cid,
-    const CliSmId& csid) {
+void SubmapCollection::addSubmapFromMesh(const voxblox_msgs::Mesh& submap_mesh,
+                                         const CliId& cid,
+                                         const CliSmId& csid) {
   voxblox::timing::Timer recover_tsdf_timer("recover_tsdf");
 
   // If a submap is already generated from tsdf, don't add it
@@ -61,7 +61,7 @@ void SubmapCollection::addSubmapFromMesh(
   mesh_collection_ptr_->addSubmapMesh(submap_mesh, cid, csid);
 
   CIdCSIdPair csid_pair =
-      utils::resolveSubmapFrame(submap_mesh.mesh.header.frame_id);
+      utils::resolveSubmapFrame(submap_mesh.header.frame_id);
 
   CliSm submap = draftNewSubmap();
   voxblox::MeshConverter mesh_converter(nh_private_);
@@ -71,25 +71,25 @@ void SubmapCollection::addSubmapFromMesh(
           submap.getTsdfMapPtr()->getTsdfLayerPtr());
 
   Transformation T_Sm_C;
-  voxblox::Pointcloud points_C;
+  voxblox::PointcloudPtr points_C(new voxblox::Pointcloud());
 
-  mesh_converter.setMesh(submap_mesh.mesh.mesh);
-  mesh_converter.setTrajectory(submap_mesh.trajectory);
+  mesh_converter.setMesh(submap_mesh);
   mesh_converter.convertToPointCloud();
 
-  while (mesh_converter.getPointcloudInNextFOV(&T_Sm_C, &points_C)) {
+  int i = 0;
+  while (mesh_converter.getNextPointcloud(&i, &T_Sm_C, points_C)) {
     // LOG(INFO) << "in fov points: " << points_C.size();
-    if (points_C.empty()) continue;
+    if (points_C->empty()) continue;
 
     // Only for navigation, no need color
-    tsdf_integrator->integratePointCloud(T_Sm_C, points_C, voxblox::Colors(),
+    tsdf_integrator->integratePointCloud(T_Sm_C, *points_C, voxblox::Colors(),
                                          false);
   }
 
   if (!optimize_recovered_map_) {
     std::lock_guard<std::mutex> recovered_submap_map_lock(
         recovered_submap_map_mutex_);
-    recovered_submap_map_.emplace(submap_mesh.mesh.header.frame_id,
+    recovered_submap_map_.emplace(submap_mesh.header.frame_id,
                                   std::make_shared<CliSm>(std::move(submap)));
   } else {
     CliSm new_submap = draftNewSubmap();

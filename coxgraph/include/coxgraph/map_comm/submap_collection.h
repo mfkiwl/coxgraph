@@ -80,12 +80,11 @@ class SubmapCollection : public voxgraph::VoxgraphSubmapCollection {
 
   void addSubmapID(const SerSmId& ssid, const CliId& cid, const CliSmId& csid);
 
-  void addSubmapFromMesh(const coxgraph_msgs::MeshWithTrajectory& submap_mesh,
+  void addSubmapFromMesh(const voxblox_msgs::Mesh& submap_mesh,
                          const CliId& cid, const CliSmId& csid);
 
-  void addSubmapFromMeshAsync(
-      const coxgraph_msgs::MeshWithTrajectory& submap_mesh, const CliId& cid,
-      const CliSmId& csid);
+  void addSubmapFromMeshAsync(const voxblox_msgs::Mesh& submap_mesh,
+                              const CliId& cid, const CliSmId& csid);
 
   inline bool getSerSmIdsByCliId(const CliId& cid,
                                  std::vector<SerSmId>* ser_sids) {

@@ -95,9 +95,6 @@ void CoxgraphServer::advertiseServices() {
       "get_pose_history", &CoxgraphServer::getPoseHistoryCallback, this);
   need_to_fuse_srv_ = nh_private_.advertiseService(
       "need_to_fuse", &CoxgraphServer::needToFuseCallback, this);
-  get_submap_mesh_with_traj_srv_ = nh_private_.advertiseService(
-      "get_submap_mesh_with_traj",
-      &CoxgraphServer::getSubmapMeshWithTrajCallback, this);
 }
 
 // TODO(mikexyl): move this to server_vis
@@ -187,19 +184,6 @@ bool CoxgraphServer::getPoseHistoryCallback(
   LOG(INFO) << ok_str;
   response.message = ok_str;
   return true;
-}
-
-bool CoxgraphServer::getSubmapMeshWithTrajCallback(
-    coxgraph_msgs::GetSubmapMeshWithTrajRequest& request,      // NOLINT
-    coxgraph_msgs::GetSubmapMeshWithTrajResponse& response) {  // NOLINT
-  auto submap_mesh_it = mesh_collection_ptr_->getSubmapMeshesPtr()->find(
-      std::make_pair(request.cid, request.csid));
-  if (submap_mesh_it != mesh_collection_ptr_->getSubmapMeshesPtr()->end()) {
-    response.mesh_with_traj = submap_mesh_it->second;
-    return true;
-  } else {
-    return false;
-  }
 }
 
 bool CoxgraphServer::needToFuseCallback(

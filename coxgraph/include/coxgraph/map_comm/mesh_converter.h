@@ -2,44 +2,27 @@
 #define COXGRAPH_MAP_COMM_MESH_CONVERTER_H_
 
 #include <coxgraph/common.h>
-#include <coxgraph_msgs/MeshWithTrajectory.h>
 #include <minkindr_conversions/kindr_msg.h>
 #include <nav_msgs/Path.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <ros/ros.h>
 #include <voxblox/core/common.h>
+#include <voxblox_msgs/Mesh.h>
 
 #include <memory>
+#include <vector>
 
 namespace voxblox {
+typedef std::shared_ptr<Pointcloud> PointcloudPtr;
 class MeshConverter {
  public:
-  struct FOV {
-    float max_ray_length_m;
-    float min_ray_length_m;
-    float vertical_degree;
-    float horizontal_degree;
-
-    static FOV getFOVFromRosParam(const ros::NodeHandle& nh_private) {
-      FOV fov;
-      nh_private.param<float>("max_ray_length_m", fov.max_ray_length_m, 90);
-      nh_private.param<float>("min_ray_length_m", fov.min_ray_length_m, 90);
-      nh_private.param<float>("fov_horizontal_degree", fov.horizontal_degree,
-                              90);
-      nh_private.param<float>("fov_vertical_degree", fov.vertical_degree, 60);
-      return fov;
-    }
-  };
-
   struct Config {
-    Config() : interpolate_ratio(0.0) {}
-    float interpolate_ratio;
+    float voxel_size = 0.05;
     friend inline std::ostream& operator<<(std::ostream& s, const Config& v) {
       s << std::endl
         << "Mesh Converter using Config:" << std::endl
-        << std::endl
-        << "  Interpolate Ratio: " << v.interpolate_ratio << std::endl
+        << "  voxel_size: " << v.voxel_size << std::endl
         << "-------------------------------------------" << std::endl;
       return (s);
     }
@@ -48,86 +31,95 @@ class MeshConverter {
   static Config getConfigFromRosParam(const ros::NodeHandle& nh_private);
 
   typedef std::shared_ptr<MeshConverter> Ptr;
-
   typedef kindr::minimal::PositionTemplate<FloatingPoint> Position;
 
   explicit MeshConverter(const ros::NodeHandle nh_private)
-      : config_(getConfigFromRosParam(nh_private)),
-        fov_(FOV::getFOVFromRosParam(nh_private)),
-        pointcloud_(new Pointcloud()) {
+      : config_(getConfigFromRosParam(nh_private)) {
     LOG(INFO) << config_;
-    LOG(INFO) << "fov: " << fov_.horizontal_degree << " "
-              << fov_.vertical_degree << " " << fov_.max_ray_length_m << " "
-              << fov_.min_ray_length_m;
   }
+
   ~MeshConverter() = default;
 
-  inline void setMesh(const voxblox_msgs::Mesh& mesh) { mesh_ = mesh; }
+  inline void setMesh(const voxblox_msgs::Mesh& mesh) {
+    LOG_IF(ERROR, mesh.trajectory.poses.empty())
+        << "received a mesh with empty trajectory";
+    mesh_ = mesh;
+    setTrajectory(mesh.trajectory);
+  }
 
   inline void setTrajectory(const nav_msgs::Path& path) {
     for (auto const& pose : path.poses) {
       coxgraph::TransformationD T_Sm_C;
       tf::poseMsgToKindr(pose.pose, &T_Sm_C);
-      T_Sm_C_.emplace(T_Sm_C.cast<FloatingPoint>());
+      T_Sm_C_.emplace_back(T_Sm_C.cast<FloatingPoint>());
+      pointcloud_.emplace_back(new Pointcloud());
     }
   }
 
   bool convertToPointCloud();
 
-  bool getPointcloudInNextFOV(Transformation* T_Sm_C,
-                              Pointcloud* pointcloud_in_fov_C) {
-    if (T_Sm_C_.empty()) return false;
-
-    timing::Timer get_pointcloud_in_fov_timer("get_pointcloud_in_fov");
-    CHECK(pointcloud_in_fov_C != nullptr);
-    pointcloud_in_fov_C->clear();
-    *T_Sm_C = T_Sm_C_.front();
-    T_Sm_C_.pop();
-
-    // TODO(mikexyl): verify the frame transform
-    for (auto const& point : *pointcloud_) {
-      // Roughly filter out points outside fov box
-      if (fabs(point[0] - T_Sm_C->getPosition().x()) > fov_.max_ray_length_m ||
-          fabs(point[0] - T_Sm_C->getPosition().x()) < fov_.min_ray_length_m ||
-          fabs(point[1] - T_Sm_C->getPosition().y()) > fov_.max_ray_length_m ||
-          fabs(point[1] - T_Sm_C->getPosition().y()) < fov_.min_ray_length_m ||
-          fabs(point[2] - T_Sm_C->getPosition().z()) > fov_.max_ray_length_m ||
-          fabs(point[2] - T_Sm_C->getPosition().z()) < fov_.min_ray_length_m)
-        continue;
-
-      Transformation T_Sm_P(Position(point[0], point[1], point[2]),
-                            Quaternion().setIdentity());
-      Transformation T_C_P = T_Sm_C->inverse() * T_Sm_P;
-      float x = T_C_P.getPosition().x();
-      float y = T_C_P.getPosition().y();
-      float z = T_C_P.getPosition().z();
-
-      float dist = T_C_P.getPosition().norm();
-      if (dist > fov_.max_ray_length_m || dist < fov_.min_ray_length_m) {
-        continue;
-      }
-
-      if (fabs(atan2(x, z)) / 3.14159 * 180 > fov_.horizontal_degree) continue;
-      if (fabs(atan2(y, z)) / 3.14159 * 180 > fov_.vertical_degree) continue;
-
-      pointcloud_in_fov_C->emplace_back(x, y, z);
-    }
-    get_pointcloud_in_fov_timer.Stop();
+  bool getNextPointcloud(int* i, Transformation* T_Sm_C,
+                         PointcloudPtr pointcloud) {
+    if (*i >= T_Sm_C_.size()) return false;
+    *T_Sm_C = T_Sm_C_[*i];
+    pointcloud = pointcloud_[*i];
+    (*i)++;
     return true;
   }
 
-  const std::shared_ptr<Pointcloud>& getPointcloud() const {
-    return pointcloud_;
+  auto getCombinedPointcloud() {
+    Pointcloud combined_pointcloud;
+    for (auto const& pointcloud : pointcloud_) {
+      combined_pointcloud.insert(combined_pointcloud.end(), pointcloud->begin(),
+                                 pointcloud->end());
+    }
+    return combined_pointcloud;
+  }
+
+  Pointcloud interpolateTriangle(const Pointcloud& triangle) {
+    // TODO(mikexyl): a really stupid interpolation, but should do the work
+    Pointcloud interp_pts_e01, interp_pts_e02, interp_pts_e12;
+    Point p0 = triangle[0], p1 = triangle[1], p2 = triangle[2];
+
+    Point t_p0_p1 = p1 - p0;
+    Point t_p0_p2 = p2 - p0;
+    Point t_p1_p2 = p2 - p1;
+
+    for (float dist = config_.voxel_size; dist < t_p0_p1.norm();
+         dist += config_.voxel_size) {
+      interp_pts_e01.emplace_back(p0 + t_p0_p1 / t_p0_p1.norm() * dist);
+    }
+    for (float dist = config_.voxel_size; dist < t_p0_p1.norm();
+         dist += config_.voxel_size) {
+      interp_pts_e02.emplace_back(p0 + t_p0_p2 / t_p0_p2.norm() * dist);
+    }
+    for (float dist = config_.voxel_size; dist < t_p1_p2.norm();
+         dist += config_.voxel_size) {
+      interp_pts_e12.emplace_back(p1 + t_p1_p2 / t_p1_p2.norm() * dist);
+    }
+
+    for (auto const& pt : interp_pts_e01) {
+      auto t = p2 - pt;
+      for (float dist = config_.voxel_size; dist < t.norm();
+           dist += config_.voxel_size) {
+        interp_pts_e12.emplace_back(pt + t / t.norm() * dist);
+      }
+    }
+
+    interp_pts_e01.insert(interp_pts_e01.end(), interp_pts_e02.begin(),
+                          interp_pts_e02.end());
+    interp_pts_e01.insert(interp_pts_e01.end(), interp_pts_e12.begin(),
+                          interp_pts_e12.end());
+    return interp_pts_e01;
   }
 
  private:
   Config config_;
-  FOV fov_;
 
   voxblox_msgs::Mesh mesh_;
-  AlignedQueue<Transformation> T_Sm_C_;
+  AlignedVector<Transformation> T_Sm_C_;
 
-  std::shared_ptr<Pointcloud> pointcloud_;
+  std::vector<PointcloudPtr> pointcloud_;
 };
 }  // namespace voxblox
 

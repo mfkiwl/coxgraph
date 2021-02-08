@@ -269,10 +269,6 @@ class CoxgraphServer {
   ros::ServiceServer get_pose_history_srv_;
   ros::ServiceServer need_to_fuse_srv_;
   std::timed_mutex final_mesh_gen_mutex_;
-  ros::ServiceServer get_submap_mesh_with_traj_srv_;
-  bool getSubmapMeshWithTrajCallback(
-      coxgraph_msgs::GetSubmapMeshWithTrajRequest& request,     // NOLINT
-      coxgraph_msgs::GetSubmapMeshWithTrajResponse& response);  // NOLINT
 
   DistributionController::Ptr distrib_ctl_ptr_;
   inline bool inControl() const { return distrib_ctl_ptr_->inControl(); }

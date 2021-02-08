@@ -23,7 +23,7 @@ TsdfRecover::Config TsdfRecover::getConfigFromRosParam(
 
 void TsdfRecover::subscribeToTopics() {
   mesh_sub_ = nh_.subscribe("submap_mesh_with_traj", 10,
-                            &TsdfRecover::meshWithTrajCallback, this);
+                            &TsdfRecover::meshCallback, this);
   if (!config_.use_tf_submap_pose)
     submap_pose_sub_ = nh_.subscribe("submap_poses", 10,
                                      &TsdfRecover::submapPoseCallback, this);
@@ -41,67 +41,39 @@ void TsdfRecover::advertiseTopics() {
                                                             1, true);
 }
 
-void TsdfRecover::meshWithTrajCallback(
-    const coxgraph_msgs::MeshWithTrajectory& mesh_msg) {
+void TsdfRecover::meshCallback(const voxblox_msgs::Mesh& mesh_msg) {
   timing::Timer mesh_process_timer("mesh_process");
-  mesh_converter_->setMesh(mesh_msg.mesh.mesh);
-  mesh_converter_->setTrajectory(mesh_msg.trajectory);
+  mesh_converter_->setMesh(mesh_msg);
   mesh_converter_->convertToPointCloud();
 
   Transformation T_G_Sm;
   ros::Rate r(100);
-  int i = 0;
   ros::Time timestamp = ros::Time(0);
   timing::Timer wait_for_tf_timer("wait_for_tf");
 
-  if (config_.use_tf_submap_pose) {
-    // TODO(mikexyl): need better tf sync rules
-    while (!tf_listener_.waitForTransform(mesh_msg.mesh.header.frame_id,
-                                          world_frame_, timestamp,
-                                          ros::Duration(1))) {
-      LOG(WARNING) << "Failed to look up tf from " << world_frame_ << " to "
-                   << static_cast<std::string>(mesh_msg.mesh.header.frame_id)
-                   << " at " << timestamp << " !";
-      r.sleep();
-      if (i++ > 20)
-        LOG(FATAL) << "Failed to look up tf from " << world_frame_ << " to "
-                   << static_cast<std::string>(mesh_msg.mesh.header.frame_id)
-                   << " at " << timestamp << " for 50ms !";
-    }
-    transformer_.lookupTransform(world_frame_, mesh_msg.mesh.header.frame_id,
-                                 timestamp, &T_G_Sm);
-  } else {
-    coxgraph::CIdCSIdPair csid_pair =
-        coxgraph::utils::resolveSubmapFrame(mesh_msg.mesh.header.frame_id);
-    if (!getSubmapPoseBlocking(csid_pair.second, &T_G_Sm)) {
-      LOG(FATAL) << kSubmapPoseToleranceMs
-                 << "ms later, still hasn't receive pose for "
-                 << mesh_msg.mesh.header.frame_id;
-    }
-  }
-  wait_for_tf_timer.Stop();
-
   Transformation T_Sm_C;
-  Pointcloud points_C;
-  while (mesh_converter_->getPointcloudInNextFOV(&T_Sm_C, &points_C)) {
-    if (points_C.empty()) continue;
+  PointcloudPtr points_C(new Pointcloud());
+  int i = 0;
+  while (mesh_converter_->getNextPointcloud(&i, &T_Sm_C, points_C)) {
+    if (points_C->empty()) continue;
 
     // Only for navigation, no need color
-    Colors no_colors(points_C.size(), Color());
-    tsdf_integrator_->integratePointCloud(T_G_Sm * T_Sm_C, points_C, no_colors,
+    Colors no_colors(points_C->size(), Color());
+    tsdf_integrator_->integratePointCloud(T_G_Sm * T_Sm_C, *points_C, no_colors,
                                           false);
     pcl::PointCloud<pcl::PointXYZ> pointcloud_msg;
     pointcloud_msg.header.frame_id = world_frame_;
     Pointcloud points_G;
-    transformPointcloud(T_G_Sm * T_Sm_C, points_C, &points_G);
+    transformPointcloud(T_G_Sm * T_Sm_C, *points_C, &points_G);
     pointcloudToPclXYZ(points_G, &pointcloud_msg);
     in_fov_pointcloud_pub_.publish(pointcloud_msg);
   }
 
   if (config_.publish_recovered_pointcloud) {
     pcl::PointCloud<pcl::PointXYZ> pointcloud_msg;
-    pointcloud_msg.header.frame_id = mesh_msg.mesh.header.frame_id;
-    pointcloudToPclXYZ(*mesh_converter_->getPointcloud(), &pointcloud_msg);
+    pointcloud_msg.header.frame_id = mesh_msg.header.frame_id;
+    pointcloudToPclXYZ(mesh_converter_->getCombinedPointcloud(),
+                       &pointcloud_msg);
     recovred_pointcloud_pub_.publish(pointcloud_msg);
   }
 

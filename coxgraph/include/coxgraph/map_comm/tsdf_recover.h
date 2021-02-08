@@ -46,12 +46,6 @@ class TsdfRecover : public TsdfServer {
         TsdfServer(nh, nh_private, getTsdfMapConfigFromRosParam(nh_private),
                    getTsdfIntegratorConfigFromRosParam(nh_private),
                    getMeshIntegratorConfigFromRosParam(nh_private)) {
-    MeshConverter::FOV fov;
-    fov.max_ray_length_m = tsdf_integrator_->getConfig().max_ray_length_m;
-    fov.min_ray_length_m = tsdf_integrator_->getConfig().min_ray_length_m;
-    nh_private_.param<float>("fov_horizontal_degree", fov.horizontal_degree,
-                             90);
-    nh_private_.param<float>("fov_vertical_degree", fov.vertical_degree, 60);
     mesh_converter_.reset(new MeshConverter(nh_private_));
 
     subscribeToTopics();
@@ -64,7 +58,7 @@ class TsdfRecover : public TsdfServer {
   void subscribeToTopics();
   void advertiseTopics();
 
-  void meshWithTrajCallback(const coxgraph_msgs::MeshWithTrajectory& mesh_msg);
+  void meshCallback(const voxblox_msgs::Mesh& mesh_msg);
 
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
