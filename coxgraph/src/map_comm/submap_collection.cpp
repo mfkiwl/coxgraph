@@ -77,7 +77,7 @@ void SubmapCollection::addSubmapFromMesh(const voxblox_msgs::Mesh& submap_mesh,
   mesh_converter.convertToPointCloud();
 
   int i = 0;
-  while (mesh_converter.getNextPointcloud(&i, &T_Sm_C, points_C)) {
+  while (mesh_converter.getNextPointcloud(&i, &T_Sm_C, &points_C)) {
     // LOG(INFO) << "in fov points: " << points_C.size();
     if (points_C->empty()) continue;
 

@@ -4,6 +4,7 @@
 #include <cblox_msgs/MapPoseUpdates.h>
 #include <ros/ros.h>
 #include <voxblox/integrator/tsdf_integrator.h>
+#include <voxblox_msgs/LayerWithTrajectory.h>
 #include <voxblox_ros/ros_params.h>
 #include <voxblox_ros/transformer.h>
 #include <voxblox_ros/tsdf_server.h>
@@ -66,8 +67,9 @@ class TsdfRecover : public TsdfServer {
   Config config_;
 
   ros::Subscriber mesh_sub_;
-  ros::Publisher recovred_pointcloud_pub_;
-  ros::Publisher in_fov_pointcloud_pub_;
+  ros::Publisher recovered_pointcloud_pub_;
+  ros::Publisher frame_pointcloud_pub_;
+  ros::Publisher submap_pub_;
 
   MeshConverter::Ptr mesh_converter_;
 

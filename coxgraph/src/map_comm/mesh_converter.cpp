@@ -16,7 +16,11 @@ bool MeshConverter::convertToPointCloud() {
   if (mesh_.mesh_blocks.empty()) return false;
   timing::Timer recovered_poincloud_timer("recover_pointcloud");
   Pointcloud triangle;
+  LOG(INFO) << "mesh size: " << mesh_.mesh_blocks.size();
+  int n = 0;
   for (auto const& mesh_block : mesh_.mesh_blocks) {
+    if (mesh_block.history.empty()) continue;
+    CHECK_EQ(mesh_block.x.size() / 3, mesh_block.history.size());
     const BlockIndex index(mesh_block.index[0], mesh_block.index[1],
                            mesh_block.index[2]);
 
@@ -56,7 +60,10 @@ bool MeshConverter::convertToPointCloud() {
         triangle.clear();
       }
     }
+    n++;
   }
+
+  LOG(INFO) << "processed " << n;
 
   CHECK_EQ(T_Sm_C_.size(), pointcloud_.size());
   recovered_poincloud_timer.Stop();

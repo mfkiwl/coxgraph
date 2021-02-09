@@ -19,7 +19,7 @@
     </node>
 
     <!-- Estimator -->
-    <node name="vins_estimator" pkg="vins_estimator" type="vins_estimator" output="screen" launch-prefix="xterm -e">
+    <node name="vins_estimator" pkg="vins_estimator" type="vins_estimator" output="screen" >
       <param name="config_file" type="string" value="$(arg config_path)" />
       <param name="vins_folder" type="string" value="$(arg vins_path)" />
       <param name="origin_frame_name" type="string" value="odom_$(arg id)" />

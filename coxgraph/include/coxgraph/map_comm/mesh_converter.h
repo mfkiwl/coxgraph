@@ -48,6 +48,9 @@ class MeshConverter {
   }
 
   inline void setTrajectory(const nav_msgs::Path& path) {
+    // Clear point clouds
+    pointcloud_.clear();
+    T_Sm_C_.clear();
     for (auto const& pose : path.poses) {
       coxgraph::TransformationD T_Sm_C;
       tf::poseMsgToKindr(pose.pose, &T_Sm_C);
@@ -59,10 +62,10 @@ class MeshConverter {
   bool convertToPointCloud();
 
   bool getNextPointcloud(int* i, Transformation* T_Sm_C,
-                         PointcloudPtr pointcloud) {
+                         PointcloudPtr* pointcloud) {
     if (*i >= T_Sm_C_.size()) return false;
     *T_Sm_C = T_Sm_C_[*i];
-    pointcloud = pointcloud_[*i];
+    *pointcloud = pointcloud_[*i];
     (*i)++;
     return true;
   }
@@ -77,6 +80,7 @@ class MeshConverter {
   }
 
   Pointcloud interpolateTriangle(const Pointcloud& triangle) {
+    timing::Timer interpolate_timer("interpolate_triangle");
     // TODO(mikexyl): a really stupid interpolation, but should do the work
     Pointcloud interp_pts_e01, interp_pts_e02, interp_pts_e12;
     Point p0 = triangle[0], p1 = triangle[1], p2 = triangle[2];
@@ -98,18 +102,22 @@ class MeshConverter {
       interp_pts_e12.emplace_back(p1 + t_p1_p2 / t_p1_p2.norm() * dist);
     }
 
-    for (auto const& pt : interp_pts_e01) {
-      auto t = p2 - pt;
-      for (float dist = config_.voxel_size; dist < t.norm();
-           dist += config_.voxel_size) {
-        interp_pts_e12.emplace_back(pt + t / t.norm() * dist);
-      }
-    }
+    //  for (auto const& pt : interp_pts_e01) {
+    //    auto t = p2 - pt;
+    //    for (float dist = config_.voxel_size; dist < t.norm();
+    //         dist += config_.voxel_size) {
+    //      interp_pts_e12.emplace_back(pt + t / t.norm() * dist);
+    //    }
+    //  }
+
+    interp_pts_e01.emplace_back((p0 + p1 + p2) / 3);
 
     interp_pts_e01.insert(interp_pts_e01.end(), interp_pts_e02.begin(),
                           interp_pts_e02.end());
     interp_pts_e01.insert(interp_pts_e01.end(), interp_pts_e12.begin(),
                           interp_pts_e12.end());
+
+    interpolate_timer.Stop();
     return interp_pts_e01;
   }
 

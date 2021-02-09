@@ -15,6 +15,7 @@
         <arg name="truncation_distance" default="0.30" />
         <arg name="pointcloud_frame" default="" />
         <arg name="coxgraph_config" default="$(find coxgraph)/config/coxgraph_client.yaml" />
+        <arg name="recover_mode" default="false" />
 
         <group ns="coxgraph">
                 <arg unless="$(arg debug_cg)" name="launch_prefix" value="" />
@@ -33,7 +34,8 @@
                         <param name="output_base_link_frame" value="firefly_$(arg id)/base_link" />
                         <param name="output_sensor_frame" value="sensor_coxgraph_$(arg id)" />
                         <param name="output_active_submap_frame" value="voxgraph_active_submap_$(arg id)" />
-                        <param name="submap_topic" value="tsdf_client_$(arg id)/tsdf_map_out" />
+                        <param unless="$(arg recover_mode)" name="submap_topic" value="tsdf_client_$(arg id)/tsdf_map_out" />
+                        <param if="$(arg recover_mode)" name="submap_topic" value="tsdf_recover_node_$(arg id)/tsdf_map_out" />
                         <param name="publish_traversable" value="true" />
                         <param name="client_id" value="$(arg id)" />
                         <param name="tsdf_voxel_size" value="$(arg tsdf_voxel_size)" />
