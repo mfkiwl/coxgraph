@@ -65,7 +65,7 @@ bool MeshConverter::convertToPointCloud() {
 
   LOG(INFO) << "processed " << n;
 
-  CHECK_EQ(T_Sm_C_.size(), pointcloud_.size());
+  CHECK_EQ(T_G_C_.size(), pointcloud_.size());
   recovered_poincloud_timer.Stop();
 
   return true;

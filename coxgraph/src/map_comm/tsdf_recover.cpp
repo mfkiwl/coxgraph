@@ -47,20 +47,20 @@ void TsdfRecover::meshCallback(const voxblox_msgs::Mesh& mesh_msg) {
   mesh_converter_->convertToPointCloud();
 
   Transformation T_G_C;
-  PointcloudPtr points_C(new Pointcloud());
+  Pointcloud points_C;
   int i = 0;
   while (mesh_converter_->getNextPointcloud(&i, &T_G_C, &points_C)) {
-    if (points_C->empty()) continue;
+    if (points_C.empty()) continue;
 
     // Only for navigation, no need color
-    Colors no_colors(points_C->size(), Color());
-    tsdf_integrator_->integratePointCloud(T_G_C, *points_C, no_colors, false);
+    Colors no_colors(points_C.size(), Color());
+    tsdf_integrator_->integratePointCloud(T_G_C, points_C, no_colors, false);
 
     if (frame_pointcloud_pub_.getNumSubscribers() > 0) {
       pcl::PointCloud<pcl::PointXYZ> pointcloud_msg;
       pointcloud_msg.header.frame_id = world_frame_;
       Pointcloud points_G;
-      transformPointcloud(T_G_C, *points_C, &points_G);
+      transformPointcloud(T_G_C, points_C, &points_G);
       pointcloudToPclXYZ(points_G, &pointcloud_msg);
       frame_pointcloud_pub_.publish(pointcloud_msg);
     }

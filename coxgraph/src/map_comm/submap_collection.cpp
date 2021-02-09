@@ -71,7 +71,7 @@ void SubmapCollection::addSubmapFromMesh(const voxblox_msgs::Mesh& submap_mesh,
           submap.getTsdfMapPtr()->getTsdfLayerPtr());
 
   Transformation T_Sm_C;
-  voxblox::PointcloudPtr points_C(new voxblox::Pointcloud());
+  voxblox::Pointcloud points_C;
 
   mesh_converter.setMesh(submap_mesh);
   mesh_converter.convertToPointCloud();
@@ -79,10 +79,10 @@ void SubmapCollection::addSubmapFromMesh(const voxblox_msgs::Mesh& submap_mesh,
   int i = 0;
   while (mesh_converter.getNextPointcloud(&i, &T_Sm_C, &points_C)) {
     // LOG(INFO) << "in fov points: " << points_C.size();
-    if (points_C->empty()) continue;
+    if (points_C.empty()) continue;
 
     // Only for navigation, no need color
-    tsdf_integrator->integratePointCloud(T_Sm_C, *points_C, voxblox::Colors(),
+    tsdf_integrator->integratePointCloud(T_Sm_C, points_C, voxblox::Colors(),
                                          false);
   }
 

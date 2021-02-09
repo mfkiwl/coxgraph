@@ -50,22 +50,26 @@ class MeshConverter {
   inline void setTrajectory(const nav_msgs::Path& path) {
     // Clear point clouds
     pointcloud_.clear();
-    T_Sm_C_.clear();
+    T_G_C_.clear();
     for (auto const& pose : path.poses) {
       coxgraph::TransformationD T_Sm_C;
       tf::poseMsgToKindr(pose.pose, &T_Sm_C);
-      T_Sm_C_.emplace_back(T_Sm_C.cast<FloatingPoint>());
+      T_G_C_.emplace_back(T_Sm_C.cast<FloatingPoint>());
       pointcloud_.emplace_back(new Pointcloud());
     }
   }
 
   bool convertToPointCloud();
 
-  bool getNextPointcloud(int* i, Transformation* T_Sm_C,
-                         PointcloudPtr* pointcloud) {
-    if (*i >= T_Sm_C_.size()) return false;
-    *T_Sm_C = T_Sm_C_[*i];
-    *pointcloud = pointcloud_[*i];
+  bool getNextPointcloud(int* i, Transformation* T_G_C,
+                         Pointcloud* pointcloud) {
+    if (*i >= T_G_C_.size()) return false;
+    CHECK(pointcloud);
+    *T_G_C = T_G_C_[*i];
+    // Mesh points are T_G_P
+    Transformation T_Mesh_Sdf(Quaternion(0.5, -0.5, 0.5, -0.5).inverse(),
+                              Transformation::Position());
+    transformPointcloud(T_G_C->inverse(), *(pointcloud_[*i]), pointcloud);
     (*i)++;
     return true;
   }
@@ -125,7 +129,7 @@ class MeshConverter {
   Config config_;
 
   voxblox_msgs::Mesh mesh_;
-  AlignedVector<Transformation> T_Sm_C_;
+  AlignedVector<Transformation> T_G_C_;
 
   std::vector<PointcloudPtr> pointcloud_;
 };
