@@ -5,7 +5,6 @@
 #include <coxgraph_msgs/ClientSubmapSrv.h>
 #include <coxgraph_msgs/MapPoseUpdates.h>
 #include <coxgraph_msgs/MapTransform.h>
-#include <coxgraph_msgs/MeshWithTrajectory.h>
 #include <coxgraph_msgs/TimeLine.h>
 #include <ros/ros.h>
 #include <voxgraph_msgs/LoopClosure.h>
@@ -187,13 +186,11 @@ class ClientHandler {
   utils::EvalDataPublisher eval_data_pub_;
 
   ros::Subscriber submap_mesh_sub_;
-  void submapMeshCallback(
-      const coxgraph_msgs::MeshWithTrajectory& mesh_with_traj) {
-    CIdCSIdPair csid_pair =
-        utils::resolveSubmapFrame(mesh_with_traj.mesh.header.frame_id);
+  void submapMeshCallback(const voxblox_msgs::Mesh& mesh_msg) {
+    CIdCSIdPair csid_pair = utils::resolveSubmapFrame(mesh_msg.header.frame_id);
     CHECK_EQ(csid_pair.first, client_id_);
     LOG(INFO) << log_prefix_ << " Received mesh of submap " << csid_pair.second;
-    submap_collection_ptr_->addSubmapFromMeshAsync(mesh_with_traj, client_id_,
+    submap_collection_ptr_->addSubmapFromMeshAsync(mesh_msg, client_id_,
                                                    csid_pair.second);
   }
 

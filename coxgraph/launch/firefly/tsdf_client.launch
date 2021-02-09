@@ -21,23 +21,15 @@
   <arg unless="$(arg debug)" name="launch_prefix" value=" " />
   <arg if="$(arg debug)" name="launch_prefix" value="xterm -e gdb -ex run --args" />
 
-  <node name="tsdf_client_$(arg id)" pkg="voxblox_ros" type="esdf_server" output="screen" args="-alsologtostderr" clear_params="true" launch-prefix="$(arg launch_prefix)">
+  <node name="tsdf_client_$(arg id)" pkg="voxblox_ros" type="tsdf_server" output="screen" args="-alsologtostderr" clear_params="true" launch-prefix="$(arg launch_prefix)">
     <remap from="pointcloud" to="$(arg pointcloud_topic)"/>
     <remap from="~active_tsdf_out" to="/tsdf_map_out_$(arg id)"/>
     <remap from="~active_esdf_out" to="/esdf_map_out_$(arg id)"/>
     <rosparam file="$(arg tw_voxblox_config_file)"/>
-    <param name="meshing/visualize" value="$(arg visualize)" />
-    <param name="enable_segment_map" value="false" />
-    <param name="enable_local_segment_map" value="false" />
     <param name="verbose" value="$(arg verbose)" />
-    <param name="publish_tsdf_map" value="true" />
-    <param name="publish_esdf_map" value="true" />
-    <param name="publish_slices" value="true" />
-    <param name="publish_pointclouds" value="true" />
-    <param name="publish_traversable" value="true"/>
     <param name="update_esdf_every_n_sec " value="1"/>
     <param name="publish_active_tsdf_every_n_sec " value="1"/>
-    <param name="world_frame" value="$(arg world_frame_suffix)"/>
+    <param name="world_frame" value="$(arg world_frame_suffix)_$(arg id)"/>
     <param name="client_number" value="$(arg client_number)"/>
     <param name="client_id" value="$(arg id)"/>
     <param name="robot_namespace" value="$(arg robot_namespace)"/>

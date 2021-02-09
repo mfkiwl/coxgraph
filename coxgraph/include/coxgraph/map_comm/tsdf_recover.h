@@ -4,6 +4,7 @@
 #include <cblox_msgs/MapPoseUpdates.h>
 #include <ros/ros.h>
 #include <voxblox/integrator/tsdf_integrator.h>
+#include <voxblox_msgs/LayerWithTrajectory.h>
 #include <voxblox_ros/ros_params.h>
 #include <voxblox_ros/transformer.h>
 #include <voxblox_ros/tsdf_server.h>
@@ -46,12 +47,6 @@ class TsdfRecover : public TsdfServer {
         TsdfServer(nh, nh_private, getTsdfMapConfigFromRosParam(nh_private),
                    getTsdfIntegratorConfigFromRosParam(nh_private),
                    getMeshIntegratorConfigFromRosParam(nh_private)) {
-    MeshConverter::FOV fov;
-    fov.max_ray_length_m = tsdf_integrator_->getConfig().max_ray_length_m;
-    fov.min_ray_length_m = tsdf_integrator_->getConfig().min_ray_length_m;
-    nh_private_.param<float>("fov_horizontal_degree", fov.horizontal_degree,
-                             90);
-    nh_private_.param<float>("fov_vertical_degree", fov.vertical_degree, 60);
     mesh_converter_.reset(new MeshConverter(nh_private_));
 
     subscribeToTopics();
@@ -64,7 +59,7 @@ class TsdfRecover : public TsdfServer {
   void subscribeToTopics();
   void advertiseTopics();
 
-  void meshWithTrajCallback(const coxgraph_msgs::MeshWithTrajectory& mesh_msg);
+  void meshCallback(const voxblox_msgs::Mesh& mesh_msg);
 
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
@@ -72,8 +67,9 @@ class TsdfRecover : public TsdfServer {
   Config config_;
 
   ros::Subscriber mesh_sub_;
-  ros::Publisher recovred_pointcloud_pub_;
-  ros::Publisher in_fov_pointcloud_pub_;
+  ros::Publisher recovered_pointcloud_pub_;
+  ros::Publisher frame_pointcloud_pub_;
+  ros::Publisher submap_pub_;
 
   MeshConverter::Ptr mesh_converter_;
 
