@@ -95,9 +95,10 @@ bool CoxgraphClient::getAllClientSubmapsCallback(
 }
 
 bool CoxgraphClient::submapCallback(
-    const voxblox_msgs::LayerWithTrajectory& submap_msg) {
+    const voxblox_msgs::LayerWithTrajectory& submap_msg, bool transform_layer) {
   std::lock_guard<std::timed_mutex> submap_proc_lock(submap_proc_mutex_);
-  if (!VoxgraphMapper::submapCallback(submap_msg)) return false;
+  if (!VoxgraphMapper::submapCallback(submap_msg, transform_layer))
+    return false;
   if (submap_collection_ptr_->size()) {
     publishTimeLine();
     LOG(INFO) << "last submap id: "

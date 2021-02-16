@@ -9,7 +9,7 @@
   <arg name="tsdf_voxel_size" default="0.10"/>
   <arg name="truncation_distance" default="0.30"/>
 
-  <arg name="evaluate" default="true"/>
+  <arg name="evaluate" default="false"/>
 
   <include file="$(find coxgraph)/launch/euroc/vins_client_euroc.launch">
     <arg name="id" value="0"/>
@@ -69,7 +69,7 @@
     <arg name="debug" default="false"/>
   </include>
 
-  <include file="$(find node_evaluator)/launch/evaluate.launch">
+  <include if="$(arg evaluate)" file="$(find node_evaluator)/launch/evaluate.launch">
     <arg name="config_file" default="$(find coxgraph)/config/evaluation_config.yaml"/>
     <arg name="debug" default="false"/>
   </include>

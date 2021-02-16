@@ -68,8 +68,8 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
     return true;
   }
 
-  bool submapCallback(
-      const voxblox_msgs::LayerWithTrajectory& submap_msg) override;
+  bool submapCallback(const voxblox_msgs::LayerWithTrajectory& submap_msg,
+                      bool transform_layer) override;
 
  private:
   using VoxgraphMapper = voxgraph::VoxgraphMapper;
