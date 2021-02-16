@@ -17,12 +17,16 @@ cs_add_library(${PROJECT_NAME}
     src/server/client_tf_optimizer.cpp
     src/server/visualizer/server_visualizer.cpp)
 
+cs_add_executable(coxgraph_server_node
+    src/coxgraph_server_node.cpp)
+target_link_libraries(coxgraph_server_node ${PROJECT_NAME})
+
 cs_add_executable(coxgraph_client_node
     src/coxgraph_client_node.cpp)
 target_link_libraries(coxgraph_client_node ${PROJECT_NAME})
 
-cs_add_executable(coxgraph_server_node
-    src/coxgraph_server_node.cpp)
-target_link_libraries(coxgraph_server_node ${PROJECT_NAME})
+cs_add_executable(tsdf_recover_node
+    src/tsdf_recover_node.cpp)
+target_link_libraries(tsdf_recover_node ${PROJECT_NAME})
 
 cs_export()
