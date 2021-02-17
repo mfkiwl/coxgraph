@@ -70,3 +70,5 @@ esdf_min_distance: 0.1
 
 publish_maps_every_n_sec: 1.0
 loop_closure_topic: "/loop_closure_in"
+
+vis_combined_o3d_mesh: true

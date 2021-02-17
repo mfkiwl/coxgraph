@@ -1,19 +1,26 @@
 #ifndef COXGRAPH_UTILS_MSG_CONVERTER_H_
 #define COXGRAPH_UTILS_MSG_CONVERTER_H_
 
+#include <Open3D/Geometry/TriangleMesh.h>
 #include <cblox_msgs/MapLayer.h>
 #include <cblox_ros/submap_conversions.h>
 #include <coxgraph_msgs/BoundingBox.h>
 #include <coxgraph_msgs/ClientSubmap.h>
 #include <coxgraph_msgs/ClientSubmapSrvResponse.h>
 #include <coxgraph_msgs/MapFusion.h>
+#include <pcl_conversions/pcl_conversions.h>
+#include <sensor_msgs/PointCloud.h>
+#include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/point_cloud_conversion.h>
 #include <voxblox_msgs/Layer.h>
 #include <voxblox_msgs/LayerWithTrajectory.h>
 #include <voxblox_ros/conversions.h>
 #include <voxgraph_msgs/LoopClosure.h>
 
+#include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "coxgraph/common.h"
 
@@ -166,6 +173,33 @@ inline CIdCSIdPair resolveSubmapFrame(std::string frame_id) {
   CliSmId csid = std::stoi(frame_id.substr(0, pos));
   CliId cid = std::stoi(frame_id.substr(pos + 1, frame_id.size()));
   return std::make_pair(cid, csid);
+}
+
+inline std::shared_ptr<open3d::geometry::TriangleMesh> o3dMeshFromMsg(
+    const sensor_msgs::PointCloud2& pointcloud2_msg) {
+  std::vector<Eigen::Vector3d> vertices;
+  std::vector<Eigen::Vector3i> indices;
+
+  sensor_msgs::PointCloud pointcloud_msg;
+  sensor_msgs::convertPointCloud2ToPointCloud(pointcloud2_msg, pointcloud_msg);
+  if (pointcloud_msg.points.empty()) return nullptr;
+
+  CHECK_EQ(pointcloud_msg.points.size() % 3, 0);
+  for (size_t i = 0; i < pointcloud_msg.points.size() - 3; i += 3) {
+    auto point = pointcloud_msg.points[i];
+    vertices.emplace_back(point.x, point.y, point.z);
+    point = pointcloud_msg.points[i + 1];
+    vertices.emplace_back(point.x, point.y, point.z);
+    point = pointcloud_msg.points[i + 2];
+    vertices.emplace_back(point.x, point.y, point.z);
+
+    indices.emplace_back(i, i + 1, i + 2);
+  }
+  CHECK_EQ(vertices.size() / indices.size(), 3);
+
+  std::shared_ptr<open3d::geometry::TriangleMesh> o3d_mesh(
+      new open3d::geometry::TriangleMesh(vertices, indices));
+  return o3d_mesh;
 }
 
 }  // namespace utils

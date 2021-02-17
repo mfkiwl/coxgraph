@@ -29,14 +29,16 @@
                         <param name="output_base_link_frame" value="firefly_$(arg id)/base_link" />
                         <param name="output_sensor_frame" value="sensor_coxgraph_$(arg id)" />
                         <param name="output_active_submap_frame" value="voxgraph_active_submap_$(arg id)" />
-                        <param if="$(arg recover_mode)" name="submap_topic" value="/coxgraph/tsdf_recover_node_$(arg id)/tsdf_map_out" />
-                        <param unless="$(arg recover_mode)" name="submap_topic" value="/coxgraph/tsdf_client_$(arg id)/tsdf_map_out" />
                         <param name="publish_traversable" value="true" />
                         <param name="client_id" value="$(arg id)" />
                         <param name="tsdf_voxel_size" value="$(arg tsdf_voxel_size)" />
                         <param name="truncation_distance" value="$(arg truncation_distance)" />
                         <param name="publish_mesh_with_trajectory" value="true" />
-                        <!-- <param name="submap_pose_tf_publishing_period_s" value="0.0"/> -->
+
+                        <param name="recover_mode" value="$(arg recover_mode)" />
+                        <param if="$(arg recover_mode)" name="submap_topic" value="/coxgraph/tsdf_recover_node_$(arg id)/tsdf_map_out" />
+                        <remap if="$(arg recover_mode)" from="~mesh_pointcloud" to="tsdf_recover_node_$(arg id)/mesh_pointcloud" />
+                        <param unless="$(arg recover_mode)" name="submap_topic" value="/coxgraph/tsdf_client_$(arg id)/tsdf_map_out" />
                 </node>
 
                 <include file="$(find coxgraph)/launch/firefly/tsdf_client.launch">

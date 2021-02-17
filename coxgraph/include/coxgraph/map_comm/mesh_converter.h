@@ -4,8 +4,8 @@
 #include <coxgraph/common.h>
 #include <minkindr_conversions/kindr_msg.h>
 #include <nav_msgs/Path.h>
-#include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
+#include <pcl_ros/point_cloud.h>
 #include <ros/ros.h>
 #include <voxblox/core/common.h>
 #include <voxblox_msgs/Mesh.h>
@@ -69,13 +69,17 @@ class MeshConverter {
     //  T_odom_submap_ = TsdfServer::gravityAlignPose(T_G_C_[middle_id].second);
   }
 
-  bool convertToPointCloud() {
+  bool convertToPointCloud(
+      pcl::PointCloud<pcl::PointXYZ>* recovered_pointcloud) {
+    CHECK(recovered_pointcloud != nullptr);
+    recovered_pointcloud->clear();
     if (mesh_.mesh_blocks.empty()) return false;
     timing::Timer recovered_poincloud_timer("recover_pointcloud");
     Pointcloud triangle;
 
     LOG(INFO) << "receive mesh blocks: " << mesh_.mesh_blocks.size();
     int n = 0, n_colors = 0;
+    size_t vertex_index = 0u;
     for (auto const& mesh_block : mesh_.mesh_blocks) {
       if (mesh_block.history.empty()) continue;
       CHECK_EQ(mesh_block.x.size() / 3, mesh_block.history.size());
@@ -106,6 +110,7 @@ class MeshConverter {
         // CHECK_EQ(history.history.size() % 2, 0);
 
         triangle.emplace_back(mesh_x, mesh_y, mesh_z);
+        recovered_pointcloud->push_back(pcl::PointXYZ(mesh_x, mesh_y, mesh_z));
         if (triangle.size() == 3) {
           if (mesh_block.r[i] * mesh_block.g[i] * mesh_block.b[i] > 0 &&
               mesh_block.r[i - 1] * mesh_block.g[i - 1] * mesh_block.b[i - 1] >
