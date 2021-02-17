@@ -72,7 +72,6 @@ class TsdfRecover : public TsdfServer {
     Pointcloud points_C;
     int i = 0;
     while (mesh_converter_->getNextPointcloud(&i, &T_G_C, &points_C)) {
-      LOG(INFO) << points_C.size();
       if (points_C.empty()) continue;
 
       // Only for navigation, no need color
