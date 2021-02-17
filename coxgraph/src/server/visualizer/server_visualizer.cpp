@@ -7,7 +7,6 @@
 
 #include "coxgraph/common.h"
 #include "coxgraph/server/submap_collection.h"
-#include "ros/topic.h"
 
 namespace coxgraph {
 namespace server {
@@ -20,7 +19,9 @@ ServerVisualizer::Config ServerVisualizer::getConfigFromRosParam(
                                 config.submap_mesh_color_mode, "lambert_color");
   nh_private.param<std::string>("combined_mesh_color_mode",
                                 config.combined_mesh_color_mode, "normals");
-
+  nh_private.param("publish_submap_meshes_every_n_sec",
+                   config.publish_submap_meshes_every_n_sec,
+                   config.publish_submap_meshes_every_n_sec);
   return config;
 }
 

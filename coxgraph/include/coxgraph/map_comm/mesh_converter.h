@@ -123,6 +123,7 @@ class MeshConverter {
                                     triangle.end());
             pointcloud_[hi]->insert(pointcloud_[hi]->end(), interp_pts.begin(),
                                     interp_pts.end());
+            LOG(INFO) << hi << " " << pointcloud_[hi]->size();
           }
           triangle.clear();
         }
@@ -161,8 +162,8 @@ class MeshConverter {
     if (!pointcloud_.count(id)) pointcloud_.emplace(id, new Pointcloud());
     // Point cloud is actually T_Submap_P; to get T_C_P, need to get T_Submap_C;
     auto T_Submap_C = T_odom_submap_.inverse() * (*T_G_C);
-    if (pointcloud_.count(*i))
-      transformPointcloud(T_Submap_C.inverse(), *(pointcloud_[*i]), pointcloud);
+    if (pointcloud_.count(id))
+      transformPointcloud(T_Submap_C.inverse(), *(pointcloud_[id]), pointcloud);
     (*i)++;
     return true;
   }

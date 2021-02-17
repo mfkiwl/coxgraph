@@ -1,0 +1,10 @@
+verbose: false
+tsdf_voxel_size: 0.10
+truncation_distance: 0.30
+max_ray_length_m: 100
+min_ray_length_m: 0
+method: "fast"
+use_const_weight: true
+publish_maps_every_n_sec: 0.0
+publish_map_with_trajectory: true
+world_frame: "odom_0"

@@ -72,6 +72,7 @@ class TsdfRecover : public TsdfServer {
     Pointcloud points_C;
     int i = 0;
     while (mesh_converter_->getNextPointcloud(&i, &T_G_C, &points_C)) {
+      LOG(INFO) << points_C.size();
       if (points_C.empty()) continue;
 
       // Only for navigation, no need color
@@ -94,6 +95,7 @@ class TsdfRecover : public TsdfServer {
 
     mesh_process_timer.Stop();
 
+    LOG(INFO) << "layer memory: " << tsdf_map_->getTsdfLayer().getMemorySize();
     ROS_INFO_STREAM("Timings: " << std::endl << timing::Timing::Print());
 
     voxblox_msgs::LayerWithTrajectory layer_with_traj;
@@ -106,7 +108,7 @@ class TsdfRecover : public TsdfServer {
 
  private:
   void subscribeToTopics() {
-    mesh_sub_ = nh_private_.subscribe("submap_mesh_with_traj", 10,
+    mesh_sub_ = nh_private_.subscribe("mesh_with_history", 10,
                                       &TsdfRecover::meshCallback, this);
     if (!config_.use_tf_submap_pose)
       submap_pose_sub_ = nh_private_.subscribe(

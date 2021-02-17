@@ -87,8 +87,8 @@ class ServerVisualizer {
   }
 
   void advertiseTopics() {
-    combined_mesh_pub_ = nh_private_.advertise<visualization_msgs::Marker>(
-        "combined_mesh", 10, true);
+    combined_mesh_pub_ =
+        nh_private_.advertise<voxblox_msgs::Mesh>("combined_mesh", 10, true);
     separated_mesh_pub_ = nh_private_.advertise<voxblox_msgs::MultiMesh>(
         "separated_mesh", 10, true);
     if (config_.publish_submap_meshes_every_n_sec > 0)

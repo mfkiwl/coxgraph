@@ -28,9 +28,11 @@ voxel_carving_enabled: true
 # publish_slices: true
 # update_mesh_every_n_sec: 1.0
 
-pointcloud_deintegration_queue_length: 100
+pointcloud_deintegration_queue_length: 0
 
 publish_tsdf_map: true
 publish_esdf_map: true
-publish_map_every_n_sec: 5
+publish_map_every_n_sec: 0
 publish_map_with_trajectory: true
+
+submap_interval: 5
