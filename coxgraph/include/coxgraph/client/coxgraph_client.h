@@ -12,6 +12,7 @@
 #include <message_filters/sync_policies/approximate_time.h>
 #include <message_filters/synchronizer.h>
 #include <message_filters/time_synchronizer.h>
+#include <pcl_ros/transforms.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <voxgraph/frontend/voxgraph_mapper.h>
 #include <voxgraph_msgs/LoopClosure.h>
@@ -151,6 +152,11 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
             std::make_pair(T_G_Sm.cast<double>(), o3d_mesh));
         o3d_vis_->AddGeometry(o3d_mesh);
         updateCombinedMesh();
+
+        sensor_msgs::PointCloud2 T_Sm_P;
+        pcl_ros::transformPointCloud(T_G_Sm.inverse().getTransformationMatrix(),
+                                     *pointcloud_msg, T_Sm_P);
+        submap_collection_ptr_->getActiveSubmapPtr()->mesh_pointcloud_ = T_Sm_P;
       }
     }
   }

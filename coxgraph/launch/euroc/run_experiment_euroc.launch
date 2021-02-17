@@ -25,7 +25,7 @@
                 <arg name="tw_voxblox_config_file" value="$(arg tw_voxblox_config_file)" />
                 <arg name="tsdf_voxel_size" value="$(arg tsdf_voxel_size)" />
                 <arg name="truncation_distance" value="$(arg truncation_distance)" />
-                <arg name="debug_tsdf" value="false" />
+                <arg name="debug_cg" value="false" />
                 <arg name="recover_mode" value="$(arg recover_mode)" />
         </include>
 

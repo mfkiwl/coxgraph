@@ -112,11 +112,8 @@ bool CoxgraphClient::submapCallback(
     return false;
   if (submap_collection_ptr_->size()) {
     publishTimeLine();
-    LOG(INFO) << "last submap id: "
-              << submap_collection_ptr_->getLastSubmapId();
-    map_server_->publishSubmapMesh(submap_collection_ptr_->getLastSubmapId(),
-                                   frame_names_.input_odom_frame, submap_vis_);
-    map_server_->updatePastTsdf();
+    LOG(INFO) << "active submap id: "
+              << submap_collection_ptr_->getActiveSubmapID();
   }
   return true;
 }
