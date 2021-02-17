@@ -37,21 +37,16 @@ void ServerVisualizer::getFinalGlobalMesh(
       new SubmapCollection(*submap_collection_ptr));
   PoseGraphInterface global_pg_interface(pose_graph_interface,
                                          global_submap_collection_ptr);
-  // SubmapCollection::Ptr global_submap_collection_ptr = submap_collection_ptr;
-  // PoseGraphInterface& global_pg_interface = pose_graph_interface;
 
   for (auto const& submap_pack : other_submaps) {
     global_submap_collection_ptr->addSubmap(
         submap_pack.submap_ptr, submap_pack.cid, submap_pack.cli_sm_id);
     global_pg_interface.addSubmap(submap_pack.submap_ptr->getID());
   }
+  if (global_submap_collection_ptr->getSubmapConstPtrs().empty()) return;
 
   TransformationVector submap_poses;
   global_submap_collection_ptr->getSubmapPoses(&submap_poses);
-  LOG(INFO) << "before optimize";
-  for (int i = 0; i < submap_poses.size(); i++) {
-    LOG(INFO) << i << std::endl << submap_poses[i];
-  }
 
   global_pg_interface.updateSubmapRPConstraints();
 
@@ -66,20 +61,15 @@ void ServerVisualizer::getFinalGlobalMesh(
 
   auto pose_map = global_pg_interface.getPoseMap();
   LOG(INFO) << "pose graph results";
-  for (auto const& pose_kv : pose_map)
-    LOG(INFO) << pose_kv.first << std::endl << pose_kv.second;
 
   LOG(INFO) << "Evaluating Residuals of Map Fusion Constraints";
   global_pg_interface.printResiduals(
       PoseGraphInterface::ConstraintType::RelPose);
 
+  LOG(INFO) << global_submap_collection_ptr->getSubmapConstPtrs().size();
   global_pg_interface.updateSubmapCollectionPoses();
 
   global_submap_collection_ptr->getSubmapPoses(&submap_poses);
-  LOG(INFO) << "after optimize";
-  for (int i = 0; i < submap_poses.size(); i++) {
-    LOG(INFO) << i << std::endl << submap_poses[i];
-  }
 
   // TODO(mikexyl): also update client map tf using global opt
 

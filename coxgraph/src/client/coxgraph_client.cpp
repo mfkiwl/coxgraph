@@ -49,9 +49,6 @@ bool CoxgraphClient::getClientSubmapCallback(
         ser_sm_id_pose_map_.emplace(submap_id, submap.getPose());
         LOG(INFO) << log_prefix_ << " Submap " << submap_id
                   << " is successfully sent to server";
-      } else {
-        LOG(INFO) << log_prefix_ << " Submap " << submap_id
-                  << " has already been sent to server";
       }
       response.pub_time = ros::Time::now();
       return true;

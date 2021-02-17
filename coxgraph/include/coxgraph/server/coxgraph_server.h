@@ -37,29 +37,18 @@ namespace coxgraph {
 class CoxgraphServer {
  public:
   struct Config {
-    Config()
-        : client_number(0),
-          map_fusion_queue_size(10),
-          refuse_interval(ros::Duration(2)),
-          fixed_map_client_id(0),
-          map_frame_prefix("map"),
-          output_map_frame("mission"),
-          enable_registration_constraints(true),
-          enable_map_fusion_constraints(true),
-          publisher_queue_length(100),
-          use_tf_submap_pose(false),
-          enable_client_loop_closure(false) {}
-    int32_t client_number;
-    int32_t map_fusion_queue_size;
-    ros::Duration refuse_interval;
-    int32_t fixed_map_client_id;
-    std::string map_frame_prefix;
-    std::string output_map_frame;
-    bool enable_registration_constraints;
-    bool enable_map_fusion_constraints;
-    int32_t publisher_queue_length;
-    bool use_tf_submap_pose;
-    bool enable_client_loop_closure;
+    int32_t client_number = 0;
+    int32_t map_fusion_queue_size = 10;
+    ros::Duration refuse_interval = ros::Duration(2);
+    int32_t fixed_map_client_id = 0;
+    std::string map_frame_prefix = "map";
+    std::string output_map_frame = "mission";
+    bool enable_registration_constraints = true;
+    bool enable_map_fusion_constraints = true;
+    int32_t publisher_queue_length = 100;
+    bool use_tf_submap_pose = false;
+    bool enable_client_loop_closure = false;
+    int32_t publish_global_mesh_every_n_sec = 5;
 
     friend inline std::ostream& operator<<(std::ostream& s, const Config& v) {
       s << std::endl
@@ -87,6 +76,8 @@ class CoxgraphServer {
         << static_cast<std::string>(v.use_tf_submap_pose ? "enabled"
                                                          : "disabled")
         << std::endl
+        << "  publish_global_mesh_every_n_sec: "
+        << v.publish_global_mesh_every_n_sec << std::endl
         << "-------------------------------------------" << std::endl;
       return (s);
     }
@@ -137,6 +128,11 @@ class CoxgraphServer {
     CHECK_EQ(config_.fixed_map_client_id, 0)
         << "Fixed map client id has to be set 0 now, since pose graph "
            "optimization set pose of submap 0 as constant";
+
+    if (config_.publish_global_mesh_every_n_sec > 0)
+      generate_global_mesh_timer_ = nh_private_.createTimer(
+          ros::Duration(config_.publish_global_mesh_every_n_sec),
+          &CoxgraphServer::generateGlobalMeshEvent, this);
   }
 
   ~CoxgraphServer() = default;
@@ -268,6 +264,13 @@ class CoxgraphServer {
 
   DistributionController::Ptr distrib_ctl_ptr_;
   inline bool inControl() const { return distrib_ctl_ptr_->inControl(); }
+
+  ros::Timer generate_global_mesh_timer_;
+  void generateGlobalMeshEvent(const ros::TimerEvent& /*event*/) {
+    coxgraph_msgs::FilePath file_path_srv;
+    file_path_srv.request.file_path = "";
+    getFinalGlobalMeshCallback(file_path_srv.request, file_path_srv.response);
+  }
 
   constexpr static uint8_t kMaxClientNum = 2;
   constexpr static uint8_t kPoseUpdateWaitMs = 100;

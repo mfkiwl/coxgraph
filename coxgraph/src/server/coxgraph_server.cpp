@@ -55,7 +55,9 @@ CoxgraphServer::Config CoxgraphServer::getConfigFromRosParam(
                         config.publisher_queue_length);
   nh_private.param<bool>("use_tf_submap_pose", config.use_tf_submap_pose,
                          config.use_tf_submap_pose);
-
+  nh_private.param("publish_global_mesh_every_n_sec",
+                   config.publish_global_mesh_every_n_sec,
+                   config.publish_global_mesh_every_n_sec);
   return config;
 }
 
@@ -116,6 +118,7 @@ bool CoxgraphServer::getFinalGlobalMeshCallback(
   std::vector<CliSmIdPack> all_submaps;
   SerSmId start_ser_sm_id = submap_collection_ptr_->getNextSubmapID();
   for (auto const& ch : client_handlers_) {
+    if (!tf_controller_->ifClientFused(ch->getCliId())) continue;
     std::vector<CliSmIdPack> submaps_in_client;
     CHECK(ch->requestAllSubmaps(&submaps_in_client, &start_ser_sm_id));
     all_submaps.insert(all_submaps.end(), submaps_in_client.begin(),
@@ -536,8 +539,6 @@ void CoxgraphServer::updateCliMapRelativePose() {
       *(tf_controller_->getPoseUpdateMutex()));
   tf_controller_->resetCliMapRelativePoses();
   PoseMap pose_map = pose_graph_interface_.getPoseMap();
-  TransformationVector submap_poses;
-  submap_collection_ptr_->getSubmapPoses(&submap_poses);
   for (int i = 0; i < config_.client_number; i++) {
     std::vector<SerSmId> ser_sm_ids_a;
     if (!submap_collection_ptr_->getSerSmIdsByCliId(i, &ser_sm_ids_a)) continue;
@@ -549,8 +550,8 @@ void CoxgraphServer::updateCliMapRelativePose() {
 
       for (auto const& sm_id_a : ser_sm_ids_a) {
         for (auto const& sm_id_b : ser_sm_ids_b) {
-          Transformation T_CA_SMA = submap_poses[sm_id_a];
-          Transformation T_CB_SMB = submap_poses[sm_id_b];
+          Transformation T_CA_SMA = submap_collection_ptr_->getOriPose(sm_id_a);
+          Transformation T_CB_SMB = submap_collection_ptr_->getOriPose(sm_id_b);
           Transformation T_SMA_SMB =
               pose_map[sm_id_a].inverse() * pose_map[sm_id_b];
           Transformation T_CA_CB = T_CA_SMA * T_SMA_SMB * T_CB_SMB.inverse();

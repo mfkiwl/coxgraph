@@ -82,19 +82,18 @@ class GlobalTfController {
 
   std::mutex* getPoseUpdateMutex() { return &pose_update_mutex; }
 
-  inline bool inControl() const { return distrib_ctl_ptr_->inControl(); }
+  bool inControl() const { return distrib_ctl_ptr_->inControl(); }
 
-  inline const tf::StampedTransform& getTGCliOpt(const CliId& cid) const {
+  const tf::StampedTransform& getTGCliOpt(const CliId& cid) const {
     return T_G_CLI_opt_[cid];
   }
 
+  bool ifClientFused(CliId cid) const { return cli_tf_fused_[cid]; }
+
  private:
   void initCliMapPose();
-
   void pubCliTfCallback(const ros::TimerEvent& event);
-
   void updateCliMapPose();
-
   void computeOptCliMapPose();
 
   bool verbose_;
