@@ -1,6 +1,7 @@
 #ifndef COXGRAPH_CLIENT_COXGRAPH_CLIENT_H_
 #define COXGRAPH_CLIENT_COXGRAPH_CLIENT_H_
 
+#include <Open3D/Visualization/Visualizer/RenderOption.h>
 #include <Open3D/Visualization/Visualizer/Visualizer.h>
 #include <coxgraph_msgs/ClientSubmap.h>
 #include <coxgraph_msgs/ClientSubmapSrv.h>
@@ -19,6 +20,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <utility>
 
 #include "coxgraph/client/map_server.h"
 #include "coxgraph/common.h"
@@ -41,6 +43,12 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
     if (vis_combined_o3d_mesh_) {
       o3d_vis_ = new open3d::visualization::Visualizer();
       o3d_vis_->CreateVisualizerWindow("client_" + std::to_string(client_id_));
+      o3d_vis_->GetRenderOption().mesh_color_option_ =
+          open3d::visualization::RenderOption::MeshColorOption::Normal;
+      combined_mesh_.reset(new open3d::geometry::TriangleMesh());
+      o3d_vis_->AddGeometry(combined_mesh_);
+      o3d_mesh_timer_ = nh_private_.createTimer(
+          ros::Duration(0.01), &CoxgraphClient::o3dMeshVisualizeEvent, this);
     }
     subscribeToClientTopics();
     advertiseClientTopics();
@@ -125,9 +133,10 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
       mesh_pointcloud_sync_sub_;
 
   // T_Submap_Mesh
-  std::map<CliSmId, std::shared_ptr<open3d::geometry::TriangleMesh>>
+  std::map<CliSmId, std::pair<TransformationD,
+                              std::shared_ptr<open3d::geometry::TriangleMesh>>>
       mesh_collection_;
-  bool new_submap_added_;
+  std::shared_ptr<open3d::geometry::TriangleMesh> combined_mesh_;
   open3d::visualization::Visualizer* o3d_vis_;
   void submapMeshCallback(
       const voxblox_msgs::LayerWithTrajectoryConstPtr& layer_msg,
@@ -137,12 +146,11 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
       if (o3d_mesh != nullptr && vis_combined_o3d_mesh_) {
         auto T_G_Sm = submap_collection_ptr_->getActiveSubmapPose();
         // o3d_mesh: T_G_Mesh
-        o3d_mesh->Transform(
-            T_G_Sm.cast<double>().inverse().getTransformationMatrix());
-        mesh_collection_.emplace(submap_collection_ptr_->getActiveSubmapID(),
-                                 o3d_mesh);
+        mesh_collection_.emplace(
+            submap_collection_ptr_->getActiveSubmapID(),
+            std::make_pair(T_G_Sm.cast<double>(), o3d_mesh));
         o3d_vis_->AddGeometry(o3d_mesh);
-        o3dMeshVisualize();
+        updateCombinedMesh();
       }
     }
   }
@@ -150,27 +158,27 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
   bool vis_combined_o3d_mesh_;
   ros::Timer o3d_mesh_timer_;
   void o3dMeshVisualizeEvent(const ros::TimerEvent& /*event*/) {
-    o3dMeshVisualize();
-  }
-
-  void o3dMeshVisualize() {
-    for (auto const& kv : mesh_collection_) {
-      Transformation T_G_Sm;
-      submap_collection_ptr_->getSubmapPose(kv.first, &T_G_Sm);
-      // Transform to T_G_Mesh
-      kv.second->Transform(T_G_Sm.cast<double>().getTransformationMatrix());
-      kv.second->ComputeTriangleNormals();
-      o3d_vis_->UpdateGeometry(kv.second);
-    }
     o3d_vis_->PollEvents();
     o3d_vis_->UpdateRender();
+  }
 
-    for (auto const& kv : mesh_collection_) {
-      Transformation T_G_Sm;
-      submap_collection_ptr_->getSubmapPose(kv.first, &T_G_Sm);
-      // Transform mesh back to T_Submap_Mesh
-      kv.second->Transform(
-          T_G_Sm.cast<double>().inverse().getTransformationMatrix());
+  void updateCombinedMesh() {
+    combined_mesh_->Clear();
+    for (auto& kv : mesh_collection_) {
+      Transformation T_G_new;
+      submap_collection_ptr_->getSubmapPose(kv.first, &T_G_new);
+      // Transform to T_new_Mesh
+      TransformationD T_old_new, T_G_old = kv.second.first;
+      T_old_new = T_G_old.inverse() * T_G_new.cast<double>();
+      kv.second.first = T_G_new.cast<double>();
+      kv.second.second->Transform(T_old_new.getTransformationMatrix());
+      *combined_mesh_ += *kv.second.second;
+      combined_mesh_->MergeCloseVertices(0.005);
+      combined_mesh_->RemoveDuplicatedVertices();
+      combined_mesh_->RemoveDuplicatedTriangles();
+      combined_mesh_->ComputeVertexNormals();
+      combined_mesh_->ComputeTriangleNormals();
+      o3d_vis_->UpdateGeometry(kv.second.second);
     }
   }
 };
