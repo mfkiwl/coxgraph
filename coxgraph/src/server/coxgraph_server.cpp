@@ -115,11 +115,11 @@ bool CoxgraphServer::getFinalGlobalMeshCallback(
   LOG(INFO) << "Map fusion process is paused, generating final mesh";
 
   // requesting submaps one by one to avoid bandwidth peak,
-  std::vector<CliSmIdPack> all_submaps;
+  std::vector<CliSmPack> all_submaps;
   SerSmId start_ser_sm_id = submap_collection_ptr_->getNextSubmapID();
   for (auto const& ch : client_handlers_) {
     if (!tf_controller_->ifClientFused(ch->getCliId())) continue;
-    std::vector<CliSmIdPack> submaps_in_client;
+    std::vector<CliSmPack> submaps_in_client;
     CHECK(ch->requestAllSubmaps(&submaps_in_client, &start_ser_sm_id));
     all_submaps.insert(all_submaps.end(), submaps_in_client.begin(),
                        submaps_in_client.end());

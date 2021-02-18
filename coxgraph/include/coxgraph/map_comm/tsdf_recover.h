@@ -2,7 +2,9 @@
 #define COXGRAPH_MAP_COMM_TSDF_RECOVER_H_
 
 #include <cblox_msgs/MapPoseUpdates.h>
+#include <pcl_ros/point_cloud.h>
 #include <ros/ros.h>
+#include <sensor_msgs/PointCloud2.h>
 #include <voxblox/integrator/tsdf_integrator.h>
 #include <voxblox_msgs/LayerWithTrajectory.h>
 #include <voxblox_ros/ros_params.h>
@@ -17,17 +19,12 @@ namespace voxblox {
 class TsdfRecover : public TsdfServer {
  public:
   struct Config {
-    Config() : publish_recovered_pointcloud(true), use_tf_submap_pose(false) {}
-    bool publish_recovered_pointcloud;
+    Config() : use_tf_submap_pose(false) {}
     bool use_tf_submap_pose;
 
     friend inline std::ostream& operator<<(std::ostream& s, const Config& v) {
       s << std::endl
         << "Tsdf Recover using Config:" << std::endl
-        << "  Publish Recovered Pointcloud: "
-        << static_cast<std::string>(v.publish_recovered_pointcloud ? "enabled"
-                                                                   : "disabled")
-        << std::endl
         << "  Use TF Submap Pose: "
         << static_cast<std::string>(v.use_tf_submap_pose ? "enabled"
                                                          : "disabled")
@@ -39,9 +36,6 @@ class TsdfRecover : public TsdfServer {
 
   static Config getConfigFromRosParam(const ros::NodeHandle& nh_private) {
     Config config;
-    nh_private.param<bool>("publish_recovered_pointcloud",
-                           config.publish_recovered_pointcloud,
-                           config.publish_recovered_pointcloud);
     nh_private.param<bool>("use_tf_submap_pose", config.use_tf_submap_pose,
                            config.use_tf_submap_pose);
     return config;
@@ -62,11 +56,13 @@ class TsdfRecover : public TsdfServer {
 
   ~TsdfRecover() = default;
 
-  auto processMesh(const voxblox_msgs::Mesh& mesh_msg) {
+  bool processMesh(const voxblox_msgs::Mesh& mesh_msg,
+                   voxblox_msgs::LayerWithTrajectory* layer_msg,
+                   pcl::PointCloud<pcl::PointXYZ>* recovered_pointcloud) {
     tsdf_map_->getTsdfLayerPtr()->removeAllBlocks();
     timing::Timer mesh_process_timer("mesh_process");
     mesh_converter_->setMesh(mesh_msg);
-    mesh_converter_->convertToPointCloud();
+    mesh_converter_->convertToPointCloud(recovered_pointcloud);
 
     Transformation T_G_C;
     Pointcloud points_C;
@@ -97,12 +93,10 @@ class TsdfRecover : public TsdfServer {
     LOG(INFO) << "layer memory: " << tsdf_map_->getTsdfLayer().getMemorySize();
     ROS_INFO_STREAM("Timings: " << std::endl << timing::Timing::Print());
 
-    voxblox_msgs::LayerWithTrajectory layer_with_traj;
-    serializeLayerAsMsg(tsdf_map_->getTsdfLayer(), false,
-                        &layer_with_traj.layer);
-    layer_with_traj.trajectory = mesh_msg.trajectory;
+    serializeLayerAsMsg(tsdf_map_->getTsdfLayer(), false, &layer_msg->layer);
+    layer_msg->trajectory = mesh_msg.trajectory;
 
-    return layer_with_traj;
+    return true;
   }
 
  private:
@@ -116,17 +110,24 @@ class TsdfRecover : public TsdfServer {
       LOG(FATAL) << "Don't turn on use_tf_submap_pose, bug unfix";
   }
   void advertiseTopics() {
-    if (config_.publish_recovered_pointcloud)
-      recovered_pointcloud_pub_ =
-          nh_private_.advertise<pcl::PointCloud<pcl::PointXYZ>>(
-              "recovered_pointcloud", 1, true);
+    recovered_pointcloud_pub_ = nh_private_.advertise<sensor_msgs::PointCloud2>(
+        "mesh_pointcloud", 1, true);
     frame_pointcloud_pub_ =
         nh_private_.advertise<pcl::PointCloud<pcl::PointXYZ>>(
             "in_fov_pointcloud", 1, true);
   }
 
   void meshCallback(const voxblox_msgs::Mesh& mesh_msg) {
-    tsdf_map_pub_.publish(processMesh(mesh_msg));
+    pcl::PointCloud<pcl::PointXYZ> recovered_pointcloud;
+    voxblox_msgs::LayerWithTrajectory layer_msg;
+    processMesh(mesh_msg, &layer_msg, &recovered_pointcloud);
+    sensor_msgs::PointCloud2 recovered_pointcloud_msg;
+    pcl::toROSMsg<pcl::PointXYZ>(recovered_pointcloud,
+                                 recovered_pointcloud_msg);
+    recovered_pointcloud_msg.header.stamp = mesh_msg.header.stamp;
+    layer_msg.header.stamp = mesh_msg.header.stamp;
+    tsdf_map_pub_.publish(layer_msg);
+    recovered_pointcloud_pub_.publish(recovered_pointcloud_msg);
 
     if (verbose_) {
       ROS_INFO_STREAM("Timings: " << std::endl << timing::Timing::Print());

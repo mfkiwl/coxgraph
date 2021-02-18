@@ -129,7 +129,7 @@ void ClientHandler::submapPoseUpdatesCallback(
   submap_collection_ptr_->getPosesUpdateMutex()->unlock();
 }
 
-bool ClientHandler::requestAllSubmaps(std::vector<CliSmIdPack>* submap_packs,
+bool ClientHandler::requestAllSubmaps(std::vector<CliSmPack>* submap_packs,
                                       SerSmId* start_ser_sm_id) {
   std::lock_guard<std::mutex> submap_request_lock(submap_request_mutex_);
 

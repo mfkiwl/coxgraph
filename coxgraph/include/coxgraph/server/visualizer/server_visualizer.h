@@ -1,6 +1,8 @@
 #ifndef COXGRAPH_SERVER_VISUALIZER_SERVER_VISUALIZER_H_
 #define COXGRAPH_SERVER_VISUALIZER_SERVER_VISUALIZER_H_
 
+#include <Open3D/Geometry/TriangleMesh.h>
+#include <Open3D/Visualization/Visualizer/Visualizer.h>
 #include <cblox/mesh/submap_mesher.h>
 #include <ros/ros.h>
 #include <voxblox/io/mesh_ply.h>
@@ -24,15 +26,11 @@ namespace server {
 class ServerVisualizer {
  public:
   struct Config {
-    Config()
-        : mesh_opacity(1.0),
-          submap_mesh_color_mode("lambert_color"),
-          combined_mesh_color_mode("normals"),
-          publish_submap_meshes_every_n_sec(1.0) {}
-    float mesh_opacity;
-    std::string submap_mesh_color_mode;
-    std::string combined_mesh_color_mode;
-    float publish_submap_meshes_every_n_sec;
+    float mesh_opacity = 1.0;
+    std::string submap_mesh_color_mode = "lambert_color";
+    std::string combined_mesh_color_mode = "normals";
+    float publish_submap_meshes_every_n_sec = 1.0;
+    bool o3d_visualize = true;
 
     friend inline std::ostream& operator<<(std::ostream& s, const Config& v) {
       s << std::endl
@@ -44,6 +42,7 @@ class ServerVisualizer {
         << std::endl
         << "  Publish Submap Meshes Every: "
         << v.publish_submap_meshes_every_n_sec << " s" << std::endl
+        << "  o3d_visualize: " << v.o3d_visualize << std::endl
         << "-------------------------------------------" << std::endl;
       return (s);
     }
@@ -72,6 +71,17 @@ class ServerVisualizer {
         voxblox::getColorModeFromString(config_.combined_mesh_color_mode));
 
     advertiseTopics();
+
+    if (config_.o3d_visualize) {
+      o3d_vis_ = new open3d::visualization::Visualizer();
+      o3d_vis_->CreateVisualizerWindow("global_mesh");
+      o3d_vis_->GetRenderOption().mesh_color_option_ =
+          open3d::visualization::RenderOption::MeshColorOption::Normal;
+      combined_mesh_.reset(new open3d::geometry::TriangleMesh());
+      // o3d_vis_->AddGeometry(combined_mesh_);
+      o3d_vis_update_timer_ = nh_private_.createTimer(
+          ros::Duration(0.01), &ServerVisualizer::o3dVisUpdateEvent, this);
+    }
   }
 
   ~ServerVisualizer() = default;
@@ -115,14 +125,14 @@ class ServerVisualizer {
    */
   void getFinalGlobalMesh(const SubmapCollection::Ptr& submap_collection_ptr,
                           const PoseGraphInterface& pose_graph_interface,
-                          const std::vector<CliSmIdPack>& other_submaps,
+                          const std::vector<CliSmPack>& other_submaps,
                           const std::string& mission_frame,
                           const ros::Publisher& publisher,
                           const std::string& file_path);
 
   void getFinalGlobalMesh(const SubmapCollection::Ptr& submap_collection_ptr,
                           const PoseGraphInterface& pose_graph_interface,
-                          const std::vector<CliSmIdPack>& other_submaps,
+                          const std::vector<CliSmPack>& other_submaps,
                           const std::string& mission_frame,
                           const std::string& file_path) {
     getFinalGlobalMesh(submap_collection_ptr, pose_graph_interface,
@@ -154,6 +164,14 @@ class ServerVisualizer {
       kv.second.mesh.mesh.header.stamp = ros::Time::now();
       separated_mesh_pub_.publish(kv.second.mesh);
     }
+  }
+
+  open3d::visualization::Visualizer* o3d_vis_;
+  std::shared_ptr<open3d::geometry::TriangleMesh> combined_mesh_;
+  ros::Timer o3d_vis_update_timer_;
+  void o3dVisUpdateEvent(const ros::TimerEvent& /*event*/) {
+    o3d_vis_->PollEvents();
+    o3d_vis_->UpdateRender();
   }
 };  // namespace server
 

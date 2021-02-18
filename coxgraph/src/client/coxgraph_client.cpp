@@ -12,7 +12,21 @@
 
 namespace coxgraph {
 
-void CoxgraphClient::subscribeToClientTopics() {}
+void CoxgraphClient::subscribeToClientTopics() {
+  if (recover_mode_) {
+    submap_subscriber_.shutdown();
+    submap_sync_sub_ =
+        new message_filters::Subscriber<voxblox_msgs::LayerWithTrajectory>(
+            nh_private_, submap_topic_, 1);
+    mesh_pointcloud_sync_sub_ =
+        new message_filters::Subscriber<sensor_msgs::PointCloud2>(
+            nh_private_, "mesh_pointcloud", 1);
+    synchronizer_ = new message_filters::Synchronizer<sync_pol>(
+        sync_pol(10), *submap_sync_sub_, *mesh_pointcloud_sync_sub_);
+    synchronizer_->registerCallback(
+        boost::bind(&CoxgraphClient::submapMeshCallback, this, _1, _2));
+  }
+}
 
 void CoxgraphClient::advertiseClientTopics() {
   time_line_pub_ = nh_private_.advertise<coxgraph_msgs::TimeLine>(
@@ -67,8 +81,8 @@ bool CoxgraphClient::getClientSubmapCallback(
 }
 
 bool CoxgraphClient::getAllClientSubmapsCallback(
-    coxgraph_msgs::SubmapsSrv::Request& request,  /////////
-    coxgraph_msgs::SubmapsSrv::Response& response) {
+    coxgraph_msgs::SubmapsSrv::Request& request,      // NOLINT
+    coxgraph_msgs::SubmapsSrv::Response& response) {  // NOLINT
   LOG(INFO) << log_prefix_
             << "Server is requesting all submaps! pausing submap process";
   uint8_t trials_ = 0;
@@ -98,11 +112,8 @@ bool CoxgraphClient::submapCallback(
     return false;
   if (submap_collection_ptr_->size()) {
     publishTimeLine();
-    LOG(INFO) << "last submap id: "
-              << submap_collection_ptr_->getLastSubmapId();
-    map_server_->publishSubmapMesh(submap_collection_ptr_->getLastSubmapId(),
-                                   frame_names_.input_odom_frame, submap_vis_);
-    map_server_->updatePastTsdf();
+    LOG(INFO) << "active submap id: "
+              << submap_collection_ptr_->getActiveSubmapID();
   }
   return true;
 }

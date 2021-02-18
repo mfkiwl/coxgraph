@@ -108,7 +108,7 @@ class ClientHandler {
                                const SerSmId& ser_sid, CliSmId* cli_sid,
                                CliSm::Ptr* submap, Transformation* T_Sm_C_t);
 
-  bool requestAllSubmaps(std::vector<CliSmIdPack>* submap_packs,
+  bool requestAllSubmaps(std::vector<CliSmPack>* submap_packs,
                          SerSmId* start_ser_sm_id);
 
   bool requestPoseHistory(const std::string& file_path,

@@ -25,9 +25,9 @@ using SerSmId = voxgraph::SubmapID;
 using CliSmId = voxgraph::SubmapID;
 typedef std::pair<CliId, CliSmId> CIdCSIdPair;
 
-struct CliSmIdPack {
-  CliSmIdPack(const CliSm::Ptr& submap_ptr_in, const CliId& cid_in,
-              const CliSmId& cli_sm_id_in)
+struct CliSmPack {
+  CliSmPack(const CliSm::Ptr& submap_ptr_in, const CliId& cid_in,
+            const CliSmId& cli_sm_id_in)
       : submap_ptr(submap_ptr_in), cid(cid_in), cli_sm_id(cli_sm_id_in) {}
   CliSm::Ptr submap_ptr;
   CliId cid;

@@ -1,5 +1,7 @@
 #include "coxgraph/server/visualizer/server_visualizer.h"
 
+#include <Open3D/Visualization/Utility/DrawGeometry.h>
+
 #include <chrono>
 #include <future>
 #include <string>
@@ -7,6 +9,7 @@
 
 #include "coxgraph/common.h"
 #include "coxgraph/server/submap_collection.h"
+#include "coxgraph/utils/msg_converter.h"
 
 namespace coxgraph {
 namespace server {
@@ -22,13 +25,14 @@ ServerVisualizer::Config ServerVisualizer::getConfigFromRosParam(
   nh_private.param("publish_submap_meshes_every_n_sec",
                    config.publish_submap_meshes_every_n_sec,
                    config.publish_submap_meshes_every_n_sec);
+  nh_private.param("o3d_visualize", config.o3d_visualize, config.o3d_visualize);
   return config;
 }
 
 void ServerVisualizer::getFinalGlobalMesh(
     const SubmapCollection::Ptr& submap_collection_ptr,
     const PoseGraphInterface& pose_graph_interface,
-    const std::vector<CliSmIdPack>& other_submaps,
+    const std::vector<CliSmPack>& other_submaps,
     const std::string& mission_frame, const ros::Publisher& publisher,
     const std::string& file_path) {
   LOG(INFO) << "Generating final mesh";
@@ -45,9 +49,6 @@ void ServerVisualizer::getFinalGlobalMesh(
   }
   if (global_submap_collection_ptr->getSubmapConstPtrs().empty()) return;
 
-  TransformationVector submap_poses;
-  global_submap_collection_ptr->getSubmapPoses(&submap_poses);
-
   global_pg_interface.updateSubmapRPConstraints();
 
   auto opt_async = std::async(std::launch::async, &PoseGraphInterface::optimize,
@@ -60,18 +61,29 @@ void ServerVisualizer::getFinalGlobalMesh(
   LOG(INFO) << "Optimization finished, generating global mesh...";
 
   auto pose_map = global_pg_interface.getPoseMap();
-  LOG(INFO) << "pose graph results";
 
   LOG(INFO) << "Evaluating Residuals of Map Fusion Constraints";
   global_pg_interface.printResiduals(
       PoseGraphInterface::ConstraintType::RelPose);
 
-  LOG(INFO) << global_submap_collection_ptr->getSubmapConstPtrs().size();
-  global_pg_interface.updateSubmapCollectionPoses();
-
-  global_submap_collection_ptr->getSubmapPoses(&submap_poses);
-
-  // TODO(mikexyl): also update client map tf using global opt
+  // Combine mesh
+  combined_mesh_->Clear();
+  for (auto const& submap :
+       global_submap_collection_ptr->getSubmapConstPtrs()) {
+    auto submap_mesh = utils::o3dMeshFromMsg(*submap->mesh_pointcloud_);
+    if (submap_mesh == nullptr) continue;
+    submap_mesh->Transform(
+        pose_map[submap->getID()].cast<double>().getTransformationMatrix());
+    *combined_mesh_ += *submap_mesh;
+  }
+  combined_mesh_->MergeCloseVertices(0.005);
+  combined_mesh_->RemoveDuplicatedVertices();
+  combined_mesh_->RemoveDuplicatedTriangles();
+  // combined_mesh_->FilterSmoothTaubin(100);
+  combined_mesh_->ComputeVertexNormals();
+  combined_mesh_->ComputeTriangleNormals();
+  o3d_vis_->AddGeometry(combined_mesh_);
+  o3d_vis_->UpdateGeometry(combined_mesh_);
 
   submap_vis_.saveAndPubCombinedMesh(*global_submap_collection_ptr,
                                      mission_frame, publisher, file_path);

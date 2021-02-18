@@ -119,6 +119,7 @@ void MapServer::publishTraversable() {
 void MapServer::publishSubmapMesh(CliSmId csid, std::string /* world_frame */,
                                   const voxgraph::SubmapVisuals& submap_vis) {
   CliSm::ConstPtr submap_ptr = submap_collection_ptr_->getSubmapConstPtr(csid);
+  CHECK(submap_ptr != nullptr);
   auto mesh_layer_ptr =
       std::make_shared<cblox::MeshLayer>(submap_collection_ptr_->block_size());
 
