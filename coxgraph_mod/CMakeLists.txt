@@ -12,17 +12,6 @@ target_link_libraries(vio_interface
     ${CATKIN_LIBRARIES}
 )
 
-cs_add_library(tsdf_recover
-  src/mesh_converter.cpp
-  src/tsdf_recover.cpp)
-target_link_libraries(tsdf_recover
-    ${CATKIN_LIBRARIES}
-)
-
-cs_add_executable(tsdf_recover_node
-  src/tsdf_recover_node.cpp)
-target_link_libraries(tsdf_recover_node tsdf_recover) 
-
 ##########
 # EXPORT #
 ##########

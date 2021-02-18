@@ -1,26 +1,26 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="mav_name" default="jay"/>
-  <arg name="id" default="0" />
-  <arg name="namespace" default="$(arg mav_name)_$(arg id)" />
-  <arg name="local_frame_id" default="odom" />
+        <arg name="mav_name" default="jay" />
+        <arg name="id" default="0" />
+        <arg name="namespace" default="$(arg mav_name)_$(arg id)" />
+        <arg name="local_frame_id" default="odom" />
 
-  <!-- Need to specify location of calibration files -->
-  <arg name="calibration_root" default="$(find coxgraph)/config/asl_flights" />
+        <!-- Need to specify location of calibration files -->
+        <arg name="calibration_root" default="$(find coxgraph)/config/asl_flights" />
 
-  <group ns="$(arg namespace)" >
+        <group ns="$(arg namespace)">
 
-    <node name="rovio" pkg="rovio" type="rovio_node" output="log" clear_params="true">
-      <param name="filter_config" value="$(arg calibration_root)/rovio_filter_p23022.info" />
-      <param name="camera0_config" value="$(arg calibration_root)/rovio_equidist_cam0_p23022.yaml" />
-      <param name="world_frame" value="odom_$(arg id)"/>
-      <param name="map_frame" value="map_$(arg id)"/>
-      <param name="imu_frame" value="imu_$(arg id)"/>
-      <param name="camera_frame" value="camera_$(arg id)_"/>
-    </node>
+                <node name="rovio" pkg="rovio" type="rovio_node" output="log" clear_params="true">
+                        <param name="filter_config" value="$(arg calibration_root)/rovio_filter_p23022.info" />
+                        <param name="camera0_config" value="$(arg calibration_root)/rovio_equidist_cam0_p23022.yaml" />
+                        <param name="world_frame" value="odom_$(arg id)" />
+                        <param name="map_frame" value="map_$(arg id)" />
+                        <param name="imu_frame" value="imu_$(arg id)" />
+                        <param name="camera_frame" value="camera_$(arg id)_" />
+                </node>
 
-    <node pkg="tf" type="static_transform_publisher" name="depth_tf_broadcaster" args="-0.0737 0.0232 0.0460 0.0122 0.0045 0.0041 0.9999 camera_$(arg id)_0 depth 100"/>
+                <node pkg="tf" type="static_transform_publisher" name="depth_tf_broadcaster" args="-0.0737 0.0232 0.0460 0.0122 0.0045 0.0041 0.9999 camera_$(arg id)_0 depth 100" />
 
-  </group>
+        </group>
 
 </launch>
