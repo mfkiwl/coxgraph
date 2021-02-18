@@ -40,7 +40,7 @@
       <param name="skip_cnt" type="int" value="0" />
       <param name="skip_dis" type="double" value="0" />
       <param name="num_odom_connections" type="int" value="2"/>
-      <param name="agent_id" value="$(arg id)"/>
+      <param name="num_agents" value="-1"/>
 
       <remap from="pose_graph_$(arg id)/keyframe_pose" to="vins_estimator_$(arg id)/keyframe_pose" />
       <remap from="pose_graph_$(arg id)/keyframe_point" to="vins_estimator_$(arg id)/keyframe_point" />

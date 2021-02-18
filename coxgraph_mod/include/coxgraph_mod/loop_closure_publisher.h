@@ -37,7 +37,7 @@ class LoopClosurePublisher {
                        const ros::NodeHandle& nh_private,
                        bool server_mode = false)
       : nh_(nh), nh_private_(nh_private) {
-    nh_private_.param("num_agents", client_number_, 0);
+    nh_private_.param("num_agents", client_number_, -1);
 
     nh_private_.param<std::string>("loop_closure_topic_prefix",
                                    loop_closure_topic_prefix_,
@@ -47,6 +47,12 @@ class LoopClosurePublisher {
     need_to_fuse_client_ =
         nh_private_.serviceClient<coxgraph_msgs::NeedToFuseSrv>(
             need_to_fuse_srv_name_);
+
+    if (client_number_ == -1) {
+      loop_closure_pub_.emplace(
+          -1, nh_private_.advertise<coxgraph_msgs::LoopClosure>(
+                  "loop_closure_out", 10, true));
+    }
 
     for (int i = 0; i < client_number_; i++) {
       for (int j = 0; j < i + 1; j++) {
@@ -117,23 +123,9 @@ class LoopClosurePublisher {
     loop_closure_msg.to_timestamp = ros::Time(to_timestamp);
     loop_closure_msg.transform.rotation = rotation;
     loop_closure_msg.transform.translation = transform;
-    if (cid > 0) {
-      if (!loop_closure_pub_.count(cid)) {
-        loop_closure_pub_.emplace(
-            cid,
-            nh_private_.advertise<coxgraph_msgs::LoopClosure>(
-                loop_closure_topic_prefix_ + std::to_string(cid), 10, true));
-      }
-      loop_closure_pub_[cid].publish(loop_closure_msg);
-      ROS_INFO_STREAM("Published loop closure msg for client " << cid);
-    } else {
-      if (!loop_closure_pub_.count(-1))
-        loop_closure_pub_.emplace(
-            -1, nh_private_.advertise<coxgraph_msgs::LoopClosure>(
-                    "loop_closure_out", 10, true));
-      loop_closure_pub_[-1].publish(loop_closure_msg);
-      ROS_INFO_STREAM("Published loop closure msg");
-    }
+
+    loop_closure_pub_[-1].publish(loop_closure_msg);
+    ROS_INFO_STREAM("Published loop closure msg");
 
     return true;
   }
