@@ -55,9 +55,9 @@ CoxgraphServer::Config CoxgraphServer::getConfigFromRosParam(
                         config.publisher_queue_length);
   nh_private.param<bool>("use_tf_submap_pose", config.use_tf_submap_pose,
                          config.use_tf_submap_pose);
-  nh_private.param("publish_global_mesh_every_n_sec",
-                   config.publish_global_mesh_every_n_sec,
-                   config.publish_global_mesh_every_n_sec);
+  nh_private.param("publish_global_mesh_on_update",
+                   config.publish_global_mesh_on_update,
+                   config.publish_global_mesh_on_update);
   return config;
 }
 
@@ -514,6 +514,8 @@ CoxgraphServer::OptState CoxgraphServer::optimizePoseGraph(
   if (verbose_) evaluateResiduals();
 
   updateCliMapRelativePose();
+
+  global_mesh_initialized_ = true;
 
   // Report successful completion
   return OptState::OK;

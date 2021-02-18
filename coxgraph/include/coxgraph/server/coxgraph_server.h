@@ -48,7 +48,7 @@ class CoxgraphServer {
     int32_t publisher_queue_length = 100;
     bool use_tf_submap_pose = false;
     bool enable_client_loop_closure = false;
-    int32_t publish_global_mesh_every_n_sec = 5;
+    int32_t publish_global_mesh_on_update = true;
 
     friend inline std::ostream& operator<<(std::ostream& s, const Config& v) {
       s << std::endl
@@ -76,8 +76,8 @@ class CoxgraphServer {
         << static_cast<std::string>(v.use_tf_submap_pose ? "enabled"
                                                          : "disabled")
         << std::endl
-        << "  publish_global_mesh_every_n_sec: "
-        << v.publish_global_mesh_every_n_sec << std::endl
+        << "  publish_global_mesh_on_update" << v.publish_global_mesh_on_update
+        << std::endl
         << "-------------------------------------------" << std::endl;
       return (s);
     }
@@ -104,7 +104,9 @@ class CoxgraphServer {
         pose_graph_interface_(nh_private, submap_collection_ptr_, mesh_config,
                               config.output_map_frame, false),
         server_vis_(
-            new ServerVisualizer(nh, nh_private, submap_config, mesh_config)) {
+            new ServerVisualizer(nh, nh_private, submap_config, mesh_config)),
+        global_mesh_initialized_(false),
+        global_mesh_need_update_(0) {
     nh_private_.param<bool>("verbose", verbose_, verbose_);
     LOG(INFO) << "Verbose: " << verbose_;
     LOG(INFO) << config_;
@@ -129,10 +131,9 @@ class CoxgraphServer {
         << "Fixed map client id has to be set 0 now, since pose graph "
            "optimization set pose of submap 0 as constant";
 
-    if (config_.publish_global_mesh_every_n_sec > 0)
+    if (config_.publish_global_mesh_on_update > 0)
       generate_global_mesh_timer_ = nh_private_.createTimer(
-          ros::Duration(config_.publish_global_mesh_every_n_sec),
-          &CoxgraphServer::generateGlobalMeshEvent, this);
+          ros::Duration(1), &CoxgraphServer::generateGlobalMeshEvent, this);
   }
 
   ~CoxgraphServer() = default;
@@ -177,7 +178,10 @@ class CoxgraphServer {
                          bool future = false);
   void addToMFFuture(const coxgraph_msgs::MapFusion& map_fusion_msg);
   void processMFFuture();
-  void timeLineUpdateCallback() { processMFFuture(); }
+  void timeLineUpdateCallback() {
+    processMFFuture();
+    global_mesh_need_update_++;
+  }
   bool needRefuse(const CliId& cid_a, const ros::Time& time_a,
                   const CliId& cid_b, const ros::Time& time_b);
   bool updateNeedRefuse(const CliId& cid_a, const ros::Time& time_a,
@@ -266,10 +270,16 @@ class CoxgraphServer {
   inline bool inControl() const { return distrib_ctl_ptr_->inControl(); }
 
   ros::Timer generate_global_mesh_timer_;
+  int global_mesh_need_update_;
+  bool global_mesh_initialized_;
   void generateGlobalMeshEvent(const ros::TimerEvent& /*event*/) {
-    coxgraph_msgs::FilePath file_path_srv;
-    file_path_srv.request.file_path = "";
-    getFinalGlobalMeshCallback(file_path_srv.request, file_path_srv.response);
+    if (config_.publish_global_mesh_on_update && global_mesh_initialized_ &&
+        global_mesh_need_update_ % config_.client_number == 0) {
+      coxgraph_msgs::FilePath file_path_srv;
+      file_path_srv.request.file_path = "";
+      getFinalGlobalMeshCallback(file_path_srv.request, file_path_srv.response);
+      global_mesh_need_update_ = false;
+    }
   }
 
   constexpr static uint8_t kMaxClientNum = 2;

@@ -77,7 +77,6 @@ class ServerVisualizer {
       o3d_vis_->CreateVisualizerWindow("global_mesh");
       o3d_vis_->GetRenderOption().mesh_color_option_ =
           open3d::visualization::RenderOption::MeshColorOption::Normal;
-      combined_mesh_.reset(new open3d::geometry::TriangleMesh());
       // o3d_vis_->AddGeometry(combined_mesh_);
       o3d_vis_update_timer_ = nh_private_.createTimer(
           ros::Duration(0.01), &ServerVisualizer::o3dVisUpdateEvent, this);
@@ -143,7 +142,6 @@ class ServerVisualizer {
  private:
   ros::NodeHandle nh_;
   ros::NodeHandle nh_private_;
-
   Config config_;
 
   CliSmConfig submap_config_;
@@ -167,7 +165,6 @@ class ServerVisualizer {
   }
 
   open3d::visualization::Visualizer* o3d_vis_;
-  std::shared_ptr<open3d::geometry::TriangleMesh> combined_mesh_;
   ros::Timer o3d_vis_update_timer_;
   void o3dVisUpdateEvent(const ros::TimerEvent& /*event*/) {
     o3d_vis_->PollEvents();

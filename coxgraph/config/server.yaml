@@ -26,7 +26,7 @@ global_tf_controller:
   map_frame_prefix: "map"
 
 submap_registration:
-  enabled: true
+  enabled: false
   sampling_ratio: 0.05
   registration_method: "explicit_to_implicit"
   information_matrix:
@@ -61,3 +61,4 @@ enable_client_loop_closure: false
 publish_submap_meshes_every_n_sec: 0.0
 
 o3d_visualize: true
+publish_global_mesh_on_update: true
