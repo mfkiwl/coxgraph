@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<launch>
+        <param name="use_sim_time" value="true"/>
+        <arg name="mav_name" default="jay" />
+        <arg name="bag_file" default="/home/lxy/Datasets_ssd/asl-flights/flight_3.bag" />
+
+        <include file="$(find coxgraph)/launch/asl_flights/rovio.launch">
+                <arg name="id" value="0" />
+        </include>
+
+        <include file="$(find coxgraph)/launch/firefly/coxgraph_client.launch">
+                <arg name="id" value="0" />
+                <arg name="pointcloud_topic" value="/throttled_pointcloud_0" />
+                <arg name="world_frame_suffix" value="odom" />
+                <arg name="debug_tsdf" value="false" />
+                <arg name="recover_mode" value="false" />
+        </include>
+                rosrun topic_tools throttle messages base_scan 1.0
+        <node name="throttle_pointcloud_0" pkg="topic_tools" type="throttle" output="screen" args="messages /$(arg mav_name)_0/depth/color/points 20 /throttled_pointcloud_0" />
+
+
+        <node name="player_0" pkg="rosbag" type="play" args="$(arg bag_file) --clock -q /jay/cam0/image_raw:=/$(arg mav_name)_0/cam0/image_raw /jay/imu0:=/$(arg mav_name)_0/imu0 /jay/depth/color/points:=/$(arg mav_name)_0/depth/color/points" output="log" />
+
+</launch>
