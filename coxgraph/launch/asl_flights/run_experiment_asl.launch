@@ -17,6 +17,6 @@
         </include>
         <node name="throttle_pointcloud_0" pkg="topic_tools" type="throttle" output="screen" args="messages /$(arg mav_name)_0/depth/color/points 20 /throttled_pointcloud_0" />
 
-        <node name="player_0" pkg="rosbag" type="play" args="$(arg bag_file) --clock -q /jay/cam0/image_raw:=/$(arg mav_name)_0/cam0/image_raw /jay/imu0:=/$(arg mav_name)_0/imu0 /jay/depth/color/points:=/$(arg mav_name)_0/depth/color/points" output="log" />
+        <node name="player_0" pkg="rosbag" type="play" args="$(arg bag_file) --clock -q /jay/cam0/image_raw:=/$(arg mav_name)_0/cam0/image_raw /jay/imu0:=/$(arg mav_name)_0/imu0 /jay/depth/color/points:=/$(arg mav_name)_0/depth/color/points /tf:=/tf_old" output="log" />
 
 </launch>
