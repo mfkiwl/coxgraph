@@ -3,7 +3,7 @@
         <param name="use_sim_time" value="false" />
 
         <arg name="bag_file0" default="/home/lxy/Datasets/euroc/MH_01_easy.bag.data.bag" />
-        <arg name="bag_file1" default="/home/lxy/Datasets/euroc/MH_02_easy.bag.data.ba" />
+        <arg name="bag_file1" default="/home/lxy/Datasets/euroc/MH_02_easy.bag.data.bag" />
         <arg name="bag_file2" default="/home/lxy/Datasets/euroc/MH_03_medium.bag" />
         <arg name="tw_voxblox_config_file" default="$(find coxgraph)/config/tsdf_server_euroc.yaml" />
         <arg name="tsdf_voxel_size" default="0.10" />
@@ -62,7 +62,6 @@
   </include>
  -->
 
-        <!-- 
         <include file="$(find coxgraph_sim)/launch/utils/pose_graph_backend.launch">
                 <arg name="num_agents" default="2" />
         </include>
@@ -78,6 +77,5 @@
                 <arg name="config_file" default="$(find coxgraph)/config/evaluation_config.yaml" />
                 <arg name="debug" default="false" />
         </include>
--->
 
 </launch>

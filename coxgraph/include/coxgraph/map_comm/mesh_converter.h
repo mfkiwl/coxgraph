@@ -122,12 +122,13 @@ class MeshConverter {
           auto interp_pts = interpolateTriangle(triangle);
 
           for (size_t hi = 0; hi < history.history.size(); hi++) {
-            if (!pointcloud_.count(hi))
-              pointcloud_.emplace(hi, new Pointcloud());
-            pointcloud_[hi]->insert(pointcloud_[hi]->end(), triangle.begin(),
-                                    triangle.end());
-            pointcloud_[hi]->insert(pointcloud_[hi]->end(), interp_pts.begin(),
-                                    interp_pts.end());
+            auto stamp = history.history[hi];
+            if (!pointcloud_.count(stamp))
+              pointcloud_.emplace(stamp, new Pointcloud());
+            pointcloud_[stamp]->insert(pointcloud_[stamp]->end(),
+                                       triangle.begin(), triangle.end());
+            pointcloud_[stamp]->insert(pointcloud_[stamp]->end(),
+                                       interp_pts.begin(), interp_pts.end());
           }
           triangle.clear();
         }

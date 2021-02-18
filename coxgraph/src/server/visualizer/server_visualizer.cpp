@@ -63,29 +63,31 @@ void ServerVisualizer::getFinalGlobalMesh(
 
   auto pose_map = global_pg_interface.getPoseMap();
 
-  // Combine mesh
-  o3d_vis_->ClearGeometries();
-  std::shared_ptr<open3d::geometry::TriangleMesh> combined_mesh(
-      new open3d::geometry::TriangleMesh());
-  for (auto const& submap :
-       global_submap_collection_ptr->getSubmapConstPtrs()) {
-    auto submap_mesh = utils::o3dMeshFromMsg(*submap->mesh_pointcloud_);
-    if (submap_mesh == nullptr) continue;
-    submap_mesh->Transform(
-        pose_map[submap->getID()].cast<double>().getTransformationMatrix());
-    *combined_mesh += *submap_mesh;
+  if (config_.o3d_visualize) {
+    // Combine mesh
+    o3d_vis_->ClearGeometries();
+    std::shared_ptr<open3d::geometry::TriangleMesh> combined_mesh(
+        new open3d::geometry::TriangleMesh());
+    for (auto const& submap :
+         global_submap_collection_ptr->getSubmapConstPtrs()) {
+      auto submap_mesh = utils::o3dMeshFromMsg(*submap->mesh_pointcloud_);
+      if (submap_mesh == nullptr) continue;
+      submap_mesh->Transform(
+          pose_map[submap->getID()].cast<double>().getTransformationMatrix());
+      *combined_mesh += *submap_mesh;
+    }
+    combined_mesh->MergeCloseVertices(0.005);
+    combined_mesh->RemoveDuplicatedVertices();
+    combined_mesh->RemoveDuplicatedTriangles();
+    // combined_mesh_->FilterSmoothTaubin(100);
+    combined_mesh->ComputeVertexNormals();
+    combined_mesh->ComputeTriangleNormals();
+    o3d_vis_->AddGeometry(combined_mesh);
+    o3d_vis_->UpdateGeometry(combined_mesh);
+  } else {
+    submap_vis_.saveAndPubCombinedMesh(*global_submap_collection_ptr,
+                                       mission_frame, publisher, file_path);
   }
-  combined_mesh->MergeCloseVertices(0.005);
-  combined_mesh->RemoveDuplicatedVertices();
-  combined_mesh->RemoveDuplicatedTriangles();
-  // combined_mesh_->FilterSmoothTaubin(100);
-  combined_mesh->ComputeVertexNormals();
-  combined_mesh->ComputeTriangleNormals();
-  o3d_vis_->AddGeometry(combined_mesh);
-  o3d_vis_->UpdateGeometry(combined_mesh);
-
-  submap_vis_.saveAndPubCombinedMesh(*global_submap_collection_ptr,
-                                     mission_frame, publisher, file_path);
 
   LOG(INFO) << "Global mesh generated, published and saved to " << file_path;
 }

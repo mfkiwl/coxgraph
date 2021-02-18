@@ -274,11 +274,11 @@ class CoxgraphServer {
   bool global_mesh_initialized_;
   void generateGlobalMeshEvent(const ros::TimerEvent& /*event*/) {
     if (config_.publish_global_mesh_on_update && global_mesh_initialized_ &&
-        global_mesh_need_update_ % config_.client_number == 0) {
+        global_mesh_need_update_ / config_.client_number == 4) {
       coxgraph_msgs::FilePath file_path_srv;
       file_path_srv.request.file_path = "";
       getFinalGlobalMeshCallback(file_path_srv.request, file_path_srv.response);
-      global_mesh_need_update_ = false;
+      global_mesh_need_update_ = 0;
     }
   }
 
