@@ -21,6 +21,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <thread>
 #include <utility>
 
 #include "coxgraph/client/map_server.h"
@@ -47,9 +48,10 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
       o3d_vis_->GetRenderOption().mesh_color_option_ =
           open3d::visualization::RenderOption::MeshColorOption::Normal;
       combined_mesh_.reset(new open3d::geometry::TriangleMesh());
-      o3d_vis_->AddGeometry(combined_mesh_);
+      // o3d_vis_->AddGeometry(combined_mesh_);
       o3d_mesh_timer_ = nh_private_.createTimer(
           ros::Duration(0.01), &CoxgraphClient::o3dMeshVisualizeEvent, this);
+      // o3d_run_thread_ = std::thread([this]() { this->o3d_vis_->Run(); });
     }
     subscribeToClientTopics();
     advertiseClientTopics();
@@ -65,6 +67,7 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
                                     submap_config_, frame_names_,
                                     submap_collection_ptr_));
   }
+  std::thread o3d_run_thread_;
 
   ~CoxgraphClient() = default;
 
@@ -144,18 +147,20 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
       const sensor_msgs::PointCloud2ConstPtr& pointcloud_msg) {
     if (submapCallback(*layer_msg, true)) {
       auto o3d_mesh = utils::o3dMeshFromMsg(*pointcloud_msg);
-      if (o3d_mesh != nullptr && vis_combined_o3d_mesh_) {
+      if (o3d_mesh != nullptr) {
         auto T_G_Sm = submap_collection_ptr_->getActiveSubmapPose();
-        // o3d_mesh: T_G_Mesh
-        mesh_collection_.emplace(
-            submap_collection_ptr_->getActiveSubmapID(),
-            std::make_pair(T_G_Sm.cast<double>(), o3d_mesh));
-        o3d_vis_->AddGeometry(o3d_mesh);
-        updateCombinedMesh();
+        if (vis_combined_o3d_mesh_) {
+          // o3d_mesh: T_G_Mesh
+          mesh_collection_.emplace(
+              submap_collection_ptr_->getActiveSubmapID(),
+              std::make_pair(T_G_Sm.cast<double>(), o3d_mesh));
+          // o3d_vis_->AddGeometry(o3d_mesh);
+          updateCombinedMesh();
+        }
 
-        sensor_msgs::PointCloud2 T_Sm_P;
+        sensor_msgs::PointCloud2::Ptr T_Sm_P(new sensor_msgs::PointCloud2());
         pcl_ros::transformPointCloud(T_G_Sm.inverse().getTransformationMatrix(),
-                                     *pointcloud_msg, T_Sm_P);
+                                     *pointcloud_msg, *T_Sm_P);
         submap_collection_ptr_->getActiveSubmapPtr()->mesh_pointcloud_ = T_Sm_P;
       }
     }
@@ -184,8 +189,9 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
       combined_mesh_->RemoveDuplicatedTriangles();
       combined_mesh_->ComputeVertexNormals();
       combined_mesh_->ComputeTriangleNormals();
-      o3d_vis_->UpdateGeometry(kv.second.second);
     }
+    o3d_vis_->AddGeometry(combined_mesh_);
+    o3d_vis_->UpdateGeometry(combined_mesh_);
   }
 };
 

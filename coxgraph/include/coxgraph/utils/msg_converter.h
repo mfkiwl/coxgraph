@@ -69,7 +69,7 @@ inline coxgraph_msgs::ClientSubmap msgFromCliSubmap(
   tf::poseKindrToMsg(submap.getPose().cast<double>(),
                      &cli_submap_msg.map_header.pose.map_pose);
   cli_submap_msg.map_header.pose.frame_id = frame_id;
-  cli_submap_msg.mesh_pointclouds = submap.mesh_pointcloud_;
+  cli_submap_msg.mesh_pointclouds = *submap.mesh_pointcloud_;
   return cli_submap_msg;
 }
 
@@ -111,7 +111,7 @@ inline CliSm::Ptr cliSubmapFromMsg(
           << "Received a submap msg with an invalid TSDF. Skipping submap.";
     }
     submap_ptr->finishSubmap();
-    submap_ptr->mesh_pointcloud_ = submap_msg.mesh_pointclouds;
+    *submap_ptr->mesh_pointcloud_ = submap_msg.mesh_pointclouds;
   }
 
   return submap_ptr;

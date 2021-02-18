@@ -1,5 +1,7 @@
 #include "coxgraph/server/visualizer/server_visualizer.h"
 
+#include <Open3D/Visualization/Utility/DrawGeometry.h>
+
 #include <chrono>
 #include <future>
 #include <string>
@@ -68,7 +70,8 @@ void ServerVisualizer::getFinalGlobalMesh(
   combined_mesh_->Clear();
   for (auto const& submap :
        global_submap_collection_ptr->getSubmapConstPtrs()) {
-    auto submap_mesh = utils::o3dMeshFromMsg(submap->mesh_pointcloud_);
+    auto submap_mesh = utils::o3dMeshFromMsg(*submap->mesh_pointcloud_);
+    if (submap_mesh == nullptr) continue;
     submap_mesh->Transform(
         pose_map[submap->getID()].cast<double>().getTransformationMatrix());
     *combined_mesh_ += *submap_mesh;
@@ -76,8 +79,11 @@ void ServerVisualizer::getFinalGlobalMesh(
   combined_mesh_->MergeCloseVertices(0.005);
   combined_mesh_->RemoveDuplicatedVertices();
   combined_mesh_->RemoveDuplicatedTriangles();
-  combined_mesh_->FilterSmoothTaubin(100);
-  o3d_vis_->UpdateGeometry();
+  // combined_mesh_->FilterSmoothTaubin(100);
+  combined_mesh_->ComputeVertexNormals();
+  combined_mesh_->ComputeTriangleNormals();
+  o3d_vis_->AddGeometry(combined_mesh_);
+  o3d_vis_->UpdateGeometry(combined_mesh_);
 
   submap_vis_.saveAndPubCombinedMesh(*global_submap_collection_ptr,
                                      mission_frame, publisher, file_path);

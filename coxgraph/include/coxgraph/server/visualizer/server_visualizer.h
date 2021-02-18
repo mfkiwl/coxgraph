@@ -78,8 +78,7 @@ class ServerVisualizer {
       o3d_vis_->GetRenderOption().mesh_color_option_ =
           open3d::visualization::RenderOption::MeshColorOption::Normal;
       combined_mesh_.reset(new open3d::geometry::TriangleMesh());
-      o3d_vis_->AddGeometry(combined_mesh_);
-      // TODO(mikexyl): should just use ::Run()?
+      // o3d_vis_->AddGeometry(combined_mesh_);
       o3d_vis_update_timer_ = nh_private_.createTimer(
           ros::Duration(0.01), &ServerVisualizer::o3dVisUpdateEvent, this);
     }
