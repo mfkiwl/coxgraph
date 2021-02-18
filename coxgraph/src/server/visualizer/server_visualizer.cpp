@@ -63,10 +63,6 @@ void ServerVisualizer::getFinalGlobalMesh(
 
   auto pose_map = global_pg_interface.getPoseMap();
 
-  LOG(INFO) << "Evaluating Residuals of Map Fusion Constraints";
-  global_pg_interface.printResiduals(
-      PoseGraphInterface::ConstraintType::RelPose);
-
   // Combine mesh
   o3d_vis_->ClearGeometries();
   std::shared_ptr<open3d::geometry::TriangleMesh> combined_mesh(
