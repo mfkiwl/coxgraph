@@ -2,25 +2,25 @@
 # File for agent 0
 
 #common parameters
-imu_topic: "/jay_0/imu0"
-image_topic: "/jay_0/cam0/image_raw"
+imu_topic: "/carla/vehicle/109/imu/default"
+image_topic: "/carla/vehicle/109/camera/rgb/front/image_color"
 output_path: "/home/btearle/output/0/"
 
 #camera calibration
 model_type: PINHOLE
 camera_name: camera
-image_width: 752
-image_height: 480
+image_width: 640
+image_height: 360
 distortion_parameters:
-   k1: -0.010545391389310708
-   k2: -0.006435344397266451
-   p1: 0.06313970558713196
-   p2: -0.036126706892504905
+   k1: 0.0
+   k2: 0.0
+   p1: 0.0
+   p2: 0.0
 projection_parameters:
-   fx: 399.04169696001776
-   fy: 398.9109964300084
-   cx: 368.06125222560473
-   cy: 213.71148849469188
+   fx: 320.0
+   fy: 320.0
+   cx: 320.0
+   cy: 180.0
 
 # Extrinsic parameter between IMU and Camera.
 estimate_extrinsic: 0   # 0  Have an accurate extrinsic parameters. We will trust the following imu^R_cam, imu^T_cam, don't change it.
@@ -32,21 +32,21 @@ extrinsicRotation: !!opencv-matrix
    rows: 3
    cols: 3
    dt: d
-   data: [0.9999809,  0.0025179, -0.0056482,
-           -0.0025121,  0.9999963,  0.0010334,
-           0.0056508, -0.0010192,  0.9999835 ]
+   data: [0.0, 0.0, -1.0,
+           -1.0, 0.0, 0.0,
+           0.0, 1.0, 0.0 ]
 
 #Translation from camera frame to imu frame, imu^T_cam
 extrinsicTranslation: !!opencv-matrix
    rows: 3
    cols: 1
    dt: d
-   data: [-0.0422433327776, 0.00419756968441, -0.0261795122987]
+   data: [0.0, 0.0, -0.27]
 
 #feature traker paprameters
 max_cnt: 150            # max feature number in feature tracking
 min_dist: 30            # min distance between two features 
-freq: 10                # frequence (Hz) of publish tracking result. At least 10Hz for good estimation. If set 0, the frequence will be same as raw image 
+freq: 0                # frequence (Hz) of publish tracking result. At least 10Hz for good estimation. If set 0, the frequence will be same as raw image 
 F_threshold: 1.0        # ransac threshold (pixel)
 show_track: 1           # publish tracking image as topic
 equalize: 0             # if image is too dark or light, trun on equalize to find enough features
@@ -81,4 +81,4 @@ rolling_shutter_tr: 0.033               # unit: s. rolling shutter read out time
 #visualization parameters
 save_image: 1                   # save image in pose graph for visualization prupose; you can close this function by setting 0 
 visualize_imu_forward: 0        # output imu forward propogation to achieve low latency and high frequence results
-visualize_camera_size: 0.4      # size of camera marker in RVIZ
+

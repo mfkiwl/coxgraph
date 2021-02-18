@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<launch>
+        <arg name="id" default="0" />
+        <arg name="bag_file" default="/home/lxy/Datasets/euroc/MH_01_easy.bag" />
+        <arg name="play_speed" default="1" />
+        <arg name="skip_seconds" default="0" />
+
+        <include file="$(find coxgraph_sim)/launch/utils/vins_sim.launch">
+                <arg name="mav_name" default="firefly" />
+                <arg name="id" value="$(arg id)" />
+                <arg name="start_initializer" value="false" />
+                <arg name="config_path" value="$(find coxgraph)/config/carla/carla_$(arg id).yaml" />
+        </include>
+
+</launch>
