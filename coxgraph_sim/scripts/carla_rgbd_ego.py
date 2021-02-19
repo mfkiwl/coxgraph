@@ -154,8 +154,8 @@ class SensorManager:
             depth_bp = self.world.get_blueprint_library().find(
                 'sensor.camera.depth')
             disp_size = self.display_man.get_display_size()
-            depth_bp.set_attribute('image_size_x', str(disp_size[0]))
-            depth_bp.set_attribute('image_size_y', str(disp_size[1]))
+            depth_bp.set_attribute('image_size_x', str(800))
+            depth_bp.set_attribute('image_size_y', str(600))
             depth_cam = self.world.spawn_actor(depth_bp,
                                                transform,
                                                attach_to=attached)
@@ -167,8 +167,8 @@ class SensorManager:
             camera_bp = self.world.get_blueprint_library().find(
                 'sensor.camera.rgb')
             disp_size = self.display_man.get_display_size()
-            camera_bp.set_attribute('image_size_x', str(disp_size[0]))
-            camera_bp.set_attribute('image_size_y', str(disp_size[1]))
+            camera_bp.set_attribute('image_size_x', str(800))
+            camera_bp.set_attribute('image_size_y', str(600))
 
             for key in sensor_options:
                 camera_bp.set_attribute(key, sensor_options[key])
@@ -366,7 +366,7 @@ def one_run(args, client):
             color = random.choice(bp.get_attribute('color').recommended_values)
             bp.set_attribute('color', color)
 
-        vehicle = world.spawn_actor(bp, world.get_map().get_spawn_points()[0])
+        vehicle = world.spawn_actor(bp, world.get_map().get_spawn_points()[1])
         vehicle_list.append(vehicle)
 
         tm_port = traffic_manager.get_port()
