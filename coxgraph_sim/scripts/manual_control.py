@@ -161,8 +161,9 @@ def get_actor_display_name(actor, truncate=250):
 
 
 class World(object):
-    def __init__(self, carla_world, hud, args):
+    def __init__(self, carla_world, traffic_manager, hud, args):
         self.world = carla_world
+        self.traffic_manager=traffic_manager
         self.actor_role_name = args.rolename
         try:
             self.map = self.world.get_map()
@@ -243,7 +244,13 @@ class World(object):
         self.camera_manager.set_sensor(0, notify=False)
         self.camera_manager_depth.set_sensor(1, notify=False)
         actor_type = get_actor_display_name(self.player)
-        self.hud.notification(actor_type)
+        self.hud.notification(actor_type) 
+
+        tm_port = self.traffic_manager.get_port()
+        self.traffic_manager.ignore_lights_percentage(self.player, 100)
+        self.traffic_manager.vehicle_percentage_speed_difference(self.player, 20)
+
+
 
     def next_weather(self, reverse=False):
         self._weather_index += -1 if reverse else 1
@@ -1081,7 +1088,7 @@ def game_loop(args):
         pygame.display.flip()
 
         hud = HUD(args.width, args.height)
-        world = World(client.get_world(), hud, args)
+        world = World(client.get_world(), client.get_trafficmanager(), hud, args)
         controller = KeyboardControl(world, args.autopilot)
 
         clock = pygame.time.Clock()
