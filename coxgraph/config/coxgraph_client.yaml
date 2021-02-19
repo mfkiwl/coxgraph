@@ -22,7 +22,7 @@ output_sensor_frame: "sensor_voxgraph"
 
 measurements:
   submap_registration:
-    enabled: true
+    enabled: false
     sampling_ratio: 0.05
     registration_method: "explicit_to_implicit"
     information_matrix:
@@ -51,7 +51,7 @@ measurements:
 
 mesh_min_weight: 2.0
 submap_mesh_color_mode: "lambert_color"
-combined_mesh_color_mode: "normals"
+combined_mesh_color_mode: "lambert_color"
 
 tsdf_voxel_size: 0.10
 truncation_distance: 0.30
