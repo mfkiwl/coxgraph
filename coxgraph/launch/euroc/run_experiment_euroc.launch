@@ -2,9 +2,9 @@
 <launch>
         <param name="use_sim_time" value="false" />
 
-        <arg name="bag_file0" default="/home/lxy/Datasets/euroc/MH_01_easy.bag.data.bag" />
-        <arg name="bag_file1" default="/home/lxy/Datasets/euroc/MH_02_easy.bag.data.bag" />
-        <arg name="bag_file2" default="/home/lxy/Datasets/euroc/MH_03_medium.bag" />
+        <arg name="bag_file0" default="/home/lxy/Datasets_ssd/euroc/MH_01_easy.bag.data.bag" />
+        <arg name="bag_file1" default="/home/lxy/Datasets_ssd/euroc/MH_02_easy.bag.data.bag" />
+        <arg name="bag_file2" default="/home/lxy/Datasets_ssd/euroc/MH_03_medium.bag.data.bag" />
         <arg name="tw_voxblox_config_file" default="$(find coxgraph)/config/tsdf_server_euroc.yaml" />
         <arg name="tsdf_voxel_size" default="0.10" />
         <arg name="truncation_distance" default="0.30" />
@@ -14,7 +14,7 @@
         <include file="$(find coxgraph)/launch/euroc/vins_client_euroc.launch">
                 <arg name="id" value="0" />
                 <arg name="clock" value="false" />
-                <arg name="play_speed" value="1" />
+                <arg name="play_speed" value="0.5" />
                 <arg name="bag_file" value="$(arg bag_file0)" />
                 <arg name="bag_ripped" default="true" />
         </include>
@@ -33,7 +33,7 @@
         <include file="$(find coxgraph)/launch/euroc/vins_client_euroc.launch">
                 <arg name="id" value="1" />
                 <arg name="clock" value="false" />
-                <arg name="play_speed" value="1" />
+                <arg name="play_speed" value="0.5" />
                 <arg name="bag_file" value="$(arg bag_file1)" />
                 <arg name="bag_ripped" default="true" />
         </include>
@@ -49,21 +49,27 @@
                 <arg name="recover_mode" value="$(arg recover_mode)" />
         </include>
 
-        <!-- <include file="$(find coxgraph)/launch/euroc/vins_client_euroc.launch">
-    <arg name="id" value="2"/>
-    <arg name="clock" value="false"/>
-    <arg name="play_speed" value="1"/>
-    <arg name="bag_file" value="$(arg bag_file2)"/>
-  </include>
+        <include file="$(find coxgraph)/launch/euroc/vins_client_euroc.launch">
+                <arg name="id" value="2" />
+                <arg name="clock" value="false" />
+                <arg name="play_speed" value="0.5" />
+                <arg name="bag_file" value="$(arg bag_file2)" />
+                <arg name="bag_ripped" default="true" />
+        </include>
 
-  <include file="$(find coxgraph)/launch/firefly/coxgraph_client.launch">
-    <arg name="id" value="2"/>
-    <arg name="pointcloud_topic" default="/pointcloud_2"/>
-  </include>
- -->
+        <include file="$(find coxgraph)/launch/firefly/coxgraph_client.launch">
+                <arg name="id" value="2" />
+                <arg name="pointcloud_topic" default="/pointcloud_2" />
+                <arg name="world_frame_suffix" default="odom" />
+                <arg name="tw_voxblox_config_file" default="$(arg tw_voxblox_config_file)" />
+                <arg name="tsdf_voxel_size" value="$(arg tsdf_voxel_size)" />
+                <arg name="truncation_distance" value="$(arg truncation_distance)" />
+                <arg name="debug_tsdf" default="false" />
+                <arg name="recover_mode" value="$(arg recover_mode)" />
+        </include>
 
         <include file="$(find coxgraph_sim)/launch/utils/pose_graph_backend.launch">
-                <arg name="num_agents" default="2" />
+                <arg name="num_agents" default="3" />
         </include>
 
         <include file="$(find coxgraph)/launch/coxgraph_server.launch">

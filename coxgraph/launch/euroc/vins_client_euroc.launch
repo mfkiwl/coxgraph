@@ -56,4 +56,5 @@
                 <node unless="$(arg clock)" pkg="rosbag" type="play" name="player_$(arg id)" args="$(arg bag_file) -r $(arg play_speed) -s $(arg skip_seconds)" />
         </group>
 
+
 </launch>

@@ -282,7 +282,7 @@ class CoxgraphServer {
     }
   }
 
-  constexpr static uint8_t kMaxClientNum = 2;
+  constexpr static uint8_t kMaxClientNum = 3;
   constexpr static uint8_t kPoseUpdateWaitMs = 100;
   constexpr static float kFutureMFProcInterval = 1.0;
   constexpr static int kMaxFutureUncatchedN = 4;
