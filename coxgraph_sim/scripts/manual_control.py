@@ -248,7 +248,7 @@ class World(object):
 
         tm_port = self.traffic_manager.get_port()
         self.traffic_manager.ignore_lights_percentage(self.player, 100)
-        self.traffic_manager.vehicle_percentage_speed_difference(self.player, 20)
+        self.traffic_manager.vehicle_percentage_speed_difference(self.player, 10)
 
 
 
@@ -848,6 +848,7 @@ class IMUSensor(object):
         self.compass = 0.0
         world = self._parent.get_world()
         bp = world.get_blueprint_library().find('sensor.other.imu')
+        bp.set_attribute('sensor_tick', str(0.01))
         self.sensor = world.spawn_actor(
             bp, carla.Transform(), attach_to=self._parent)
         # We need to pass the lambda a weak reference to self to avoid circular
@@ -951,11 +952,11 @@ class CameraManager(object):
         bound_y = 0.5 + self._parent.bounding_box.extent.y
         Attachment = carla.AttachmentType
         self._camera_transforms = [
-            (carla.Transform(carla.Location(x=1.5, z=2.5)), Attachment.SpringArm),
-            (carla.Transform(carla.Location(x=1.5, z=2.5)), Attachment.SpringArm),
-            (carla.Transform(carla.Location(x=1.5, z=2.5)), Attachment.SpringArm),
-            (carla.Transform(carla.Location(x=1.5, z=2.5)), Attachment.SpringArm),
-            (carla.Transform(carla.Location(x=1.5, z=2.5)), Attachment.SpringArm)]
+            (carla.Transform(carla.Location(x=2, z=2.5)), Attachment.SpringArm),
+            (carla.Transform(carla.Location(x=2, z=2.5)), Attachment.SpringArm),
+            (carla.Transform(carla.Location(x=2, z=2.5)), Attachment.SpringArm),
+            (carla.Transform(carla.Location(x=2, z=2.5)), Attachment.SpringArm),
+            (carla.Transform(carla.Location(x=2, z=2.5)), Attachment.SpringArm)]
         self.transform_index = 1
         self.sensors = [
             ['sensor.camera.rgb', cc.Raw, 'Camera RGB', {}],
@@ -979,6 +980,7 @@ class CameraManager(object):
             if item[0].startswith('sensor.camera'):
                 bp.set_attribute('image_size_x', str(800))
                 bp.set_attribute('image_size_y', str(600))
+                bp.set_attribute('fov', str(150))
                 if bp.has_attribute('gamma'):
                     bp.set_attribute('gamma', str(gamma_correction))
                 for attr_name, attr_value in item[3].items():

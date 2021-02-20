@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <launch>
         <param name="use_sim_time" value="true" />
-        <arg name="id" default="2" />
-        <arg name="play_speed" default="1" />
+        <arg name="id" default="1" />
+        <arg name="play_speed" default="2" />
         <arg name="skip_seconds" default="0" />
-        <arg name="vehicle_no" default="hero2" />
+        <arg name="vehicle_no" default="hero4" />
         <arg name="bag_file" default="/home/lxy/Datasets/carla/$(arg vehicle_no).bag" />
 
         <node pkg="tf" type="static_transform_publisher" name="cam_depth_tf_$(arg id)" args="0 0 0 0.5 -0.5 0.5 -0.5 cam0_$(arg id) $(arg vehicle_no)/camera/depth/front 100" />

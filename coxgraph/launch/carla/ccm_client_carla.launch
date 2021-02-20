@@ -3,7 +3,7 @@
         <arg name="id" default="0" />
         <arg name="play_speed" default="1.0" />
         <arg name="skip_seconds" default="20" />
-        <arg name="vehicle_no" default="hero0" />
+        <arg name="vehicle_no" default="hero3" />
         <arg name="bag_file" default="/home/lxy/Datasets_ssd/carla/$(arg vehicle_no).bag" />
 
         <include file="$(find ccmslam)/launch/CVG/Client_carla.launch">

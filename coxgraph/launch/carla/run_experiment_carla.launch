@@ -2,11 +2,11 @@
 <launch>
         <param name="use_sim_time" value="false" />
         <arg name="mav_name" default="jay" />
-        <arg name="vehicle_no0" default="hero0" />
-        <arg name="vehicle_no1" default="hero1" />
-        <arg name="vehicle_no2" default="hero2" />
-        <arg name="tsdf_voxel_size" default="0.5" />
-        <arg name="truncation_distance" default="1.5" />
+        <arg name="vehicle_no0" default="hero3" />
+        <arg name="vehicle_no1" default="hero4" />
+        <arg name="vehicle_no2" default="hero5" />
+        <arg name="tsdf_voxel_size" default="0.8" />
+        <arg name="truncation_distance" default="2.4" />
         <arg name="tw_voxblox_config_file" default="$(find coxgraph)/config/tsdf_server_carla.yaml" />
 
         <node pkg="nodelet" type="nodelet" args="manager" name="record_player_manager" output="screen" />
@@ -22,7 +22,7 @@
                 <arg name="pointcloud_topic" value="/pointcloud_0" />
                 <arg name="world_frame_suffix" value="odom" />
                 <arg name="debug_tsdf" value="false" />
-                <arg name="recover_mode" value="true" />
+                <arg name="recover_mode" value="false" />
                 <arg name="tsdf_voxel_size" default="$(arg tsdf_voxel_size)" />
                 <arg name="truncation_distance" default="$(arg truncation_distance)" />
                 <arg name="tw_voxblox_config_file" default="$(arg tw_voxblox_config_file)" />
