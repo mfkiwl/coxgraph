@@ -101,8 +101,8 @@ bool CoxgraphServer::getFinalGlobalMeshCallback(
   LOG(INFO) << "Service called to get final global mesh, pausing map fusion "
                "process";
 
-  std::string mesh_file_path = request.file_path;
-  LOG_IF(INFO, mesh_file_path.empty())
+  std::string file_path = request.file_path;
+  LOG_IF(INFO, file_path.empty())
       << "Mesh file path is not given, mesh will not be saved as file";
 
   uint8_t trials_ = 0;
@@ -127,7 +127,7 @@ bool CoxgraphServer::getFinalGlobalMeshCallback(
 
   server_vis_->getFinalGlobalMesh(
       submap_collection_ptr_, pose_graph_interface_, all_submaps,
-      tf_controller_->getGlobalMissionFrame(), mesh_file_path);
+      tf_controller_->getGlobalMissionFrame(), file_path);
 
   LOG(INFO) << "Global mesh generated, map fusion process unpaused";
 

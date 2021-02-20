@@ -31,6 +31,7 @@ class ServerVisualizer {
     std::string combined_mesh_color_mode = "normals";
     float publish_submap_meshes_every_n_sec = 1.0;
     bool o3d_visualize = true;
+    bool registration_enable = true;
 
     friend inline std::ostream& operator<<(std::ostream& s, const Config& v) {
       s << std::endl
@@ -43,6 +44,7 @@ class ServerVisualizer {
         << "  Publish Submap Meshes Every: "
         << v.publish_submap_meshes_every_n_sec << " s" << std::endl
         << "  o3d_visualize: " << v.o3d_visualize << std::endl
+        << "  registration_enable: " << v.registration_enable << std::endl
         << "-------------------------------------------" << std::endl;
       return (s);
     }

@@ -5,11 +5,11 @@
   <arg name="logging" default="true"/>
 
   <!-- Debug -->
-  <arg name="launch_prefix" default=""/>
+  <arg name="launch_prefix" default="xterm -e"/>
   <!-- xterm -fs 60 -e gdb args -->
 
   <!-- Pose-Graph Node -->
-  <node name="pose_graph_backend" pkg="pose_graph_backend" type="pose_graph_node" output="log" launch-prefix="$(arg launch_prefix)" args="-alsologtostderr">
+  <node name="pose_graph_backend" pkg="pose_graph_backend" type="pose_graph_node" output="screen" launch-prefix="$(arg launch_prefix)" args="-alsologtostderr">
     <remap from="~map_fusion" to="/coxgraph/map_fusion_in"/>
     <remap from="tf" to="tf_old"/>
     <param name="bow_voc" value="$(find pose_graph_backend)/conf/briskOKVIS_k10_L6_voc_v1.yml.gz"/>
@@ -85,6 +85,7 @@
 
     <!-- coxgraph mod params -->
     <param name="need_to_fuse_srv_name" value="/coxgraph/coxgraph_server_node/need_to_fuse"/>
+    <param name="trajectory_path" value="/workspaces/voxgraph_melodic_ws/eval/traj" />
   </node>
 
 </launch>

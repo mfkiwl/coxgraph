@@ -86,6 +86,74 @@ class SubmapCollection : public voxgraph::VoxgraphSubmapCollection {
     return &submap_poses_update_mutex;
   }
 
+  CIdCSIdPair getCliIdPairBySsid(SerSmId ssid) {
+    CHECK(sm_cli_id_map_.count(ssid));
+    return sm_cli_id_map_[ssid];
+  }
+
+  VoxgraphSubmapCollection::PoseStampedVector getPoseHistory(CliId cid) {
+    using PoseCountPair = std::pair<Transformation, int>;
+    std::map<ros::Time, PoseCountPair> averaged_trajectory;
+    // Iterate over all submaps and poses
+    for (const auto& submap_ptr : getSubmapConstPtrs()) {
+      if (getCliIdPairBySsid(submap_ptr->getID()).first != cid) continue;
+      for (const std::pair<const ros::Time, Transformation>& time_pose_pair :
+           submap_ptr->getPoseHistory()) {
+        // Transform the pose from submap frame into odom frame
+        const Transformation T_O_B_i =
+            submap_ptr->getPose() * time_pose_pair.second;
+        const ros::Time& timestamp_i = time_pose_pair.first;
+
+        // Insert, or average if there was a previous pose with the same stamp
+        auto it = averaged_trajectory.find(timestamp_i);
+        if (it == averaged_trajectory.end()) {
+          averaged_trajectory.emplace(timestamp_i, PoseCountPair(T_O_B_i, 1));
+        } else {
+          it->second.second++;
+          const double lambda = 1.0 / it->second.second;
+          it->second.first = kindr::minimal::interpolateComponentwise(
+              it->second.first, T_O_B_i, lambda);
+        }
+      }
+    }
+
+    // Copy the averaged trajectory poses into the msg and compute the total
+    // trajectory length
+    PoseStampedVector poses;
+    float total_trajectory_length = 0.0;
+    Transformation::Position previous_position;
+    bool previous_position_initialized = false;
+    for (const auto& kv : averaged_trajectory) {
+      geometry_msgs::PoseStamped pose_stamped_msg;
+      pose_stamped_msg.header.stamp = kv.first;
+      tf::poseKindrToMsg(kv.second.first.cast<double>(),
+                         &pose_stamped_msg.pose);
+      poses.emplace_back(pose_stamped_msg);
+
+      if (previous_position_initialized) {
+        total_trajectory_length +=
+            (kv.second.first.getPosition() - previous_position).norm();
+      } else {
+        previous_position_initialized = true;
+      }
+      previous_position = kv.second.first.getPosition();
+    }
+    ROS_INFO_STREAM("Total trajectory length: " << total_trajectory_length);
+    return poses;
+  }
+
+  void savePoseHistoryToFile(std::string file_path) {
+          for(CliId cid=0;cid<client_number_;cid++){
+    auto pose_history = getPoseHistory(cid);
+
+    std::ofstream f;
+    f.open(file_path);
+    for(auto const& pose:pose_history){
+
+    }
+    }
+  }
+
  private:
   typedef std::pair<CliId, CliId> CliIdPair;
   typedef std::unordered_map<SerSmId, CIdCSIdPair> SmCliIdMap;

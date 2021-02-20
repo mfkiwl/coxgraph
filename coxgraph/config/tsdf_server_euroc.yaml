@@ -13,7 +13,7 @@ tsdf_voxel_size: 0.05
 truncation_distance: 0.15
 # max_weight: 1000
 pointcloud_queue_size: 10
-max_ray_length_m: 10 # 14 or 16m would be better, but for that we need better odometry. Otherwise the surface get too damaged.
+max_ray_length_m: 6 # 14 or 16m would be better, but for that we need better odometry. Otherwise the surface get too damaged.
 min_ray_length_m: 0.3
 allow_clear: true
 # max_consecutive_ray_collisions: 10
@@ -35,6 +35,6 @@ publish_esdf_map: true
 publish_map_every_n_sec: 0
 publish_map_with_trajectory: true
 
-submap_interval: 5
+submap_interval: 10
 
   #mesh_min_weight: 0.0005

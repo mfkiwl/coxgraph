@@ -1,5 +1,6 @@
 #include "coxgraph/server/visualizer/server_visualizer.h"
 
+#include <Open3D/IO/ClassIO/TriangleMeshIO.h>
 #include <Open3D/Visualization/Utility/DrawGeometry.h>
 
 #include <chrono>
@@ -27,6 +28,8 @@ ServerVisualizer::Config ServerVisualizer::getConfigFromRosParam(
                    config.publish_submap_meshes_every_n_sec,
                    config.publish_submap_meshes_every_n_sec);
   nh_private.param("o3d_visualize", config.o3d_visualize, config.o3d_visualize);
+  nh_private.param("submap_registration/enabled", config.registration_enable,
+                   config.registration_enable);
   return config;
 }
 
@@ -52,8 +55,9 @@ void ServerVisualizer::getFinalGlobalMesh(
 
   global_pg_interface.updateSubmapRPConstraints();
 
-  auto opt_async = std::async(std::launch::async, &PoseGraphInterface::optimize,
-                              &global_pg_interface, true);
+  auto opt_async =
+      std::async(std::launch::async, &PoseGraphInterface::optimize,
+                 &global_pg_interface, config_.registration_enable);
 
   while (opt_async.wait_for(std::chrono::milliseconds(100)) !=
          std::future_status::ready) {
@@ -61,7 +65,14 @@ void ServerVisualizer::getFinalGlobalMesh(
   }
   LOG(INFO) << "Optimization finished, generating global mesh...";
 
+  global_pg_interface.updateSubmapCollectionPoses();
+
   auto pose_map = global_pg_interface.getPoseMap();
+
+  boost::filesystem::path mesh_p_o3d(file_path);
+  boost::filesystem::path mesh_p_voxblox(file_path);
+  mesh_p_o3d.append("global_mesh_o3d.ply");
+  mesh_p_voxblox.append("global_mesh_voxblox.ply");
 
   if (config_.o3d_visualize) {
     // Combine mesh
@@ -75,21 +86,69 @@ void ServerVisualizer::getFinalGlobalMesh(
       submap_mesh->Transform(
           pose_map[submap->getID()].cast<double>().getTransformationMatrix());
       *combined_mesh += *submap_mesh;
+      combined_mesh->MergeCloseVertices(0.06);
+      combined_mesh->RemoveDuplicatedVertices();
+      combined_mesh->RemoveDuplicatedTriangles();
     }
-    combined_mesh->MergeCloseVertices(0.005);
-    combined_mesh->RemoveDuplicatedVertices();
-    combined_mesh->RemoveDuplicatedTriangles();
-    // combined_mesh_->FilterSmoothTaubin(100);
+    combined_mesh->FilterSmoothTaubin(100);
     combined_mesh->ComputeVertexNormals();
     combined_mesh->ComputeTriangleNormals();
     o3d_vis_->AddGeometry(combined_mesh);
     o3d_vis_->UpdateGeometry(combined_mesh);
-  } else {
-    submap_vis_.saveAndPubCombinedMesh(*global_submap_collection_ptr,
-                                       mission_frame, publisher, file_path);
+    open3d::io::WriteTriangleMesh(mesh_p_o3d.string(), *combined_mesh);
+  }
+
+  submap_vis_.saveAndPubCombinedMesh(*global_submap_collection_ptr,
+                                     mission_frame, publisher,
+                                     mesh_p_voxblox.string());
+
+  std::map<SerSmId, CIdCSIdPair> sm_cli_ids;
+  for (auto const& submap : global_submap_collection_ptr->getSubmapPtrs()) {
+    auto csid_pair =
+        global_submap_collection_ptr->getCliIdPairBySsid(submap->getID());
+    sm_cli_ids.emplace(submap->getID(),
+                       std::make_pair(csid_pair.first, csid_pair.second));
   }
 
   LOG(INFO) << "Global mesh generated, published and saved to " << file_path;
+
+  // Save trajectory
+  std::map<CliId, std::ofstream> fs;
+  for (int i = 0; i < 3; i++) {
+    boost::filesystem::path p(file_path);
+    p.append("opt_c" + std::to_string(static_cast<int>(i)) + ".txt");
+    fs.emplace(i, std::ofstream());
+    fs[i].open(p.string());
+    LOG(INFO) << p.string();
+  }
+  for (auto const& submap : global_submap_collection_ptr->getSubmapPtrs()) {
+    CHECK(sm_cli_ids.count(submap->getID()));
+    auto csid_pair =
+        global_submap_collection_ptr->getCliIdPairBySsid(submap->getID());
+    auto cid = csid_pair.first;
+    LOG(INFO) << static_cast<int>(cid) << " " << fs.count(cid);
+
+    fs[cid] << std::fixed;
+    auto pose_histories = submap->getPoseHistory();
+    auto T_G_Sm = submap->getPose();
+    for (auto const& pose : pose_histories) {
+      Transformation T_G_C = T_G_Sm * pose.second /*T_Sm_C*/;
+      fs[cid] << std::setprecision(6) << pose.first.toSec()
+              << std::setprecision(7) << " " << T_G_C.getPosition().x() << " "
+              << T_G_C.getPosition().y() << " " << T_G_C.getPosition().z()
+              << " " << T_G_C.getRotation().x() << " "
+              << T_G_C.getRotation().y() << " " << T_G_C.getRotation().z()
+              << " " << T_G_C.getRotation().w() << std::endl;
+    }
+  }
+
+  for (auto& f : fs) {
+    f.second.close();
+  }
+
+  global_submap_collection_ptr->getPoseHistory();
+
+  LOG(INFO) << "Trajectory saved to " << file_path;
 }
 
 }  // namespace server

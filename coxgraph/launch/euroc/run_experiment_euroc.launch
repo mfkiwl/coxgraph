@@ -84,4 +84,5 @@
                 <arg name="debug" default="false" />
         </include>
 
+        <node name="result_recorder" pkg="rosbag" type="record" output="screen" args="-o /workspaces/voxgraph_melodic_ws/eval/tf_record /coxgraph/tsdf_client_0/mesh_with_history /coxgraph/tsdf_client_0/tsdf_map_out /firefly_0/pose_graph_0/vins_keyframe /tf" />
 </launch>

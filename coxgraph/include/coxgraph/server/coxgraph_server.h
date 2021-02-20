@@ -48,7 +48,7 @@ class CoxgraphServer {
     int32_t publisher_queue_length = 100;
     bool use_tf_submap_pose = false;
     bool enable_client_loop_closure = false;
-    int32_t publish_global_mesh_on_update = true;
+    bool publish_global_mesh_on_update = true;
 
     friend inline std::ostream& operator<<(std::ostream& s, const Config& v) {
       s << std::endl
@@ -131,7 +131,7 @@ class CoxgraphServer {
         << "Fixed map client id has to be set 0 now, since pose graph "
            "optimization set pose of submap 0 as constant";
 
-    if (config_.publish_global_mesh_on_update > 0)
+    if (config_.publish_global_mesh_on_update)
       generate_global_mesh_timer_ = nh_private_.createTimer(
           ros::Duration(1), &CoxgraphServer::generateGlobalMeshEvent, this);
   }

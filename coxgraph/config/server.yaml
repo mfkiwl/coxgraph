@@ -61,4 +61,4 @@ enable_client_loop_closure: false
 publish_submap_meshes_every_n_sec: 0.0
 
 o3d_visualize: true
-publish_global_mesh_on_update: true
+publish_global_mesh_on_update: false
