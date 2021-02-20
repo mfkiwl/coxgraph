@@ -19,10 +19,11 @@
 
 namespace voxblox {
 typedef std::shared_ptr<Pointcloud> PointcloudPtr;
+typedef std::shared_ptr<Colors> ColorsPtr;
 class MeshConverter {
  public:
   struct Config {
-    float voxel_size = 0.05;
+    float voxel_size = 0.20;
     friend inline std::ostream& operator<<(std::ostream& s, const Config& v) {
       s << std::endl
         << "Mesh Converter using Config:" << std::endl
@@ -34,7 +35,8 @@ class MeshConverter {
 
   static Config getConfigFromRosParam(const ros::NodeHandle& nh_private) {
     Config config;
-    nh_private.param<float>("voxel_size", config.voxel_size, config.voxel_size);
+    nh_private.param<float>("interpolate_voxel_size", config.voxel_size,
+                            config.voxel_size);
     return config;
   }
 
@@ -76,6 +78,7 @@ class MeshConverter {
     if (mesh_.mesh_blocks.empty()) return false;
     timing::Timer recovered_poincloud_timer("recover_pointcloud");
     Pointcloud triangle;
+    voxblox::Colors colors;
 
     LOG(INFO) << "receive mesh blocks: " << mesh_.mesh_blocks.size();
     int n = 0, n_colors = 0;
@@ -110,6 +113,7 @@ class MeshConverter {
         // CHECK_EQ(history.history.size() % 2, 0);
 
         triangle.emplace_back(mesh_x, mesh_y, mesh_z);
+        colors.emplace_back(mesh_block.r[i], mesh_block.g[i], mesh_block.b[i]);
         recovered_pointcloud->push_back(pcl::PointXYZ(mesh_x, mesh_y, mesh_z));
         if (triangle.size() == 3) {
           if (mesh_block.r[i] * mesh_block.g[i] * mesh_block.b[i] > 0 &&
@@ -119,18 +123,28 @@ class MeshConverter {
                   0) {
             n_colors++;
           }
-          auto interp_pts = interpolateTriangle(triangle);
+          Pointcloud interp_pts;
+          Colors interp_colors;
+          interpolateTriangle(triangle, colors, &interp_pts, &interp_colors);
 
           for (size_t hi = 0; hi < history.history.size(); hi++) {
             auto stamp = history.history[hi];
             if (!pointcloud_.count(stamp))
-              pointcloud_.emplace(stamp, new Pointcloud());
-            pointcloud_[stamp]->insert(pointcloud_[stamp]->end(),
-                                       triangle.begin(), triangle.end());
-            pointcloud_[stamp]->insert(pointcloud_[stamp]->end(),
-                                       interp_pts.begin(), interp_pts.end());
+              pointcloud_.emplace(
+                  stamp, std::make_pair(new Pointcloud(), new Colors()));
+            pointcloud_[stamp].first->insert(pointcloud_[stamp].first->end(),
+                                             triangle.begin(), triangle.end());
+            pointcloud_[stamp].first->insert(pointcloud_[stamp].first->end(),
+                                             interp_pts.begin(),
+                                             interp_pts.end());
+            pointcloud_[stamp].second->insert(pointcloud_[stamp].second->end(),
+                                              colors.begin(), colors.end());
+            pointcloud_[stamp].second->insert(pointcloud_[stamp].second->end(),
+                                              interp_colors.begin(),
+                                              interp_colors.end());
           }
           triangle.clear();
+          colors.clear();
         }
       }
       n++;
@@ -146,7 +160,8 @@ class MeshConverter {
   void clear() {
     // Clear point clouds
     for (auto const& pointcloud : pointcloud_) {
-      pointcloud.second->clear();
+      pointcloud.second.first->clear();
+      pointcloud.second.second->clear();
     }
     pointcloud_.clear();
     T_G_C_.clear();
@@ -155,8 +170,11 @@ class MeshConverter {
   }
 
   bool getNextPointcloud(int* i, Transformation* T_G_C,
-                         Pointcloud* pointcloud) {
+                         PointcloudPtr* pointcloud, ColorsPtr* colors) {
+    CHECK(*pointcloud != nullptr);
+    CHECK(*colors != nullptr);
     if (*i >= T_G_C_.size()) return false;
+    timing::Timer next_pointcloud_timer("next_pointcloud");
     CHECK(pointcloud);
     *T_G_C = T_G_C_[*i].second;
     auto id =
@@ -164,18 +182,25 @@ class MeshConverter {
             ? 0
             : std::round((T_G_C_[*i].first - T_G_C_.begin()->first).toSec() /
                          0.05);
-    if (!pointcloud_.count(id)) pointcloud_.emplace(id, new Pointcloud());
+    if (!pointcloud_.count(id))
+      pointcloud_.emplace(id, std::make_pair(new Pointcloud(), new Colors()));
     // Point cloud is actually T_Submap_P; to get T_C_P, need to get T_Submap_C;
     auto T_Submap_C = T_odom_submap_.inverse() * (*T_G_C);
-    transformPointcloud(T_Submap_C.inverse(), *(pointcloud_[id]), pointcloud);
+    transformPointcloud(T_Submap_C.inverse(), *(pointcloud_[id].first),
+                        pointcloud->get());
+    *colors = pointcloud_[id].second;
     (*i)++;
+    next_pointcloud_timer.Stop();
     return true;
   }
 
-  Pointcloud interpolateTriangle(const Pointcloud& triangle) {
+  void interpolateTriangle(const Pointcloud& triangle, const Colors& colors,
+                           Pointcloud* interp_pc, Colors* interp_colors) {
+    CHECK_EQ(triangle.size(), colors.size());
     timing::Timer interpolate_timer("interpolate_triangle");
     // TODO(mikexyl): a really stupid interpolation, but should do the work
     Pointcloud interp_pts_e01, interp_pts_e02, interp_pts_e12;
+    Colors interp_colors_e01, interp_colors_e02, interp_colors_e12;
     Point p0 = triangle[0], p1 = triangle[1], p2 = triangle[2];
 
     Point t_p0_p1 = p1 - p0;
@@ -185,33 +210,44 @@ class MeshConverter {
     for (float dist = config_.voxel_size; dist < t_p0_p1.norm();
          dist += config_.voxel_size) {
       interp_pts_e01.emplace_back(p0 + t_p0_p1 / t_p0_p1.norm() * dist);
+      interp_colors_e01.emplace_back(
+          Color::blendTwoColors(colors[0], (1 - dist / t_p0_p1.norm()),
+                                colors[1], dist / t_p0_p1.norm()));
     }
-    for (float dist = config_.voxel_size; dist < t_p0_p1.norm();
+    for (float dist = config_.voxel_size; dist < t_p0_p2.norm();
          dist += config_.voxel_size) {
       interp_pts_e02.emplace_back(p0 + t_p0_p2 / t_p0_p2.norm() * dist);
+      interp_colors_e02.emplace_back(
+          Color::blendTwoColors(colors[0], (1 - dist / t_p0_p2.norm()),
+                                colors[1], dist / t_p0_p2.norm()));
     }
     for (float dist = config_.voxel_size; dist < t_p1_p2.norm();
          dist += config_.voxel_size) {
       interp_pts_e12.emplace_back(p1 + t_p1_p2 / t_p1_p2.norm() * dist);
+      interp_colors_e12.emplace_back(
+          Color::blendTwoColors(colors[1], (1 - dist / t_p1_p2.norm()),
+                                colors[2], dist / t_p1_p2.norm()));
     }
 
-    //  for (auto const& pt : interp_pts_e01) {
-    //    auto t = p2 - pt;
-    //    for (float dist = config_.voxel_size; dist < t.norm();
-    //         dist += config_.voxel_size) {
-    //      interp_pts_e12.emplace_back(pt + t / t.norm() * dist);
-    //    }
-    //  }
-
     interp_pts_e01.emplace_back((p0 + p1 + p2) / 3);
+    interp_colors_e01.emplace_back(Color::blendTwoColors(
+        colors[2], 1 / 3.0,
+        Color::blendTwoColors(colors[0], 0.5, colors[1], 0.5), 2 / 3.0));
 
     interp_pts_e01.insert(interp_pts_e01.end(), interp_pts_e02.begin(),
                           interp_pts_e02.end());
     interp_pts_e01.insert(interp_pts_e01.end(), interp_pts_e12.begin(),
                           interp_pts_e12.end());
 
+    *interp_pc = interp_pts_e01;
+    interp_colors->insert(interp_colors->end(), interp_colors_e01.begin(),
+                          interp_colors_e01.end());
+    interp_colors->insert(interp_colors->end(), interp_colors_e02.begin(),
+                          interp_colors_e02.end());
+    interp_colors->insert(interp_colors->end(), interp_colors_e12.begin(),
+                          interp_colors_e12.end());
+
     interpolate_timer.Stop();
-    return interp_pts_e01;
   }
 
  private:
@@ -221,7 +257,7 @@ class MeshConverter {
   AlignedVector<std::pair<ros::Time, Transformation>> T_G_C_;
   Transformation T_odom_submap_;
 
-  std::map<uint8_t, PointcloudPtr> pointcloud_;
+  std::map<uint8_t, std::pair<PointcloudPtr, ColorsPtr>> pointcloud_;
 };
 }  // namespace voxblox
 

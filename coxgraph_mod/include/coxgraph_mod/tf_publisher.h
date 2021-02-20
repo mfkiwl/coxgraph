@@ -31,7 +31,7 @@ class TfPublisher {
       : nh_(nh), nh_private_(nh_private), current_time_(ros::Time::now()) {
     nh_private_.param<std::string>("odom_frame", odom_frame_, "odom");
     nh_private_.param<std::string>("sensor_frame", sensor_frame_, "cam");
-    odom_pub_ = nh_.advertise<nav_msgs::Odometry>("odometry", 10, true);
+    odom_pub_ = nh_private_.advertise<nav_msgs::Odometry>("odometry", 10, true);
     float tf_pub_period_ms = 10.0;
     nh_private_.param<float>("tf_pub_period_ms", tf_pub_period_ms,
                              tf_pub_period_ms);
@@ -39,6 +39,15 @@ class TfPublisher {
         nh_.createTimer(ros::Duration(tf_pub_period_ms / 1000),
                         &TfPublisher::PublishPositionAsTransformCallback, this);
 
+    nh_private_.param<std::string>("imu_frame", imu_frame_, imu_frame_);
+    if (imu_frame_.size()) {
+      std::vector<float> T_I_S_vec;
+      nh_private_.param<std::vector<float>>("T_I_S", T_I_S_vec, T_I_S_vec);
+      tf::Matrix3x3 rotation;
+      tf::Vector3 translation;
+      tfFromStdVector(T_I_S_vec, &rotation, &translation);
+      T_I_S_ = TransformFromTf(rotation, translation);
+    }
     nh_private_.param<std::string>("imu_frame", imu_frame_, imu_frame_);
     if (imu_frame_.size()) {
       std::vector<float> T_I_S_vec;
@@ -98,6 +107,7 @@ class TfPublisher {
   std::string odom_frame_;
   std::string sensor_frame_;
   std::string imu_frame_;
+  std::string pointcloud_frame_;
   tf::Transform T_I_S_;
 
   tf::TransformBroadcaster tf_broadcaster_;

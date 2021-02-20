@@ -52,6 +52,12 @@ class LoopClosurePublisher {
       loop_closure_pub_.emplace(
           -1, nh_private_.advertise<coxgraph_msgs::LoopClosure>(
                   "loop_closure_out", 10, true));
+    } else {
+      for (int i = 0; i < client_number_; i++) {
+        loop_closure_pub_.emplace(
+            i, nh_private_.advertise<coxgraph_msgs::LoopClosure>(
+                   "loop_closure_out_" + std::to_string(i), 10, true));
+      }
     }
 
     for (int i = 0; i < client_number_; i++) {
@@ -124,7 +130,7 @@ class LoopClosurePublisher {
     loop_closure_msg.transform.rotation = rotation;
     loop_closure_msg.transform.translation = transform;
 
-    loop_closure_pub_[-1].publish(loop_closure_msg);
+    loop_closure_pub_[cid].publish(loop_closure_msg);
     ROS_INFO_STREAM("Published loop closure msg");
 
     return true;
