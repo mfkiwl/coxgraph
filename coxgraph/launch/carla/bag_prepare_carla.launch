@@ -1,19 +1,12 @@
 <?xml version="1.0"?>
 <launch>
         <param name="use_sim_time" value="true" />
-        <arg name="id" default="0" />
+        <arg name="id" default="2" />
         <arg name="play_speed" default="1" />
         <arg name="skip_seconds" default="0" />
         <arg name="vehicle_no" default="hero2" />
         <arg name="bag_file" default="/home/lxy/Datasets/carla/$(arg vehicle_no).bag" />
 
-        <node pkg="nodelet" type="nodelet" args="manager" name="record_player_manager" output="screen" />
-        <node pkg="nodelet" type="nodelet" name="cloudify_$(arg id)" args="load depth_image_proc/point_cloud_xyzrgb record_player_manager --no-bond">
-                <remap from="depth_registered/image_rect" to="/carla/$(arg vehicle_no)/camera/depth/front/image_depth" />
-                <remap from="depth_registered/points" to="/pointcloud_$(arg id)" />
-                <remap from="rgb/image_rect_color" to="/carla/$(arg vehicle_no)/camera/rgb/front/image_color" />
-                <remap from="rgb/camera_info" to="/carla/$(arg vehicle_no)/camera/rgb/front/camera_info" />
-        </node>
         <node pkg="tf" type="static_transform_publisher" name="cam_depth_tf_$(arg id)" args="0 0 0 0.5 -0.5 0.5 -0.5 cam0_$(arg id) $(arg vehicle_no)/camera/depth/front 100" />
 
         <node name="record" pkg="rosbag" type="record" output="screen" args="-O /home/lxy/Datasets_ssd/carla/$(arg vehicle_no).bag -a" />

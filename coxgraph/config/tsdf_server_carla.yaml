@@ -13,13 +13,13 @@ tsdf_voxel_size: 0.05
 truncation_distance: 0.15
 # max_weight: 1000
 pointcloud_queue_size: 10
-max_ray_length_m: 100 # 14 or 16m would be better, but for that we need better odometry. Otherwise the surface get too damaged.
+max_ray_length_m: 30 # 14 or 16m would be better, but for that we need better odometry. Otherwise the surface get too damaged.
 min_ray_length_m: 0.1
 allow_clear: true
 max_consecutive_ray_collisions: 100
 use_const_weight: true
 # use_weight_dropoff: false
-voxel_carving_enabled: true
+voxel_carving_enabled: false
 # use_sparsity_compensation_factor: true
 # sparsity_compensation_factor: 20.0
 

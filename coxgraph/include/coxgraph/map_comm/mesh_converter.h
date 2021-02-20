@@ -22,7 +22,7 @@ typedef std::shared_ptr<Pointcloud> PointcloudPtr;
 class MeshConverter {
  public:
   struct Config {
-    float voxel_size = 0.05;
+    float voxel_size = 0.20;
     friend inline std::ostream& operator<<(std::ostream& s, const Config& v) {
       s << std::endl
         << "Mesh Converter using Config:" << std::endl
@@ -34,7 +34,7 @@ class MeshConverter {
 
   static Config getConfigFromRosParam(const ros::NodeHandle& nh_private) {
     Config config;
-    nh_private.param<float>("voxel_size", config.voxel_size, config.voxel_size);
+    nh_private.param<float>("interpolate_voxel_size", config.voxel_size, config.voxel_size);
     return config;
   }
 
@@ -157,6 +157,7 @@ class MeshConverter {
   bool getNextPointcloud(int* i, Transformation* T_G_C,
                          Pointcloud* pointcloud) {
     if (*i >= T_G_C_.size()) return false;
+    timing::Timer next_pointcloud_timer("next_pointcloud");
     CHECK(pointcloud);
     *T_G_C = T_G_C_[*i].second;
     auto id =
@@ -169,6 +170,7 @@ class MeshConverter {
     auto T_Submap_C = T_odom_submap_.inverse() * (*T_G_C);
     transformPointcloud(T_Submap_C.inverse(), *(pointcloud_[id]), pointcloud);
     (*i)++;
+    next_pointcloud_timer.Stop();
     return true;
   }
 

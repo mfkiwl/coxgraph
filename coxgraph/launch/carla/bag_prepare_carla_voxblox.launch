@@ -22,11 +22,9 @@
                 <arg name="pointcloud_topic" value="/pointcloud_0" />
                 <arg name="world_frame_suffix" value="odom" />
                 <arg name="debug_tsdf" value="false" />
-                <arg name="recover_mode" value="true" />
+                <arg name="recover_mode" value="false" />
                 <arg name="tsdf_voxel_size" default="$(arg tsdf_voxel_size)" />
                 <arg name="truncation_distance" default="$(arg truncation_distance)" />
                 <arg name="tw_voxblox_config_file" default="$(arg tw_voxblox_config_file)" />
         </include>
-
-
 </launch>

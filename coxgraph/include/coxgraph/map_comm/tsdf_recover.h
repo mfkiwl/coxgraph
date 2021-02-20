@@ -76,14 +76,14 @@ class TsdfRecover : public TsdfServer {
       tsdf_integrator_->integratePointCloud(T_G_C, points_C, no_colors, false);
       integrator.Stop();
 
-      if (frame_pointcloud_pub_.getNumSubscribers() > 0) {
-        pcl::PointCloud<pcl::PointXYZ> pointcloud_msg;
-        pointcloud_msg.header.frame_id = world_frame_;
-        Pointcloud points_G;
-        transformPointcloud(T_G_C, points_C, &points_G);
-        pointcloudToPclXYZ(points_G, &pointcloud_msg);
-        frame_pointcloud_pub_.publish(pointcloud_msg);
-      }
+//    if (frame_pointcloud_pub_.getNumSubscribers() > 0) {
+//      pcl::PointCloud<pcl::PointXYZ> pointcloud_msg;
+//      pointcloud_msg.header.frame_id = world_frame_;
+//      Pointcloud points_G;
+//      transformPointcloud(T_G_C, points_C, &points_G);
+//      pointcloudToPclXYZ(points_G, &pointcloud_msg);
+//      frame_pointcloud_pub_.publish(pointcloud_msg);
+//    }
     }
 
     mesh_converter_->clear();
