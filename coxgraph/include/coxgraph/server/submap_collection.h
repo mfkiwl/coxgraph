@@ -3,6 +3,7 @@
 
 #include <voxgraph/frontend/submap_collection/voxgraph_submap_collection.h>
 
+#include <boost/filesystem/path.hpp>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -143,14 +144,25 @@ class SubmapCollection : public voxgraph::VoxgraphSubmapCollection {
   }
 
   void savePoseHistoryToFile(std::string file_path) {
-          for(CliId cid=0;cid<client_number_;cid++){
-    auto pose_history = getPoseHistory(cid);
+    for (CliId cid = 0; cid < client_number_; cid++) {
+      auto pose_history = getPoseHistory(cid);
+      LOG(INFO) << cid << " " << pose_history.size();
 
-    std::ofstream f;
-    f.open(file_path);
-    for(auto const& pose:pose_history){
+      boost::filesystem::path p(file_path);
+      p.append("opt_c" + std::to_string(cid) + ".txt");
+      std::ofstream f;
+      f.open(p.string());
+      f << std::fixed;
 
-    }
+      for (auto const& pose : pose_history) {
+        f << std::setprecision(6) << pose.header.stamp.toSec()
+          << std::setprecision(7) << " " << pose.pose.position.x << " "
+          << pose.pose.position.y << " " << pose.pose.position.z << " "
+          << pose.pose.orientation.x << " " << pose.pose.orientation.y << " "
+          << pose.pose.orientation.z << " " << pose.pose.orientation.w
+          << std::endl;
+      }
+      f.close();
     }
   }
 

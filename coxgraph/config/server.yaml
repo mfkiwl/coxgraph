@@ -60,5 +60,5 @@ client_map_relative_pose:
 enable_client_loop_closure: false
 publish_submap_meshes_every_n_sec: 0.0
 
-o3d_visualize: true
+o3d_visualize: false
 publish_global_mesh_on_update: false

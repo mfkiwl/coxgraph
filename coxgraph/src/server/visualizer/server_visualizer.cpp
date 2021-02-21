@@ -112,41 +112,7 @@ void ServerVisualizer::getFinalGlobalMesh(
 
   LOG(INFO) << "Global mesh generated, published and saved to " << file_path;
 
-  // Save trajectory
-  std::map<CliId, std::ofstream> fs;
-  for (int i = 0; i < 3; i++) {
-    boost::filesystem::path p(file_path);
-    p.append("opt_c" + std::to_string(static_cast<int>(i)) + ".txt");
-    fs.emplace(i, std::ofstream());
-    fs[i].open(p.string());
-    LOG(INFO) << p.string();
-  }
-  for (auto const& submap : global_submap_collection_ptr->getSubmapPtrs()) {
-    CHECK(sm_cli_ids.count(submap->getID()));
-    auto csid_pair =
-        global_submap_collection_ptr->getCliIdPairBySsid(submap->getID());
-    auto cid = csid_pair.first;
-    LOG(INFO) << static_cast<int>(cid) << " " << fs.count(cid);
-
-    fs[cid] << std::fixed;
-    auto pose_histories = submap->getPoseHistory();
-    auto T_G_Sm = submap->getPose();
-    for (auto const& pose : pose_histories) {
-      Transformation T_G_C = T_G_Sm * pose.second /*T_Sm_C*/;
-      fs[cid] << std::setprecision(6) << pose.first.toSec()
-              << std::setprecision(7) << " " << T_G_C.getPosition().x() << " "
-              << T_G_C.getPosition().y() << " " << T_G_C.getPosition().z()
-              << " " << T_G_C.getRotation().x() << " "
-              << T_G_C.getRotation().y() << " " << T_G_C.getRotation().z()
-              << " " << T_G_C.getRotation().w() << std::endl;
-    }
-  }
-
-  for (auto& f : fs) {
-    f.second.close();
-  }
-
-  global_submap_collection_ptr->getPoseHistory();
+  global_submap_collection_ptr->savePoseHistoryToFile(file_path);
 
   LOG(INFO) << "Trajectory saved to " << file_path;
 }
