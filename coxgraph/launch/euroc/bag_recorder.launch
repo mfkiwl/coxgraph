@@ -2,7 +2,7 @@
 <launch>
         <param name="use_sim_time" value="true" />
 
-        <arg name="bag_name" default="MH_03_medium.bag" />
+        <arg name="bag_name" default="V1_03_difficult.bag" />
         <arg name="bag_file" default="/home/lxy/Datasets/euroc/$(arg bag_name)" />
         <arg name="id" default="2" />
 
