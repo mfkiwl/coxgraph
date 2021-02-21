@@ -58,7 +58,7 @@ class TsdfRecover : public TsdfServer {
 
   bool processMesh(const voxblox_msgs::Mesh& mesh_msg,
                    voxblox_msgs::LayerWithTrajectory* layer_msg,
-                   pcl::PointCloud<pcl::PointXYZ>* recovered_pointcloud) {
+                   pcl::PointCloud<pcl::PointXYZRGB>* recovered_pointcloud) {
     tsdf_map_->getTsdfLayerPtr()->removeAllBlocks();
     timing::Timer mesh_process_timer("mesh_process");
     mesh_converter_->setMesh(mesh_msg);
@@ -117,11 +117,11 @@ class TsdfRecover : public TsdfServer {
   }
 
   void meshCallback(const voxblox_msgs::Mesh& mesh_msg) {
-    pcl::PointCloud<pcl::PointXYZ> recovered_pointcloud;
+    pcl::PointCloud<pcl::PointXYZRGB> recovered_pointcloud;
     voxblox_msgs::LayerWithTrajectory layer_msg;
     processMesh(mesh_msg, &layer_msg, &recovered_pointcloud);
     sensor_msgs::PointCloud2 recovered_pointcloud_msg;
-    pcl::toROSMsg<pcl::PointXYZ>(recovered_pointcloud,
+    pcl::toROSMsg<pcl::PointXYZRGB>(recovered_pointcloud,
                                  recovered_pointcloud_msg);
     recovered_pointcloud_msg.header.stamp = mesh_msg.header.stamp;
     layer_msg.header.stamp = mesh_msg.header.stamp;

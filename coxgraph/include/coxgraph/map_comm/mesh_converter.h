@@ -72,7 +72,7 @@ class MeshConverter {
   }
 
   bool convertToPointCloud(
-      pcl::PointCloud<pcl::PointXYZ>* recovered_pointcloud) {
+      pcl::PointCloud<pcl::PointXYZRGB>* recovered_pointcloud) {
     CHECK(recovered_pointcloud != nullptr);
     recovered_pointcloud->clear();
     if (mesh_.mesh_blocks.empty()) return false;
@@ -114,7 +114,14 @@ class MeshConverter {
 
         triangle.emplace_back(mesh_x, mesh_y, mesh_z);
         colors.emplace_back(mesh_block.r[i], mesh_block.g[i], mesh_block.b[i]);
-        recovered_pointcloud->push_back(pcl::PointXYZ(mesh_x, mesh_y, mesh_z));
+        pcl::PointXYZRGB recovered_point;
+        recovered_point.x = mesh_x;
+        recovered_point.y = mesh_y;
+        recovered_point.z = mesh_z;
+        recovered_point.r = mesh_block.r[i];
+        recovered_point.g = mesh_block.g[i];
+        recovered_point.b = mesh_block.b[i];
+        recovered_pointcloud->push_back(recovered_point);
         if (triangle.size() == 3) {
           if (mesh_block.r[i] * mesh_block.g[i] * mesh_block.b[i] > 0 &&
               mesh_block.r[i - 1] * mesh_block.g[i - 1] * mesh_block.b[i - 1] >

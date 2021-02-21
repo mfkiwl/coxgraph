@@ -69,9 +69,11 @@ void ServerVisualizer::getFinalGlobalMesh(
 
   auto pose_map = global_pg_interface.getPoseMap();
 
-  boost::filesystem::path mesh_p_o3d(file_path);
+  boost::filesystem::path mesh_p_o3d_client_color(file_path);
+  boost::filesystem::path mesh_p_o3d_raw(file_path);
   boost::filesystem::path mesh_p_voxblox(file_path);
-  mesh_p_o3d.append("global_mesh_o3d.ply");
+  mesh_p_o3d_client_color.append("global_mesh_o3d_client.ply");
+  mesh_p_o3d_raw.append("global_mesh_o3d_raw.ply");
   mesh_p_voxblox.append("global_mesh_voxblox.ply");
 
   if (config_.o3d_visualize) {
@@ -81,7 +83,10 @@ void ServerVisualizer::getFinalGlobalMesh(
         new open3d::geometry::TriangleMesh());
     for (auto const& submap :
          global_submap_collection_ptr->getSubmapConstPtrs()) {
-      auto submap_mesh = utils::o3dMeshFromMsg(*submap->mesh_pointcloud_);
+      auto submap_mesh = utils::o3dMeshFromMsg(
+          *submap->mesh_pointcloud_, 1,
+          global_submap_collection_ptr->getCliIdPairBySsid(submap->getID())
+              .first);
       if (submap_mesh == nullptr) continue;
       submap_mesh->Transform(
           pose_map[submap->getID()].cast<double>().getTransformationMatrix());
@@ -95,7 +100,28 @@ void ServerVisualizer::getFinalGlobalMesh(
     combined_mesh->ComputeTriangleNormals();
     o3d_vis_->AddGeometry(combined_mesh);
     o3d_vis_->UpdateGeometry(combined_mesh);
-    open3d::io::WriteTriangleMesh(mesh_p_o3d.string(), *combined_mesh);
+    open3d::io::WriteTriangleMesh(mesh_p_o3d_client_color.string(),
+                                  *combined_mesh);
+
+    // Combine mesh
+    o3d_vis_->ClearGeometries();
+    combined_mesh->Clear();
+    for (auto const& submap :
+         global_submap_collection_ptr->getSubmapConstPtrs()) {
+      auto submap_mesh = utils::o3dMeshFromMsg(*submap->mesh_pointcloud_, 2);
+      if (submap_mesh == nullptr) continue;
+      submap_mesh->Transform(
+          pose_map[submap->getID()].cast<double>().getTransformationMatrix());
+      *combined_mesh += *submap_mesh;
+      combined_mesh->MergeCloseVertices(0.06);
+      combined_mesh->RemoveDuplicatedVertices();
+      combined_mesh->RemoveDuplicatedTriangles();
+    }
+    combined_mesh->FilterSmoothTaubin(100);
+    combined_mesh->ComputeVertexNormals();
+    combined_mesh->ComputeTriangleNormals();
+    o3d_vis_->UpdateGeometry(combined_mesh);
+    open3d::io::WriteTriangleMesh(mesh_p_o3d_raw.string(), *combined_mesh);
   }
 
   submap_vis_.saveAndPubCombinedMesh(*global_submap_collection_ptr,

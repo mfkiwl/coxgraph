@@ -175,22 +175,27 @@ inline CIdCSIdPair resolveSubmapFrame(std::string frame_id) {
 }
 
 inline std::shared_ptr<open3d::geometry::TriangleMesh> o3dMeshFromMsg(
-    const sensor_msgs::PointCloud2& pointcloud2_msg) {
+    const sensor_msgs::PointCloud2& pointcloud2_msg, int color_mode = 0,
+    CliId cid = 0) {
   std::vector<Eigen::Vector3d> vertices;
+  std::vector<Eigen::Vector3d> colors;
   std::vector<Eigen::Vector3i> indices;
 
-  sensor_msgs::PointCloud pointcloud_msg;
-  sensor_msgs::convertPointCloud2ToPointCloud(pointcloud2_msg, pointcloud_msg);
-  if (pointcloud_msg.points.empty()) return nullptr;
+  pcl::PointCloud<pcl::PointXYZRGB> pointcloud;
+  pcl::fromROSMsg(pointcloud2_msg, pointcloud);
+  if (pointcloud.empty()) return nullptr;
 
-  CHECK_EQ(pointcloud_msg.points.size() % 3, 0);
-  for (size_t i = 0; i < pointcloud_msg.points.size() - 3; i += 3) {
-    auto point = pointcloud_msg.points[i];
+  CHECK_EQ(pointcloud.points.size() % 3, 0);
+  for (size_t i = 0; i < pointcloud.size() - 3; i += 3) {
+    auto point = pointcloud[i];
     vertices.emplace_back(point.x, point.y, point.z);
-    point = pointcloud_msg.points[i + 1];
+    colors.emplace_back(point.r / 255.0, point.g / 255.0, point.b / 255.0);
+    point = pointcloud[i + 1];
     vertices.emplace_back(point.x, point.y, point.z);
-    point = pointcloud_msg.points[i + 2];
+    colors.emplace_back(point.r / 255.0, point.g / 255.0, point.b / 255.0);
+    point = pointcloud[i + 2];
     vertices.emplace_back(point.x, point.y, point.z);
+    colors.emplace_back(point.r / 255.0, point.g / 255.0, point.b / 255.0);
 
     indices.emplace_back(i, i + 1, i + 2);
   }
@@ -198,6 +203,32 @@ inline std::shared_ptr<open3d::geometry::TriangleMesh> o3dMeshFromMsg(
 
   std::shared_ptr<open3d::geometry::TriangleMesh> o3d_mesh(
       new open3d::geometry::TriangleMesh(vertices, indices));
+
+  Eigen::Vector3d color;
+  if (color_mode == 1) {
+    switch (cid) {
+      case 0:
+        color[0] = 1.0;
+        color[1] = 0;
+        color[2] = 0;
+        break;
+      case 1:
+        color[0] = 0;
+        color[1] = 1.0;
+        color[2] = 0;
+        break;
+      case 2:
+        color[0] = 0;
+        color[1] = 0;
+        color[2] = 1.0;
+        break;
+    }
+    for (size_t i = 0; i < o3d_mesh->vertices_.size(); i++)
+      o3d_mesh->vertex_colors_.emplace_back(color);
+  } else {
+    o3d_mesh->vertex_colors_ = colors;
+  }
+
   return o3d_mesh;
 }
 
