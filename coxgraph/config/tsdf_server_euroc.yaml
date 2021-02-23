@@ -35,6 +35,6 @@ publish_esdf_map: true
 publish_map_every_n_sec: 0
 publish_map_with_trajectory: true
 
-submap_interval: 10
+submap_interval: 5
 
   #mesh_min_weight: 0.0005
