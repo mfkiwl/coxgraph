@@ -13,6 +13,7 @@ typedef std::function<void(size_t, size_t, double, double, Eigen::Matrix4d)>
     MfPubFunc;
 typedef std::function<void(double, double, Eigen::Matrix4d)> LcPubFunc;
 
+typedef int8_t CliId;
 }  // namespace mod
 }  // namespace coxgraph
 

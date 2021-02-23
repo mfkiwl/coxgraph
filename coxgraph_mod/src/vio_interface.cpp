@@ -1,6 +1,5 @@
 #include "coxgraph_mod/vio_interface.h"
 
-#include <coxgraph/common.h>
 #include <std_srvs/SetBool.h>
 
 #include <map>

@@ -1,7 +1,6 @@
 #ifndef COXGRAPH_MOD_VIO_INTERFACE_H_
 #define COXGRAPH_MOD_VIO_INTERFACE_H_
 
-#include <coxgraph/common.h>
 #include <std_srvs/SetBool.h>
 #include <Eigen/Dense>
 

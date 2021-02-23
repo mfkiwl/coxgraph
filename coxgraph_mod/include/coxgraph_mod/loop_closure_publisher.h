@@ -1,7 +1,6 @@
 #ifndef COXGRAPH_MOD_LOOP_CLOSURE_PUBLISHER_H_
 #define COXGRAPH_MOD_LOOP_CLOSURE_PUBLISHER_H_
 
-#include <coxgraph/common.h>
 #include <coxgraph_msgs/LoopClosure.h>
 #include <coxgraph_msgs/MapFusion.h>
 #include <coxgraph_msgs/NeedToFuseSrv.h>
