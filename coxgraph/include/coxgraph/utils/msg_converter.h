@@ -174,6 +174,33 @@ inline CIdCSIdPair resolveSubmapFrame(std::string frame_id) {
   return std::make_pair(cid, csid);
 }
 
+inline Eigen::Vector3d getColor(Eigen::Vector3d ori_color, int color_mode,
+                                CliId cid) {
+  Eigen::Vector3d color;
+  if (color_mode == 0)
+    return ori_color;
+  else if (color_mode == 2) {
+    color[0] = ori_color.sum() / 3;
+    color[1] = ori_color.sum() / 3;
+    color[2] = ori_color.sum() / 3;
+    if (cid == 0) {
+      color[0] *= 1.5;
+      color[1] *= 0.5;
+      color[2] *= 0.5;
+    } else if (cid == 1) {
+      color[0] *= 0.5;
+      color[1] *= 1.5;
+      color[2] *= 0.5;
+    } else if (cid == 2) {
+      color[0] *= 0.5;
+      color[1] *= 0.5;
+      color[2] *= 1.5;
+    }
+    return color;
+  }
+  return ori_color;
+}
+
 inline std::shared_ptr<open3d::geometry::TriangleMesh> o3dMeshFromMsg(
     const sensor_msgs::PointCloud2& pointcloud2_msg, int color_mode = 0,
     CliId cid = 0) {
@@ -189,13 +216,19 @@ inline std::shared_ptr<open3d::geometry::TriangleMesh> o3dMeshFromMsg(
   for (size_t i = 0; i < pointcloud.size() - 3; i += 3) {
     auto point = pointcloud[i];
     vertices.emplace_back(point.x, point.y, point.z);
-    colors.emplace_back(point.r / 255.0, point.g / 255.0, point.b / 255.0);
+    colors.emplace_back(getColor(
+        Eigen::Vector3d(point.r / 255.0, point.g / 255.0, point.b / 255.0),
+        color_mode, cid));
     point = pointcloud[i + 1];
     vertices.emplace_back(point.x, point.y, point.z);
-    colors.emplace_back(point.r / 255.0, point.g / 255.0, point.b / 255.0);
+    colors.emplace_back(getColor(
+        Eigen::Vector3d(point.r / 255.0, point.g / 255.0, point.b / 255.0),
+        color_mode, cid));
     point = pointcloud[i + 2];
     vertices.emplace_back(point.x, point.y, point.z);
-    colors.emplace_back(point.r / 255.0, point.g / 255.0, point.b / 255.0);
+    colors.emplace_back(getColor(
+        Eigen::Vector3d(point.r / 255.0, point.g / 255.0, point.b / 255.0),
+        color_mode, cid));
 
     indices.emplace_back(i, i + 1, i + 2);
   }

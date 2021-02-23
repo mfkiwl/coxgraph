@@ -32,6 +32,9 @@ class ServerVisualizer {
     float publish_submap_meshes_every_n_sec = 1.0;
     bool o3d_visualize = true;
     bool registration_enable = true;
+    bool o3d_vis_traj = false;
+    bool publish_combined_mesh = false;
+    int o3d_color_mode = 0;
 
     friend inline std::ostream& operator<<(std::ostream& s, const Config& v) {
       s << std::endl
@@ -45,12 +48,36 @@ class ServerVisualizer {
         << v.publish_submap_meshes_every_n_sec << " s" << std::endl
         << "  o3d_visualize: " << v.o3d_visualize << std::endl
         << "  registration_enable: " << v.registration_enable << std::endl
+        << "  o3d_vis_traj: " << v.o3d_vis_traj << std::endl
+        << "  publish_combined_mesh: " << v.publish_combined_mesh << std::endl
+        << "  o3d_color_mode: " << v.o3d_color_mode << std::endl
         << "-------------------------------------------" << std::endl;
       return (s);
     }
   };
 
-  static Config getConfigFromRosParam(const ros::NodeHandle& nh_private);
+  static Config getConfigFromRosParam(const ros::NodeHandle& nh_private) {
+    Config config;
+    nh_private.param<float>("mesh_opacity", config.mesh_opacity, 1.0);
+    nh_private.param<std::string>("submap_mesh_color_mode",
+                                  config.submap_mesh_color_mode,
+                                  "lambert_color");
+    nh_private.param<std::string>("combined_mesh_color_mode",
+                                  config.combined_mesh_color_mode, "normals");
+    nh_private.param("publish_submap_meshes_every_n_sec",
+                     config.publish_submap_meshes_every_n_sec,
+                     config.publish_submap_meshes_every_n_sec);
+    nh_private.param("o3d_visualize", config.o3d_visualize,
+                     config.o3d_visualize);
+    nh_private.param("submap_registration/enabled", config.registration_enable,
+                     config.registration_enable);
+    nh_private.param("o3d_vis_traj", config.o3d_vis_traj, config.o3d_vis_traj);
+    nh_private.param("publish_combined_mesh", config.publish_combined_mesh,
+                     config.publish_combined_mesh);
+    nh_private.param("o3d_color_mode", config.o3d_color_mode,
+                     config.o3d_color_mode);
+    return config;
+  }
 
   typedef std::shared_ptr<ServerVisualizer> Ptr;
 
@@ -83,6 +110,9 @@ class ServerVisualizer {
       o3d_vis_update_timer_ = nh_private_.createTimer(
           ros::Duration(0.01), &ServerVisualizer::o3dVisUpdateEvent, this);
     }
+    client_colors_.emplace_back(1.0, 0, 0);
+    client_colors_.emplace_back(0, 1.0, 0);
+    client_colors_.emplace_back(0, 0, 1.0);
   }
 
   ~ServerVisualizer() = default;
@@ -129,16 +159,18 @@ class ServerVisualizer {
                           const std::vector<CliSmPack>& other_submaps,
                           const std::string& mission_frame,
                           const ros::Publisher& publisher,
-                          const std::string& file_path);
+                          const std::string& file_path,
+                          bool save_to_file = false);
 
   void getFinalGlobalMesh(const SubmapCollection::Ptr& submap_collection_ptr,
                           const PoseGraphInterface& pose_graph_interface,
                           const std::vector<CliSmPack>& other_submaps,
                           const std::string& mission_frame,
-                          const std::string& file_path) {
+                          const std::string& file_path,
+                          bool save_to_file = false) {
     getFinalGlobalMesh(submap_collection_ptr, pose_graph_interface,
                        other_submaps, mission_frame, combined_mesh_pub_,
-                       file_path);
+                       file_path, save_to_file);
   }
 
  private:
@@ -168,6 +200,7 @@ class ServerVisualizer {
 
   open3d::visualization::Visualizer* o3d_vis_;
   ros::Timer o3d_vis_update_timer_;
+  std::vector<Eigen::Vector3d> client_colors_;
   void o3dVisUpdateEvent(const ros::TimerEvent& /*event*/) {
     o3d_vis_->PollEvents();
     o3d_vis_->UpdateRender();

@@ -1,6 +1,7 @@
 #ifndef COXGRAPH_CLIENT_COXGRAPH_CLIENT_H_
 #define COXGRAPH_CLIENT_COXGRAPH_CLIENT_H_
 
+#include <Open3D/Geometry/LineSet.h>
 #include <Open3D/Visualization/Visualizer/RenderOption.h>
 #include <Open3D/Visualization/Visualizer/Visualizer.h>
 #include <coxgraph_msgs/ClientSubmap.h>
@@ -47,7 +48,7 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
       o3d_vis_->CreateVisualizerWindow("client_" + std::to_string(client_id_));
       o3d_vis_->GetRenderOption().mesh_color_option_ =
           open3d::visualization::RenderOption::MeshColorOption::Normal;
-      combined_mesh_.reset(new open3d::geometry::TriangleMesh());
+      traj_color_ = Eigen::Vector3d(0, 1.0, 0);
       // o3d_vis_->AddGeometry(combined_mesh_);
       o3d_mesh_timer_ = nh_private_.createTimer(
           ros::Duration(0.01), &CoxgraphClient::o3dMeshVisualizeEvent, this);
@@ -140,7 +141,7 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
   std::map<CliSmId, std::pair<TransformationD,
                               std::shared_ptr<open3d::geometry::TriangleMesh>>>
       mesh_collection_;
-  std::shared_ptr<open3d::geometry::TriangleMesh> combined_mesh_;
+  Eigen::Vector3d traj_color_;
   open3d::visualization::Visualizer* o3d_vis_;
   void submapMeshCallback(
       const voxblox_msgs::LayerWithTrajectoryConstPtr& layer_msg,
@@ -174,7 +175,12 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
   }
 
   void updateCombinedMesh() {
-    combined_mesh_->Clear();
+    o3d_vis_->ClearGeometries();
+
+    std::shared_ptr<open3d::geometry::TriangleMesh> combined_mesh(
+        new open3d::geometry::TriangleMesh());
+    std::shared_ptr<open3d::geometry::LineSet> traj_line_set(
+        new open3d::geometry::LineSet());
     for (auto& kv : mesh_collection_) {
       Transformation T_G_new;
       submap_collection_ptr_->getSubmapPose(kv.first, &T_G_new);
@@ -183,15 +189,28 @@ class CoxgraphClient : public voxgraph::VoxgraphMapper {
       T_old_new = T_G_old.inverse() * T_G_new.cast<double>();
       kv.second.first = T_G_new.cast<double>();
       kv.second.second->Transform(T_old_new.getTransformationMatrix());
-      *combined_mesh_ += *kv.second.second;
-      combined_mesh_->MergeCloseVertices(0.005);
-      combined_mesh_->RemoveDuplicatedVertices();
-      combined_mesh_->RemoveDuplicatedTriangles();
-      combined_mesh_->ComputeVertexNormals();
-      combined_mesh_->ComputeTriangleNormals();
+      *combined_mesh += *kv.second.second;
+      combined_mesh->MergeCloseVertices(0.02);
+      combined_mesh->RemoveDuplicatedVertices();
+      combined_mesh->RemoveDuplicatedTriangles();
+      combined_mesh->ComputeVertexNormals();
+      combined_mesh->ComputeTriangleNormals();
     }
-    o3d_vis_->AddGeometry(combined_mesh_);
-    o3d_vis_->UpdateGeometry(combined_mesh_);
+    o3d_vis_->AddGeometry(combined_mesh);
+    o3d_vis_->UpdateGeometry(combined_mesh);
+
+    traj_line_set->Clear();
+    auto traj = submap_collection_ptr_->getPoseHistory();
+    for (size_t i = 0; i < traj.size(); i++) {
+      auto const& pose = traj[i];
+      traj_line_set->points_.emplace_back(
+          pose.pose.position.x, pose.pose.position.y, pose.pose.position.y);
+      traj_line_set->colors_.emplace_back(traj_color_);
+      traj_line_set->lines_.emplace_back(i, i + 1);
+    }
+    traj_line_set->lines_.erase(traj_line_set->lines_.end() - 1);
+    o3d_vis_->AddGeometry(traj_line_set);
+    o3d_vis_->UpdateGeometry(traj_line_set);
   }
 };
 

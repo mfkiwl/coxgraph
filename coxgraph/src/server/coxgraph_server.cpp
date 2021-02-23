@@ -127,7 +127,7 @@ bool CoxgraphServer::getFinalGlobalMeshCallback(
 
   server_vis_->getFinalGlobalMesh(
       submap_collection_ptr_, pose_graph_interface_, all_submaps,
-      tf_controller_->getGlobalMissionFrame(), file_path);
+      tf_controller_->getGlobalMissionFrame(), file_path, true);
 
   LOG(INFO) << "Global mesh generated, map fusion process unpaused";
 
