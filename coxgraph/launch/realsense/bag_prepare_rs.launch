@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<launch>
+        <param name="use_sim_time" value="true" />
+        <arg name="id" default="0" />
+        <arg name="play_speed" default="1" />
+        <arg name="skip_seconds" default="0" />
+        <arg name="bag_file" default="/home/lxy/Datasets_ssd/good_$(arg id).bag" />
+
+        <!--       <include file="$(find coxgraph)/launch/realsense/vins_sim.launch">
+                <arg name="mav_name" default="firefly" />
+                <arg name="id" value="$(arg id)" />
+                <arg name="config_path" value="$(find coxgraph)/config/realsense/rs_config_$(arg id).yaml" />
+        </include> -->
+
+        <node pkg="tf" type="static_transform_publisher" name="cam_depth_tf_$(arg id)" args="0.015 0 0 0 0 0 1 cam_$(arg id)_color_optical_frame cam_$(arg id)_depth_optical_frame 100" />
+
+        <node name="record" pkg="rosbag" type="record" output="screen" args="-O /home/lxy/Datasets_ssd/meng/good_$(arg id).bag.data.bag -a" />
+        <node name="player" pkg="rosbag" type="play" output="screen" args="--clock -r $(arg play_speed) -q $(arg bag_file) /tf:=/tf_old" />
+</launch>

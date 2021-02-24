@@ -2,8 +2,8 @@
 # File for agent 0
 
 #common parameters
-imu_topic: "/cam_0/imu"
-image_topic: "/cam_0/color/image_raw"
+imu_topic: "/cam_1/imu"
+image_topic: "/cam_1/color/image_raw"
 output_path: "/home/btearle/output/0/"
 
 #camera calibration 
@@ -47,7 +47,7 @@ extrinsicTranslation: !!opencv-matrix
 #feature traker paprameters
 max_cnt: 150            # max feature number in feature tracking
 min_dist: 30            # min distance between two features 
-freq: 100                # frequence (Hz) of publish tracking result. At least 10Hz for good estimation. If set 0, the frequence will be same as raw image 
+freq: 0                # frequence (Hz) of publish tracking result. At least 10Hz for good estimation. If set 0, the frequence will be same as raw image 
 F_threshold: 1.0        # ransac threshold (pixel)
 show_track: 1           # publish tracking image as topic
 equalize: 1             # if image is too dark or light, trun on equalize to find enough features
