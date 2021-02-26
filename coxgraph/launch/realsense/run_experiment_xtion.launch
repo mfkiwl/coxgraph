@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<launch>
+        <param name="use_sim_time" value="false" />
+
+        <arg name="tw_voxblox_config_file" default="$(find coxgraph)/config/tsdf_server_rs.yaml" />
+        <arg name="tsdf_voxel_size" default="0.10" />
+        <arg name="truncation_distance" default="0.30" />
+        <arg name="recover_mode" default="true" />
+        <arg name="evaluate" default="false" />
+
+        <include file="$(find coxgraph)/launch/realsense/voxblox_test_xtion.launch">
+                <arg name="id" default="0" />
+        </include>
+
+        <include file="$(find coxgraph)/launch/realsense/voxblox_test_xtion.launch">
+                <arg name="id" default="1" />
+        </include>
+
+        <include file="$(find coxgraph)/launch/realsense/voxblox_test_xtion.launch">
+                <arg name="id" default="2" />
+        </include>
+
+        <include file="$(find coxgraph)/launch/coxgraph_server.launch">
+                <arg name="tsdf_voxel_size" value="$(arg tsdf_voxel_size)" />
+                <arg name="truncation_distance" value="$(arg truncation_distance)" />
+                <arg name="map_frame_prefix" default="odom" />
+                <arg name="debug" default="false" />
+        </include>
+
+        <include if="$(arg evaluate)" file="$(find node_evaluator)/launch/evaluate.launch">
+                <arg name="config_file" default="$(find coxgraph)/config/evaluation_config.yaml" />
+                <arg name="debug" default="false" />
+        </include>
+
+        <node name="result_recorder" pkg="rosbag" type="record" output="screen" args="-o /workspaces/voxgraph_melodic_ws/eval/tf_record /coxgraph/tsdf_client_0/mesh /coxgraph/tsdf_client_0/mesh_with_history /coxgraph/tsdf_client_0/tsdf_map_out /firefly_0/pose_graph_0/vins_keyframe /tf" />
+</launch>

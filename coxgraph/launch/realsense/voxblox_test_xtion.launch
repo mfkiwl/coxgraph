@@ -4,17 +4,18 @@
         <arg name="tsdf_voxel_size" default="0.05" />
         <arg name="truncation_distance" default="0.15" />
         <arg name="tw_voxblox_config_file" default="$(find coxgraph)/config/tsdf_server_rs.yaml" />
-        <arg name="bag_file" default="/home/lxy/Datasets/rs_2021-02-26-17-02-42.bag" />
 
-        <include file="$(find coxgraph)/launch/realsense/vins_sim.launch">
-                <arg name="mav_name" default="firefly" />
-                <arg name="id" value="$(arg id)" />
-                <arg name="config_path" value="$(find coxgraph)/config/realsense/rs_config_$(arg id).yaml" />
-        </include>
+        <node pkg="nodelet" type="nodelet" args="manager" name="record_player_manager_$(arg id)" output="screen" />
+        <node pkg="nodelet" type="nodelet" name="cloudify_$(arg id)" args="load depth_image_proc/point_cloud_xyzrgb record_player_manager_$(arg id) --no-bond">
+                <remap from="depth_registered/image_rect" to="/cam_$(arg id)/depth_registered/sw_registered/image_rect" />
+                <remap from="depth_registered/points" to="/pointcloud_$(arg id)" />
+                <remap from="rgb/image_rect_color" to="/cam_$(arg id)/rgb/image_rect_color" />
+                <remap from="rgb/camera_info" to="/cam_$(arg id)/rgb/camera_info" />
+        </node>
 
         <include file="$(find coxgraph)/launch/firefly/coxgraph_client.launch">
                 <arg name="id" value="$(arg id)" />
-                <arg name="pointcloud_topic" value="/cam_0/depth/color/points" />
+                <arg name="pointcloud_topic" value="/pointcloud_$(arg id)" />
                 <arg name="world_frame_suffix" value="odom" />
                 <arg name="debug_tsdf" value="false" />
                 <arg name="recover_mode" value="false" />
@@ -23,5 +24,4 @@
                 <arg name="tw_voxblox_config_file" default="$(arg tw_voxblox_config_file)" />
         </include>
 
-        <node name="play" pkg="rosbag" type="play" output="screen" args="$(arg bag_file)" />
 </launch>
