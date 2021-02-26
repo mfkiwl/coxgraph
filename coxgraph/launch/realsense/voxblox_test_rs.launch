@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <launch>
-        <arg name="id" default="0" />
-        <arg name="tsdf_voxel_size" default="0.05" />
-        <arg name="truncation_distance" default="0.15" />
+        <arg name="id" default="2" />
+        <arg name="tsdf_voxel_size" default="0.10" />
+        <arg name="truncation_distance" default="0.30" />
         <arg name="tw_voxblox_config_file" default="$(find coxgraph)/config/tsdf_server_rs.yaml" />
-        <arg name="bag_file" default="/home/lxy/Datasets/rs_2021-02-26-17-02-42.bag" />
+        <arg name="bag_file" default="/home/lxy/Datasets_ssd/rs_2021-02-26-20-00-52.bag" />
 
         <include file="$(find coxgraph)/launch/realsense/vins_sim.launch">
                 <arg name="mav_name" default="firefly" />
@@ -14,7 +14,7 @@
 
         <include file="$(find coxgraph)/launch/firefly/coxgraph_client.launch">
                 <arg name="id" value="$(arg id)" />
-                <arg name="pointcloud_topic" value="/cam_0/depth/color/points" />
+                <arg name="pointcloud_topic" value="/cam_$(arg id)/depth/color/points" />
                 <arg name="world_frame_suffix" value="odom" />
                 <arg name="debug_tsdf" value="false" />
                 <arg name="recover_mode" value="false" />
@@ -23,5 +23,5 @@
                 <arg name="tw_voxblox_config_file" default="$(arg tw_voxblox_config_file)" />
         </include>
 
-        <node name="play" pkg="rosbag" type="play" output="screen" args="$(arg bag_file)" />
+        <node name="player_$(arg id)" pkg="rosbag" type="play" output="screen" args="-r 0.5 -d 20 $(arg bag_file)" />
 </launch>

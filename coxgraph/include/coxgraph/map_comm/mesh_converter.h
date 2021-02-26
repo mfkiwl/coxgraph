@@ -134,6 +134,8 @@ class MeshConverter {
           Colors interp_colors;
           interpolateTriangle(triangle, colors, &interp_pts, &interp_colors);
 
+          
+
           for (size_t hi = 0; hi < history.history.size(); hi++) {
             auto stamp = history.history[hi];
             if (!pointcloud_.count(stamp))

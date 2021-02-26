@@ -196,14 +196,14 @@ bool CoxgraphServer::needToFuseCallback(
 void CoxgraphServer::mapFusionMsgCallback(
     const coxgraph_msgs::MapFusion& map_fusion_msg) {
   if (map_fusion_msg.from_client_id == map_fusion_msg.to_client_id) {
-    LOG_IF(INFO, verbose_) << "Received loop closure msg in client "
+    LOG(INFO) << "Received loop closure msg in client "
                            << map_fusion_msg.from_client_id << " from "
                            << map_fusion_msg.from_timestamp << " to "
                            << map_fusion_msg.to_timestamp;
     loopClosureCallback(map_fusion_msg.from_client_id,
                         utils::fromMapFusionMsg(map_fusion_msg));
   } else {
-    LOG_IF(INFO, verbose_) << "Received map fusion msg from client "
+    LOG(INFO) << "Received map fusion msg from client "
                            << map_fusion_msg.from_client_id << " at "
                            << map_fusion_msg.from_timestamp << " to client "
                            << map_fusion_msg.to_client_id << " at "

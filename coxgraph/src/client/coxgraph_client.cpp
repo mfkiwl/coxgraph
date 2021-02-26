@@ -113,7 +113,9 @@ bool CoxgraphClient::submapCallback(
   if (submap_collection_ptr_->size()) {
     publishTimeLine();
     LOG(INFO) << "active submap id: "
-              << submap_collection_ptr_->getActiveSubmapID();
+              << submap_collection_ptr_->getActiveSubmapID() << "from "
+              << submap_collection_ptr_->getTimeLine().first << " to "
+              << submap_collection_ptr_->getTimeLine().second;
   }
   return true;
 }
