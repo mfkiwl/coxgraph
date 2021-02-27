@@ -47,6 +47,10 @@ void ServerVisualizer::getFinalGlobalMesh(
          std::future_status::ready) {
     LOG_EVERY_N(INFO, 10) << "Global optimzation is still running...";
   }
+  global_pg_interface.printResiduals(
+      PoseGraphInterface::ConstraintType::RelPose);
+  global_pg_interface.printResiduals(
+      PoseGraphInterface::ConstraintType::SubmapRelPose);
   LOG(INFO) << "Optimization finished, generating global mesh...";
 
   global_pg_interface.updateSubmapCollectionPoses();

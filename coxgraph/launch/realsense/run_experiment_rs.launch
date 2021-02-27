@@ -7,9 +7,9 @@
         <arg name="truncation_distance" default="0.30" />
         <arg name="recover_mode" default="true" />
         <arg name="evaluate" default="false" />
-        <arg name="bag_file0" default="/home/lxy/Datasets/rs/rs_loop_test_cam0.bag" />
-        <arg name="bag_file1" default="/home/lxy/Datasets/rs/rs_loop_test_cam1.bag" />
-        <arg name="bag_file2" default="/home/lxy/Datasets_sd/rs_2021-02-26-20-00-52.bag" />
+        <arg name="bag_file0" default="/home/lxy/Datasets_ssd/rs/cam_0.bag" />
+        <arg name="bag_file1" default="/home/lxy/Datasets_ssd/rs/cam_1.bg" />
+        <arg name="bag_file2" default="/home/lxy/Datasets_ssd/rs/cam_2.bag" />
 
         <include file="$(find coxgraph)/launch/realsense/voxblox_test_rs.launch">
                 <arg name="id" default="0" />
@@ -28,13 +28,14 @@
 
         <include file="$(find coxgraph_sim)/launch/utils/pose_graph_backend.launch">
                 <arg name="num_agents" default="3" />
+                <arg name="sensor" default="rs" />
         </include>
 
         <include file="$(find coxgraph)/launch/coxgraph_server.launch">
                 <arg name="tsdf_voxel_size" value="$(arg tsdf_voxel_size)" />
                 <arg name="truncation_distance" value="$(arg truncation_distance)" />
                 <arg name="map_frame_prefix" default="odom" />
-                <arg name="debug" default="false" />
+                <arg name="debug" default="true" />
         </include>
 
         <include if="$(arg evaluate)" file="$(find node_evaluator)/launch/evaluate.launch">

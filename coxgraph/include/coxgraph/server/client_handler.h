@@ -87,7 +87,7 @@ class ClientHandler {
         transformer_(nh, nh_private),
         time_line_update_callback_(time_line_callback),
         eval_data_pub_(nh, nh_private),
-
+        submap_collection_ptr_(submap_collection_ptr),
         mesh_collection_ptr_(mesh_collection_ptr) {
     subscribeToTopics();
     advertiseTopics();

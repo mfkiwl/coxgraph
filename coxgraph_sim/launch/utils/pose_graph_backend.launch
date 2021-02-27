@@ -3,6 +3,7 @@
   <arg name="num_agents"/>
   <arg name="mav_name" default="firefly"/>
   <arg name="logging" default="true"/>
+  <arg name="sensor" default="sim_sensor"/>
 
   <!-- Debug -->
   <arg name="launch_prefix" default="xterm -e"/>
@@ -15,10 +16,10 @@
     <param name="bow_voc" value="$(find pose_graph_backend)/conf/briskOKVIS_k10_L6_voc_v1.yml.gz"/>
     <param name="num_agents" value="$(arg num_agents)" />
 
-    <param name="cam_config0" value="$(find pose_graph_backend)/conf/ncamera_sim_visensor.yaml"/>
-    <param name="cam_config1" value="$(find pose_graph_backend)/conf/ncamera_sim_visensor.yaml"/>
-    <param name="cam_config2" value="$(find pose_graph_backend)/conf/ncamera_sim_visensor.yaml"/>
-    <param name="cam_config3" value="$(find pose_graph_backend)/conf/ncamera_sim_visensor.yaml"/>
+    <param name="cam_config0" value="$(find coxgraph)/config/ncamera_$(arg sensor).yaml"/>
+    <param name="cam_config1" value="$(find coxgraph)/config/ncamera_$(arg sensor).yaml"/>
+    <param name="cam_config2" value="$(find coxgraph)/config/ncamera_$(arg sensor).yaml"/>
+    <param name="cam_config3" value="$(find coxgraph)/config/ncamera_$(arg sensor).yaml"/>
 
     <rosparam param="gps_reference0">[47.4503488, 8.6815056, 0.0]</rosparam>
     <rosparam param="gps_offset0"> [0.0, 0.0, 0.0]</rosparam>
@@ -39,14 +40,14 @@
     <param name="rel_pose_outlier_norm_min" value="0.95"/>
     <param name="local_opt_window_size" value="8"/>
 
-    <param name="loop_candidate_min_score" value="0.02"/>
+    <param name="loop_candidate_min_score" value="0.03"/>
     <param name="max_loop_candidates" value="3"/>
     <param name="loop_image_min_matches" value="50"/>
     <param name="loop_detect_sac_thresh" value="20"/>
     <param name="loop_detect_sac_max_iter" value="200"/>
-    <param name="loop_detect_min_sac_inliers" value="5"/>
-    <param name="loop_detect_min_sac_inv_inliers" value="5"/>
-    <param name="loop_detect_min_pose_inliers" value="5"/>
+    <param name="loop_detect_min_sac_inliers" value="6"/>
+    <param name="loop_detect_min_sac_inv_inliers" value="6"/>
+    <param name="loop_detect_min_pose_inliers" value="6"/>
 
     <param name="loop_detect_reset_time" value="6"/>
     <param name="loop_detect_skip_kf" value="1"/>

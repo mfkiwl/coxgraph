@@ -41,6 +41,9 @@ void ClientHandler::subscribeToTopics() {
   submap_mesh_sub_ =
       nh_.subscribe(client_node_name_ + "/submap_mesh_with_traj", kSubQueueSize,
                     &ClientHandler::submapMeshCallback, this);
+  sm_pose_updates_sub_ =
+      nh_.subscribe(client_node_name_ + "/map_pose_updates", 10,
+                    &ClientHandler::submapPoseUpdatesCallback, this);
 }
 
 void ClientHandler::timeLineCallback(
@@ -102,31 +105,27 @@ ClientHandler::ReqState ClientHandler::requestSubmapByTime(
 
 void ClientHandler::submapPoseUpdatesCallback(
     const coxgraph_msgs::MapPoseUpdates& map_pose_updates_msg) {
+  CHECK(submap_collection_ptr_ != nullptr);
   LOG(INFO) << log_prefix_ << "Received new pose for "
             << map_pose_updates_msg.submap_id.size() << " submaps.";
-  submap_collection_ptr_->getPosesUpdateMutex()->lock();
-  {
-    for (int i = 0; i < map_pose_updates_msg.submap_id.size(); i++) {
-      SerSmId ser_sm_id;
-      CHECK(submap_collection_ptr_->getSerSmIdByCliSmId(
-          client_id_, map_pose_updates_msg.submap_id[i], &ser_sm_id));
-      CHECK(submap_collection_ptr_->exists(ser_sm_id))
-          << "CliSmId " << map_pose_updates_msg.submap_id[i]
-          << ", SerSmId: " << ser_sm_id;
-      geometry_msgs::Pose submap_pose_msg = map_pose_updates_msg.new_pose[i];
-      CliSm::Ptr submap_ptr = submap_collection_ptr_->getSubmapPtr(ser_sm_id);
-      TransformationD submap_pose;
-      tf::poseMsgToKindr(submap_pose_msg, &submap_pose);
-      submap_ptr = submap_collection_ptr_->getSubmapPtr(ser_sm_id);
-      submap_ptr->setPose(submap_pose.cast<voxblox::FloatingPoint>());
-      submap_collection_ptr_->updateOriPose(
-          ser_sm_id, submap_pose.cast<voxblox::FloatingPoint>());
-      LOG(INFO) << log_prefix_ << "Updating pose for submap cli id: "
-                << map_pose_updates_msg.submap_id[i]
-                << " ser id: " << ser_sm_id;
-    }
+  for (int i = 0; i < map_pose_updates_msg.submap_id.size(); i++) {
+    SerSmId ser_sm_id;
+    CHECK(submap_collection_ptr_->getSerSmIdByCliSmId(
+        client_id_, map_pose_updates_msg.submap_id[i], &ser_sm_id));
+    CHECK(submap_collection_ptr_->exists(ser_sm_id))
+        << "CliSmId " << map_pose_updates_msg.submap_id[i]
+        << ", SerSmId: " << ser_sm_id;
+    geometry_msgs::Pose submap_pose_msg = map_pose_updates_msg.new_pose[i];
+    CliSm::Ptr submap_ptr = submap_collection_ptr_->getSubmapPtr(ser_sm_id);
+    TransformationD submap_pose;
+    tf::poseMsgToKindr(submap_pose_msg, &submap_pose);
+    submap_ptr = submap_collection_ptr_->getSubmapPtr(ser_sm_id);
+    submap_ptr->setPose(submap_pose.cast<voxblox::FloatingPoint>());
+    submap_collection_ptr_->updateOriPose(
+        ser_sm_id, submap_pose.cast<voxblox::FloatingPoint>());
+    LOG(INFO) << log_prefix_ << "Updating pose for submap cli id: "
+              << map_pose_updates_msg.submap_id[i] << " ser id: " << ser_sm_id;
   }
-  submap_collection_ptr_->getPosesUpdateMutex()->unlock();
 }
 
 bool ClientHandler::requestAllSubmaps(std::vector<CliSmPack>* submap_packs,

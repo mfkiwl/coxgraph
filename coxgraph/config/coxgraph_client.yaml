@@ -1,4 +1,4 @@
-verbose: false
+verbose: true
 debug: true
 auto_pause_rosbag: false
 

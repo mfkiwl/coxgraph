@@ -197,17 +197,17 @@ void CoxgraphServer::mapFusionMsgCallback(
     const coxgraph_msgs::MapFusion& map_fusion_msg) {
   if (map_fusion_msg.from_client_id == map_fusion_msg.to_client_id) {
     LOG(INFO) << "Received loop closure msg in client "
-                           << map_fusion_msg.from_client_id << " from "
-                           << map_fusion_msg.from_timestamp << " to "
-                           << map_fusion_msg.to_timestamp;
+              << map_fusion_msg.from_client_id << " from "
+              << map_fusion_msg.from_timestamp << " to "
+              << map_fusion_msg.to_timestamp;
     loopClosureCallback(map_fusion_msg.from_client_id,
                         utils::fromMapFusionMsg(map_fusion_msg));
   } else {
     LOG(INFO) << "Received map fusion msg from client "
-                           << map_fusion_msg.from_client_id << " at "
-                           << map_fusion_msg.from_timestamp << " to client "
-                           << map_fusion_msg.to_client_id << " at "
-                           << map_fusion_msg.to_timestamp;
+              << map_fusion_msg.from_client_id << " at "
+              << map_fusion_msg.from_timestamp << " to client "
+              << map_fusion_msg.to_client_id << " at "
+              << map_fusion_msg.to_timestamp;
     mapFusionCallback(map_fusion_msg);
   }
 }
@@ -236,6 +236,7 @@ bool CoxgraphServer::mapFusionCallback(
   const ros::Time& t2 = map_fusion_msg.to_timestamp;
   TransformationD T_t1_t2;
   tf::transformMsgToKindr(map_fusion_msg.transform, &T_t1_t2);
+  // T_t1_t2 = T_t1_t2.inverse();
 
   if (!needRefuse(cid_a, t1, cid_b, t2)) return true;
   CHECK((!fused_time_line_[cid_a].hasTime(t1)) ||
@@ -336,6 +337,7 @@ void CoxgraphServer::processMFFuture() {
   bool processed_any = false;
   for (auto it = map_fusion_msgs_future_.begin();
        it != map_fusion_msgs_future_.end();) {
+    LOG(INFO) << "processing MF Future";
     coxgraph_msgs::MapFusion map_fusion_msg = it->first;
     CliId cid_a = map_fusion_msg.from_client_id;
     CliId cid_b = map_fusion_msg.to_client_id;
@@ -442,11 +444,13 @@ bool CoxgraphServer::fuseMap(const CliId& cid_a, const ros::Time& t1,
     ser_sm_id_b = addSubmap(submap_b, cid_b, cli_sm_id_b);
   }
 
+  bool added_loop;
   if (config_.enable_map_fusion_constraints) {
     // TODO(mikexyl): transform T_t1_t2 based on cli map frame
     Transformation T_A_B = T_A_t1 * T_t1_t2 * T_B_t2.inverse();
-    pose_graph_interface_.addLoopClosureMeasurement(ser_sm_id_a, ser_sm_id_b,
-                                                    T_A_B);
+    added_loop = pose_graph_interface_.addLoopClosureMeasurement(
+        ser_sm_id_a, ser_sm_id_b, T_A_B, false);
+    if (!added_loop) return false;
     geometry_msgs::Transform pose;
     tf::transformKindrToMsg(T_A_B.cast<double>(), &pose);
     double roll, pitch, yaw;
@@ -467,7 +471,7 @@ bool CoxgraphServer::fuseMap(const CliId& cid_a, const ros::Time& t1,
       std::async(std::launch::async, &CoxgraphServer::optimizePoseGraph, this,
                  this->config_.enable_registration_constraints);
 
-  return prev_result;
+  return added_loop;
 }
 
 void CoxgraphServer::updateSubmapRPConstraints() {
@@ -501,15 +505,27 @@ CoxgraphServer::OptState CoxgraphServer::optimizePoseGraph(
     LOG(INFO) << "Server not in control, optimization skipped";
     return OptState::SKIPPED;
   }
+  if (!pose_graph_interface_.checkLoopClosureCandidates()) {
+    LOG(WARNING) << "all loop candidates check failed";
+    // return OptState::SKIPPED;
+  }
+
   // Optimize the pose graph
   ROS_INFO("Optimizing the pose graph");
 
-  TransformationVector submap_poses;
-  submap_collection_ptr_->getSubmapPoses(&submap_poses);
+  auto pose_map = pose_graph_interface_.getPoseMap();
+  LOG(INFO) << "before optimizing***************";
+  for (auto const& kv : pose_map) {
+    LOG(INFO) << kv.first << " " << kv.second;
+  }
 
   pose_graph_interface_.optimize(enable_registration);
 
-  auto pose_map = pose_graph_interface_.getPoseMap();
+  pose_map = pose_graph_interface_.getPoseMap();
+  LOG(INFO) << "after optimizing----------";
+  for (auto const& kv : pose_map) {
+    LOG(INFO) << kv.first << " " << kv.second;
+  }
 
   if (verbose_) evaluateResiduals();
 
