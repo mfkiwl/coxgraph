@@ -37,18 +37,18 @@ submap_registration:
 loop_closure:
   enabled: true
   information_matrix:
-    x_x: 100.0
-    y_y: 100.0
-    z_z: 250.0
-    yaw_yaw: 250.0
-
-submap_relative_pose:
-  enabled: true
-  information_matrix:
     x_x: 1000.0
     y_y: 1000.0
     z_z: 2500.0
     yaw_yaw: 2500.0
+
+submap_relative_pose:
+  enabled: true
+  information_matrix:
+    x_x: 10.0
+    y_y: 10.0
+    z_z: 25.0
+    yaw_yaw: 25.0
 
 client_map_relative_pose:
   information_matrix:
@@ -63,3 +63,6 @@ publish_submap_meshes_every_n_sec: 0.0
 o3d_visualize: true
 publish_global_mesh_on_update: true
 publish_combined_mesh: true
+
+k_traj: 0.4
+k_overlap: 0.3

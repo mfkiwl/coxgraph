@@ -236,7 +236,7 @@ bool CoxgraphServer::mapFusionCallback(
   const ros::Time& t2 = map_fusion_msg.to_timestamp;
   TransformationD T_t1_t2;
   tf::transformMsgToKindr(map_fusion_msg.transform, &T_t1_t2);
-  // T_t1_t2 = T_t1_t2.inverse();
+  //T_t1_t2 = T_t1_t2.inverse();
 
   if (!needRefuse(cid_a, t1, cid_b, t2)) return true;
   CHECK((!fused_time_line_[cid_a].hasTime(t1)) ||
