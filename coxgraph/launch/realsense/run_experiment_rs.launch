@@ -7,8 +7,8 @@
         <arg name="truncation_distance" default="0.30" />
         <arg name="recover_mode" default="true" />
         <arg name="evaluate" default="false" />
-        <arg name="bag_file0" default="/home/lxy/Datasets_ssd/rs/cam_0.ag" />
-        <arg name="bag_file1" default="/home/lxy/Datasets_ssd/rs/cam_1.bag" />
+        <arg name="bag_file0" default="/home/lxy/Datasets_ssd/rs/cam_0.bag" />
+        <arg name="bag_file1" default="/home/lxy/Datasets_ssd/rs/cam_1.bg" />
         <arg name="bag_file2" default="/home/lxy/Datasets_ssd/rs/cam_2.bag" />
 
         <include file="$(find coxgraph)/launch/realsense/voxblox_test_rs.launch">
