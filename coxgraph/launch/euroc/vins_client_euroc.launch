@@ -47,13 +47,13 @@
         </node>
 
         <group unless="$(arg bag_ripped)">
-                <node if="$(arg clock)" pkg="rosbag" type="play" name="player_$(arg id)" args="$(arg bag_file) -r $(arg play_speed) -s $(arg skip_seconds) --clock /cam0/image_raw:=/cam0_$(arg id)/image_raw /cam1/image_raw:=/cam1_$(arg id)/image_raw imu0:=/imu0_$(arg id)" />
-                <node unless="$(arg clock)" pkg="rosbag" type="play" name="player_$(arg id)" args="$(arg bag_file) -r $(arg play_speed) -s $(arg skip_seconds) /cam0/image_raw:=/cam0_$(arg id)/image_raw /cam1/image_raw:=/cam1_$(arg id)/image_raw imu0:=/imu0_$(arg id)" />
+                <node if="$(arg clock)" pkg="rosbag" type="play" name="player_$(arg id)" args="$(arg bag_file) -d 10 -r $(arg play_speed) -s $(arg skip_seconds) --clock /cam0/image_raw:=/cam0_$(arg id)/image_raw /cam1/image_raw:=/cam1_$(arg id)/image_raw imu0:=/imu0_$(arg id)" />
+                <node unless="$(arg clock)" pkg="rosbag" type="play" name="player_$(arg id)" args="$(arg bag_file) -d 10 -r $(arg play_speed) -s $(arg skip_seconds) /cam0/image_raw:=/cam0_$(arg id)/image_raw /cam1/image_raw:=/cam1_$(arg id)/image_raw imu0:=/imu0_$(arg id)" />
         </group>
 
         <group if="$(arg bag_ripped)">
-                <node if="$(arg clock)" pkg="rosbag" type="play" name="player_$(arg id)" args="$(arg bag_file) -r $(arg play_speed) -s $(arg skip_seconds) --clock" />
-                <node unless="$(arg clock)" pkg="rosbag" type="play" name="player_$(arg id)" args="$(arg bag_file) -r $(arg play_speed) -s $(arg skip_seconds)" />
+                <node if="$(arg clock)" pkg="rosbag" type="play" name="player_$(arg id)" args="$(arg bag_file) -d 10 -r $(arg play_speed) -s $(arg skip_seconds) --clock" />
+                <node unless="$(arg clock)" pkg="rosbag" type="play" name="player_$(arg id)" args="$(arg bag_file) -d 10 -r $(arg play_speed) -s $(arg skip_seconds)" />
         </group>
 
 
