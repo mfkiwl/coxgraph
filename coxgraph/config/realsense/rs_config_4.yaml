@@ -2,8 +2,8 @@
 # File for agent 0
 
 #common parameters
-imu_topic: "/cam_0/imu"
-image_topic: "/cam_0/color/image_raw"
+imu_topic: "/cam_4/imu"
+image_topic: "/cam_4/color/image_raw"
 output_path: "/home/btearle/output/0/"
 
 #camera calibration 

@@ -67,4 +67,4 @@ publish_combined_mesh: true
 k_traj: 0.3
 k_overlap: 0.3
 o3d_color_mode: 2
-o3d_vis_traj: true
+o3d_vis_traj: false

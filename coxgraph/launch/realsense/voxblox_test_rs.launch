@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <launch>
-        <arg name="id" default="2" />
+        <arg name="id" default="0" />
+        <arg name="camera_id" default="0" />
         <arg name="tsdf_voxel_size" default="0.10" />
         <arg name="truncation_distance" default="0.30" />
         <arg name="tw_voxblox_config_file" default="$(find coxgraph)/config/tsdf_server_rs.yaml" />
@@ -9,12 +10,13 @@
         <include file="$(find coxgraph)/launch/realsense/vins_sim.launch">
                 <arg name="mav_name" default="firefly" />
                 <arg name="id" value="$(arg id)" />
-                <arg name="config_path" value="$(find coxgraph)/config/realsense/rs_config_$(arg id).yaml" />
+                <arg name="camera_id" value="$(arg camera_id)" />
+                <arg name="config_path" value="$(find coxgraph)/config/realsense/rs_config_$(arg camera_id).yaml" />
         </include>
 
         <include file="$(find coxgraph)/launch/firefly/coxgraph_client.launch">
                 <arg name="id" value="$(arg id)" />
-                <arg name="pointcloud_topic" value="/cam_$(arg id)/depth/color/points" />
+                <arg name="pointcloud_topic" value="/cam_$(arg camera_id)/depth/color/points" />
                 <arg name="world_frame_suffix" value="odom" />
                 <arg name="debug_tsdf" value="false" />
                 <arg name="recover_mode" value="true" />
@@ -23,5 +25,5 @@
                 <arg name="tw_voxblox_config_file" default="$(arg tw_voxblox_config_file)" />
         </include>
 
-        <node name="player_$(arg id)" pkg="rosbag" type="play" output="screen" args="-s 102 -d 20 $(arg bag_file)" />
+        <node name="player_$(arg id)" pkg="rosbag" type="play" output="screen" args=" -r 0.5 -s 2 -d 10 $(arg bag_file)" />
 </launch>

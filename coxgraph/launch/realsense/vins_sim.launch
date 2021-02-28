@@ -2,6 +2,7 @@
   <!-- Parameters -->
   <arg name="mav_name" />
   <arg name="id"    default = "0"/>
+  <arg name="camera_id" default="0" />
   <arg name="config_path" default = "$(find coxgraph_sim)/config/vins/vins_sim_agent_$(arg id).yaml" />
   <arg name="vins_path"   default = "$(find feature_tracker)/../config/../" />
 
@@ -22,7 +23,7 @@
       <param name="config_file" type="string" value="$(arg config_path)" />
       <param name="vins_folder" type="string" value="$(arg vins_path)" />
       <param name="origin_frame_name" type="string" value="odom_$(arg id)" />
-      <param name="camera_frame_name" type="string" value="cam_$(arg id)_color_optical_frame" />
+      <param name="camera_frame_name" type="string" value="cam_$(arg camera_id)_color_optical_frame" />
       <param name="imu_frame_name" type="string" value="imu_$(arg id)" />
 
       <remap from="vins_estimator_$(arg id)/features" to="feature_tracker_$(arg id)/feature" />

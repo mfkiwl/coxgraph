@@ -180,20 +180,18 @@ inline Eigen::Vector3d getColor(Eigen::Vector3d ori_color, int color_mode,
   if (color_mode == 0)
     return ori_color;
   else if (color_mode == 2) {
- // color[0] = ori_color.sum() / 3;
- // color[1] = ori_color.sum() / 3;
- // color[2] = ori_color.sum() / 3;
+    color = ori_color;
     if (cid == 0) {
       color[0] *= 1.0;
-      color[1] *= 0.2;
-      color[2] *= 0.2;
+      color[1] *= 0.5;
+      color[2] *= 0.5;
     } else if (cid == 1) {
-      color[0] *= 0.2;
+      color[0] *= 0.5;
       color[1] *= 1.0;
-      color[2] *= 0.2;
+      color[2] *= 0.5;
     } else if (cid == 2) {
-      color[0] *= 0.2;
-      color[1] *= 0.2;
+      color[0] *= 0.5;
+      color[1] *= 0.5;
       color[2] *= 1.0;
     }
     return color;

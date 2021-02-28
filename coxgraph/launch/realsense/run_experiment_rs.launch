@@ -13,16 +13,19 @@
 
         <include file="$(find coxgraph)/launch/realsense/voxblox_test_rs.launch">
                 <arg name="id" default="0" />
+                <arg name="camera_id" default="0" />
                 <arg name="bag_file" default="$(arg bag_file0)" />
         </include>
 
         <include file="$(find coxgraph)/launch/realsense/voxblox_test_rs.launch">
                 <arg name="id" default="1" />
+                <arg name="camera_id" default="1" />
                 <arg name="bag_file" default="$(arg bag_file1)" />
         </include>
 
         <include file="$(find coxgraph)/launch/realsense/voxblox_test_rs.launch">
                 <arg name="id" default="2" />
+                <arg name="camera_id" default="2" />
                 <arg name="bag_file" default="$(arg bag_file2)" />
         </include>
 
