@@ -81,11 +81,13 @@ void ServerVisualizer::getFinalGlobalMesh(
       combined_mesh->MergeCloseVertices(0.06);
       combined_mesh->RemoveDuplicatedVertices();
       combined_mesh->RemoveDuplicatedTriangles();
+      combined_mesh->FilterSmoothTaubin(100);
+      combined_mesh->SimplifyVertexClustering(0.05);
     }
-    combined_mesh->FilterSmoothTaubin(100);
     combined_mesh->ComputeVertexNormals();
     combined_mesh->ComputeTriangleNormals();
 
+    o3d_vis_->ClearGeometries();
     if (config_.o3d_vis_traj) {
       for (int cid = 0; cid < global_submap_collection_ptr->getClientNumber();
            cid++) {
@@ -111,7 +113,6 @@ void ServerVisualizer::getFinalGlobalMesh(
       }
     }
 
-    o3d_vis_->ClearGeometries();
     o3d_vis_->AddGeometry(combined_mesh);
     o3d_vis_->UpdateGeometry(combined_mesh);
     if (save_to_file)

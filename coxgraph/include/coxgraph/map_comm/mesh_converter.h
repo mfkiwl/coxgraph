@@ -134,10 +134,15 @@ class MeshConverter {
           Colors interp_colors;
           interpolateTriangle(triangle, colors, &interp_pts, &interp_colors);
 
-          
+          voxblox_msgs::ObsHistory recovered_history;
+          for (size_t i = 0; i < history.history.size(); i += 2) {
+            for (size_t j = history.history[i]; j <= history.history[i + 1];
+                 j++)
+              recovered_history.history.emplace_back(j);
+          }
 
-          for (size_t hi = 0; hi < history.history.size(); hi++) {
-            auto stamp = history.history[hi];
+          for (size_t hi = 0; hi < recovered_history.history.size(); hi++) {
+            auto stamp = recovered_history.history[hi];
             if (!pointcloud_.count(stamp))
               pointcloud_.emplace(
                   stamp, std::make_pair(new Pointcloud(), new Colors()));

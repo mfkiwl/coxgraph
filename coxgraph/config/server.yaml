@@ -27,7 +27,7 @@ global_tf_controller:
 
 submap_registration:
   enabled: true
-  sampling_ratio: 0.05
+  sampling_ratio: 0.1
   registration_method: "explicit_to_implicit"
   information_matrix:
     x_x: 1.0
@@ -37,18 +37,18 @@ submap_registration:
 loop_closure:
   enabled: true
   information_matrix:
-    x_x: 10000.0
-    y_y: 10000.0
-    z_z: 25000.0
+    x_x: 1000.0
+    y_y: 1000.0
+    z_z: 2500.0
     yaw_yaw: 25000.0
 
 submap_relative_pose:
   enabled: true
   information_matrix:
-    x_x: 10.0
-    y_y: 10.0
-    z_z: 25.0
-    yaw_yaw: 25.0
+    x_x: 100.0
+    y_y: 100.0
+    z_z: 250.0
+    yaw_yaw: 250.0
 
 client_map_relative_pose:
   information_matrix:
@@ -66,3 +66,5 @@ publish_combined_mesh: true
 
 k_traj: 0.3
 k_overlap: 0.3
+o3d_color_mode: 2
+o3d_vis_traj: true

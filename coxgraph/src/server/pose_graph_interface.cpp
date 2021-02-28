@@ -42,6 +42,7 @@ void PoseGraphInterface::optimize(bool enable_registration) {
 
   // Publish debug visuals
   if (pose_graph_pub_.getNumSubscribers() > 0) {
+    LOG(INFO) << "publish pose graph: " << pose_graph_.getSubmapPoses().size();
     pose_graph_vis_.publishPoseGraph(pose_graph_, visualization_odom_frame_,
                                      "optimized", pose_graph_pub_);
   }
