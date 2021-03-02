@@ -35,6 +35,7 @@ class ServerVisualizer {
     bool o3d_vis_traj = false;
     bool publish_combined_mesh = false;
     int o3d_color_mode = 0;
+    int o3d_mesh_mode = 0;
 
     friend inline std::ostream& operator<<(std::ostream& s, const Config& v) {
       s << std::endl
@@ -51,6 +52,7 @@ class ServerVisualizer {
         << "  o3d_vis_traj: " << v.o3d_vis_traj << std::endl
         << "  publish_combined_mesh: " << v.publish_combined_mesh << std::endl
         << "  o3d_color_mode: " << v.o3d_color_mode << std::endl
+        << "  o3d_mesh_mode: " << v.o3d_mesh_mode << std::endl
         << "-------------------------------------------" << std::endl;
       return (s);
     }
@@ -76,6 +78,8 @@ class ServerVisualizer {
                      config.publish_combined_mesh);
     nh_private.param("o3d_color_mode", config.o3d_color_mode,
                      config.o3d_color_mode);
+    nh_private.param("o3d_mesh_mode", config.o3d_mesh_mode,
+                     config.o3d_mesh_mode);
     return config;
   }
 

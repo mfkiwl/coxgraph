@@ -25,5 +25,4 @@
                 <arg name="tw_voxblox_config_file" default="$(arg tw_voxblox_config_file)" />
         </include>
 
-        <node name="player_$(arg id)" pkg="rosbag" type="play" output="screen" args="-r 0.3 -d 10 $(arg bag_file)" />
 </launch>

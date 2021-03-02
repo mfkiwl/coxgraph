@@ -7,19 +7,19 @@
         <arg name="truncation_distance" default="0.30" />
         <arg name="recover_mode" default="true" />
         <arg name="evaluate" default="false" />
-        <arg name="bag_file0" default="/home/lxy/Datasets_ssd/rs/cam_3.bag" />
-        <arg name="bag_file1" default="/home/lxy/Datasets_ssd/rs/cam_4.bag" />
+        <arg name="bag_file0" default="/home/lxy/Datasets_ssd/rs/cam_0.bag" />
+        <arg name="bag_file1" default="/home/lxy/Datasets_ssd/rs/cam_1.bag" />
         <arg name="bag_file2" default="/home/lxy/Datasets_ssd/rs/cam_2.bag" />
 
         <include file="$(find coxgraph)/launch/realsense/voxblox_test_rs.launch">
                 <arg name="id" default="0" />
-                <arg name="camera_id" default="3" />
+                <arg name="camera_id" default="0" />
                 <arg name="bag_file" default="$(arg bag_file0)" />
         </include>
 
         <include file="$(find coxgraph)/launch/realsense/voxblox_test_rs.launch">
                 <arg name="id" default="1" />
-                <arg name="camera_id" default="4" />
+                <arg name="camera_id" default="1" />
                 <arg name="bag_file" default="$(arg bag_file1)" />
         </include>
 
@@ -38,7 +38,7 @@
                 <arg name="tsdf_voxel_size" value="$(arg tsdf_voxel_size)" />
                 <arg name="truncation_distance" value="$(arg truncation_distance)" />
                 <arg name="map_frame_prefix" default="odom" />
-                <arg name="debug" default="true" />
+                <arg name="debug" default="false" />
         </include>
 
         <include if="$(arg evaluate)" file="$(find node_evaluator)/launch/evaluate.launch">
@@ -46,5 +46,8 @@
                 <arg name="debug" default="false" />
         </include>
 
+        <node name="player_0" pkg="rosbag" type="play" output="screen" args="-r 0.5 -u 300 -d 10 $(arg bag_file0)" />
+        <node name="player_1" pkg="rosbag" type="play" output="screen" args="-r 0.5 -u 300 -d 10 $(arg bag_file1)" />
+        <node name="player_2" pkg="rosbag" type="play" output="screen" args="-s 130 -u 210 -r 0.5 -d 10 $(arg bag_file2)" />
         <node name="result_recorder" pkg="rosbag" type="record" output="screen" args="-o /workspaces/voxgraph_melodic_ws/eval/tf_record /coxgraph/tsdf_client_0/mesh /coxgraph/tsdf_client_0/mesh_with_history /coxgraph/tsdf_client_0/tsdf_map_out /firefly_0/pose_graph_0/vins_keyframe /tf" />
 </launch>

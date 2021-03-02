@@ -3,7 +3,7 @@
   <arg name="num_agents"/>
   <arg name="mav_name" default="firefly"/>
   <arg name="logging" default="true"/>
-  <arg name="sensor" default="sim_visensor"/>
+  <arg name="sensor" default="sim_sensor"/>
 
   <!-- Debug -->
   <arg name="launch_prefix" default="xterm -e"/>

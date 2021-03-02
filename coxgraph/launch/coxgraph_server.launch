@@ -15,7 +15,7 @@
       </group>
 
       <group ns="coxgraph" unless="$(arg sim_server)">
-            <arg unless="$(arg debug)" name="launch_prefix" value="" />
+            <arg unless="$(arg debug)" name="launch_prefix" value="xterm -e" />
             <arg if="$(arg debug)" name="launch_prefix" value="xterm -e gdb -ex run --args" />
             <node pkg="coxgraph" type="coxgraph_server_node" name="coxgraph_server_node" output="screen" args="-alsologtostderr" clear_params="true" launch-prefix="$(arg launch_prefix)">
                   <rosparam file="$(find coxgraph)/config/server.yaml"/>
