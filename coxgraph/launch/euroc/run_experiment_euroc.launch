@@ -2,9 +2,9 @@
 <launch>
         <param name="use_sim_time" value="false" />
 
-        <arg name="bag_file0" default="/home/lxy/Datasets/euroc/V1_01_easy.bag.data.bag" />
-        <arg name="bag_file1" default="/home/lxy/Datasets/euroc/V1_02_medium.bag.data.ba" />
-        <arg name="bag_file2" default="/home/lxy/Datasets/euroc/V1_03_difficult.bag.data.ba" />
+        <arg name="bag_file0" default="/home/lxy/Datasets/euroc/MH_01_easy.bag.data.bag" />
+        <arg name="bag_file1" default="/home/lxy/Datasets/euroc/MH_02_easy.bag.data.bag" />
+        <arg name="bag_file2" default="/home/lxy/Datasets/euroc/MH_03_medium.bag.data.bag" />
         <arg name="tw_voxblox_config_file" default="$(find coxgraph)/config/tsdf_server_euroc.yaml" />
         <arg name="tsdf_voxel_size" default="0.10" />
         <arg name="truncation_distance" default="0.30" />
@@ -14,7 +14,7 @@
         <include file="$(find coxgraph)/launch/euroc/vins_client_euroc.launch">
                 <arg name="id" value="0" />
                 <arg name="clock" value="false" />
-                <arg name="play_speed" value="0.5" />
+                <arg name="play_speed" value="0.3" />
                 <arg name="bag_file" value="$(arg bag_file0)" />
                 <arg name="bag_ripped" default="true" />
         </include>
@@ -33,7 +33,7 @@
         <include file="$(find coxgraph)/launch/euroc/vins_client_euroc.launch">
                 <arg name="id" value="1" />
                 <arg name="clock" value="false" />
-                <arg name="play_speed" value="0.5" />
+                <arg name="play_speed" value="0.3" />
                 <arg name="bag_file" value="$(arg bag_file1)" />
                 <arg name="bag_ripped" default="true" />
         </include>
@@ -52,7 +52,7 @@
         <include file="$(find coxgraph)/launch/euroc/vins_client_euroc.launch">
                 <arg name="id" value="2" />
                 <arg name="clock" value="false" />
-                <arg name="play_speed" value="0.5" />
+                <arg name="play_speed" value="0.3" />
                 <arg name="bag_file" value="$(arg bag_file2)" />
                 <arg name="bag_ripped" default="true" />
         </include>
@@ -72,12 +72,13 @@
                 <arg name="num_agents" default="3" />
         </include>
 
-        <include file="$(find coxgraph)/launch/coxgraph_server.launch">
+        <!--       <include file="$(find coxgraph)/launch/coxgraph_server.launch">
                 <arg name="tsdf_voxel_size" value="$(arg tsdf_voxel_size)" />
                 <arg name="truncation_distance" value="$(arg truncation_distance)" />
                 <arg name="map_frame_prefix" default="odom" />
                 <arg name="debug" default="false" />
         </include>
+        -->
 
         <include if="$(arg evaluate)" file="$(find node_evaluator)/launch/evaluate.launch">
                 <arg name="config_file" default="$(find coxgraph)/config/evaluation_config.yaml" />

@@ -22,7 +22,7 @@ output_sensor_frame: "sensor_voxgraph"
 
 measurements:
   submap_registration:
-    enabled: true
+    enabled: false
     sampling_ratio: 0.05
     registration_method: "explicit_to_implicit"
     information_matrix:
