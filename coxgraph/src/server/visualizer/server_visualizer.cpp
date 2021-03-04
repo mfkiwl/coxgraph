@@ -81,8 +81,8 @@ void ServerVisualizer::getFinalGlobalMesh(
       combined_mesh->MergeCloseVertices(0.06);
       combined_mesh->RemoveDuplicatedVertices();
       combined_mesh->RemoveDuplicatedTriangles();
-      //combined_mesh->FilterSmoothTaubin(100);
-      //combined_mesh->SimplifyVertexClustering(0.05);
+      combined_mesh->FilterSmoothTaubin(100);
+      combined_mesh->SimplifyVertexClustering(0.05);
     }
     //combined_mesh->ComputeVertexNormals();
     //combined_mesh->ComputeTriangleNormals();

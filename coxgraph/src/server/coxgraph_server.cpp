@@ -101,6 +101,8 @@ bool CoxgraphServer::getFinalGlobalMeshCallback(
   LOG(INFO) << "Service called to get final global mesh, pausing map fusion "
                "process";
 
+  processMFFuture();
+
   std::string file_path = request.file_path;
   LOG_IF(INFO, file_path.empty())
       << "Mesh file path is not given, mesh will not be saved as file";
@@ -236,7 +238,6 @@ bool CoxgraphServer::mapFusionCallback(
   const ros::Time& t2 = map_fusion_msg.to_timestamp;
   TransformationD T_t1_t2;
   tf::transformMsgToKindr(map_fusion_msg.transform, &T_t1_t2);
-  //T_t1_t2 = T_t1_t2.inverse();
 
   if (!needRefuse(cid_a, t1, cid_b, t2)) return true;
   CHECK((!fused_time_line_[cid_a].hasTime(t1)) ||

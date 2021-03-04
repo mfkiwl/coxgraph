@@ -12,6 +12,10 @@
   <!-- Pose-Graph Node -->
   <node name="pose_graph_backend" pkg="pose_graph_backend" type="pose_graph_node" output="screen" launch-prefix="$(arg launch_prefix)" args="-alsologtostderr">
     <remap from="~map_fusion" to="/coxgraph/map_fusion_in"/>
+    <!--   <remap from="~loop_closure_out_0" to="/coxgraph/coxgraph_client_0/loop_closure_in"/>
+    <remap from="~loop_closure_out_1" to="/coxgraph/coxgraph_client_1/loop_closure_in"/>
+    <remap from="~loop_closure_out_2" to="/coxgraph/coxgraph_client_2/loop_closure_in"/>
+    -->
     <remap from="tf" to="tf_old"/>
     <param name="bow_voc" value="$(find pose_graph_backend)/conf/briskOKVIS_k10_L6_voc_v1.yml.gz"/>
     <param name="num_agents" value="$(arg num_agents)" />
