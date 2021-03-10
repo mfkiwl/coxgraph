@@ -25,5 +25,6 @@
   <depend>voxgraph_msgs</depend>
   <depend>voxgraph</depend>
   <depend>coxgraph_msgs</depend>
+  <depend>node_evaluator</depend>
 
 </package>

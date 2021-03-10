@@ -8,7 +8,7 @@
         <arg name="use_vins" default="true" />
         <arg name="bag_ripped" default="false" />
 
-        <include if="$(arg use_vins)" file="$(find coxgraph_sim)/launch/utils/vins_sim.launch">
+        <include if="$(arg use_vins)" file="$(find coxgraph)/launch/utils/vins_sim.launch">
                 <arg name="mav_name" default="firefly" />
                 <arg name="id" value="$(arg id)" />
                 <arg name="start_initializer" value="false" />

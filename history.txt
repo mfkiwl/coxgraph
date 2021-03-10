@@ -1,0 +1,231 @@
+    1  cd 
+    2  cd Workspace/coxgraph_ws/
+    3  which gcc
+    4  catkin build coxgraph
+    5  catkin clean -y
+    6  catkin build coxgraph
+    7  unset http_proxy
+    8  unset https_proxy
+    9  catkin build coxgraph
+   10  sudo apt install vim
+   11  ls
+   12  cd src/
+   13  ls
+   14  cd pcl_catkin/
+   15  ls
+   16  cd pcl_catkin/
+   17  ls
+   18  vim CMakeLists.txt 
+   19  unset http_proxy
+   20  unset https_proxy
+   21  cd ../../
+   22  cd opencv3_catkin/
+   23  vim CMakeLists.txt 
+   24  cd ..
+   25  cd gflag
+   26  cd gflags_catkin/
+   27  ls
+   28  vim CMakeLists.txt 
+   29  cd ../../
+   30  catkin buil coxgraph
+   31  catkin build coxgraph
+   32  cd src/suitesparse/
+   33  ls
+   34  cd suitesparse/
+   35  ls
+   36  vim CMakeLists.txt 
+   37  cd ../../
+   38  cd ..
+   39  catkin build coxgraph
+   40  rm 0rf build/opencv3_catkin/
+   41  rm -rf build/opencv3_catkin/
+   42  catkin build coxgraph --force-cmake
+   43  vim src/ceres_catkin/
+   44  catkin build coxgraph --force-cmake
+   45  sudo apt remove libgflags-dev
+   46  catkin build coxgraph --force-cmake
+   47  vim build/opencv3_catkin/opencv3_contrib_src/modules/xfeatures2d/
+   48  catkin build coxgraph --force-cmake
+   49  vim src/coxgraph/coxgraph/package.xml 
+   50  catkin build coxgraph --force-cmake
+   51  vim src/coxgraph/coxgraph_ssh.rosinstall 
+   52  git add .
+   53  cd src/coxgraph/
+   54  ls
+   55  git add .
+   56  git commit -m "update rosinstall"
+   57  cd ..
+   58  source devel/setup.bash 
+   59  roslaunch coxgraph run_experiment_euroc.launch 
+   60  rosed coxgraph run_experiment_euroc.launch 
+   61  cd src/coxgraph/
+   62  ls
+   63  cd coxgraph
+   64  ls
+   65  cd launch/
+   66  ls
+   67  mkdir utils
+   68  vim .
+   69  cd ..
+   70  ls
+   71  cd ..
+   72  ls
+   73  cd coxgraph_sim/
+   74  ls
+   75  cd uti
+   76  cd launch/
+   77  ls
+   78  cd utils/
+   79  ls
+   80  mv pose_graph_backend.launch ../../../coxgraph/launch/utils/
+   81  roslaunch coxgraph run_experiment_euroc.launch 
+   82  rosed coxgraph run_experiment_euroc.launch 
+   83  cd ../../../
+   84  vim .
+   85  roslaunch coxgraph run_experiment_euroc.launch 
+   86  mv coxgraph_sim/launch/utils/vins_sim.launch coxgraph/launch/utils/
+   87  rosed coxgraph run_experiment_euroc.launch 
+   88  roslaunch coxgraph run_experiment_euroc.launch 
+   89  vim .
+   90  mv -f coxgraph_sim/config/vins coxgraph/config/
+   91  roslaunch coxgraph run_experiment_euroc.launch 
+   92  catkin build vins_client_server
+   93  roslaunch coxgraph run_experiment_euroc.launch 
+   94  cd ../../
+   95  source devel/setup.bash 
+   96* rosla coxgraph run_experiment_euroc.launch 
+   97  cd src/
+   98  ls
+   99  cd coxgraph/
+  100  ls
+  101  cd coxgraph
+  102  ls
+  103  vim .
+  104  roslaunch coxgraph run_experiment_euroc.launch 
+  105  catkin build pose_graph_backend
+  106  catkin build glog_catkin
+  107  catkin build pose_graph_backend
+  108  cd ../../
+  109  cd protobuf_catkin/
+  110  ls
+  111  git branch -a
+  112  catkin build pose_graph_backend --force-cmake
+  113  cd ../../
+  114  catkin build protobuf_catkin
+  115  cd src/protobuf_catkin/
+  116  git branch -a
+  117  git remote add lxy git@github.com:LXYYY/protobuf_catkin.git
+  118  git fetch lxy
+  119  git fetch
+  120  git fetch -a
+  121  git fetch -all
+  122  git fetch --all
+  123  git branch -a
+  124  git checkout feature/protobuf-3.6.0
+  125  sudo apt remove libprotobuf-dev
+  126  catkin build protobuf_catkin
+  127  catkin build pose_graph_backend
+  128  cd ..
+  129  cd pose_graph_backend/
+  130  ls
+  131  vim .
+  132  cd ..
+  133  cd aslam_cv2/
+  134  ls
+  135  vim .
+  136  cd ../../
+  137  cd src/protobuf_catkin/
+  138  git branch -a
+  139  git checkout remotes/lxy/feature/protobuf-3.6.0
+  140  catkin build pose_graph_backend --force-cmake
+  141  proto
+  142  protoc
+  143  which protoc
+  144  cd ../../
+  145  source devel/setup.bash 
+  146  catkin config 
+  147  catkin build pose_graph_backend --force-cmake
+  148  which protoc
+  149  cd src/
+  150  ls
+  151  cd protobuf_catkin/
+  152  git branch -a
+  153  git checkout remotes/lxy/feature/protobuf-3.6.1
+  154  cd ..
+  155  catkin build pose_graph_backend --force-cmake
+  156  cd ..
+  157  cd devel/
+  158  ls
+  159  cd bin/
+  160  ls
+  161  cd ../../
+  162  cd src/
+  163  ls
+  164  cd aslam_cv2/
+  165  ls
+  166  vim .
+  167  catkin build protobuf_catkin --force-cmake
+  168  which protoc
+  169  cd ../../
+  170  ls
+  171  rm -rf build/aslam_cv_common/
+  172  catkin build aslam_cv_common --force-cmake
+  173  apt search protobuf
+  174  cd devel/
+  175  ls
+  176  cd bin/
+  177  ls
+  178  which protoc
+  179  cd ../../
+  180  ls
+  181  catkin config
+  182  catkin build --merge-devel
+  183  catkin config --merge-devel
+  184  catkin build aslam_cv_common --force-cmake
+  185  catkin clean -y
+  186  catkin build aslam_cv_common --force-cmake
+  187  cd src/gflags_catkin/
+  188  ls
+  189  vim .
+  190  catkin build aslam_cv_common --force-cmake
+  191  catkin build coxgraph --force-cmake
+  192  catkin build coxgraph
+  193  which gcc
+  194  export CC=/usr/bin/gcc
+  195  export CXX=/usr/bin/g++
+  196  catkin build coxgraph --no-dep
+  197* lsb_releas
+  198  catkin build coxgraph --no-dep --force-cmake
+  199  catkin config
+  200  catkin build coxgraph --no-dep --force-cmake -v
+  201  catkin config
+  202  catkin config -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=14
+  203  catkin build coxgraph --no-dep --force-cmake -v
+  204  cd ../../
+  205  cd src/coxgraph/
+  206  vim .
+  207  cd ../../
+  208  catkin build coxgraph --no-dep --force-cmake -v
+  209  catkin config
+  210  catkin config -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=14 -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++
+  211  catkin build coxgraph --no-dep --force-cmake -v
+  212  rm -rf build/coxgraph
+  213  catkin build coxgraph --no-dep --force-cmake -v
+  214  source devel/setup.bash 
+  215  roslaunch coxgraph run_experiment_euroc.launch 
+  216  rosrun pose_graph_backend pose_graph_node 
+  217  roslaunch coxgraph run_experiment_euroc.launch 
+  218  cd src/
+  219  ls
+  220  cd coxgraph/
+  221  ls
+  222  vim .
+  223  roslaunch coxgraph run_experiment_euroc.launch 
+  224  rosed coxgraph run_experiment_euroc.launch 
+  225  vim .
+  226  roslaunch coxgraph run_experiment_euroc.launch 
+  227  sudo apt install xterm
+  228  roslaunch coxgraph run_experiment_euroc.launch 
+  229  vim .
+  230  history
+  231  history >> history.txt

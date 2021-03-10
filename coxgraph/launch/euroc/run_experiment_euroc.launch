@@ -68,17 +68,16 @@
                 <arg name="recover_mode" value="$(arg recover_mode)" />
         </include>
 
-        <include file="$(find coxgraph_sim)/launch/utils/pose_graph_backend.launch">
+        <include file="$(find coxgraph)/launch/utils/pose_graph_backend.launch">
                 <arg name="num_agents" default="3" />
         </include>
 
-        <!--       <include file="$(find coxgraph)/launch/coxgraph_server.launch">
+        <include file="$(find coxgraph)/launch/coxgraph_server.launch">
                 <arg name="tsdf_voxel_size" value="$(arg tsdf_voxel_size)" />
                 <arg name="truncation_distance" value="$(arg truncation_distance)" />
                 <arg name="map_frame_prefix" default="odom" />
                 <arg name="debug" default="false" />
         </include>
-        -->
 
         <include if="$(arg evaluate)" file="$(find node_evaluator)/launch/evaluate.launch">
                 <arg name="config_file" default="$(find coxgraph)/config/evaluation_config.yaml" />
