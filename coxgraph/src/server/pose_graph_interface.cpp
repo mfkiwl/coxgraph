@@ -7,6 +7,28 @@
 namespace coxgraph {
 namespace server {
 
+void PoseGraphInterface::addSubmap(SerSmId submap_id) {
+  if (robocentric_) {
+    voxgraph::PoseGraphInterface::addSubmap(submap_id);
+  } else {
+    // non-robocentric
+    // Configure the submap node and add it to the pose graph
+    voxgraph::SubmapNode::Config node_config = node_templates_.submap;
+    node_config.submap_id = submap_id;
+    CHECK(submap_collection_ptr_->getSubmapPose(submap_id,
+                                                &node_config.T_I_node_initial));
+    if (submap_id == 0) {
+      ROS_INFO("Setting pose of submap 0 to constant");
+      node_config.set_constant = true;
+    } else {
+      node_config.set_constant = false;
+    }
+    pose_graph_.addSubmapNode(node_config);
+    ROS_INFO_STREAM_COND(verbose_,
+                         "Added node to graph for submap: " << submap_id);
+  }
+}
+
 void PoseGraphInterface::optimize(bool enable_registration) {
   pose_graph_.optimize(true);
 
@@ -20,7 +42,8 @@ void PoseGraphInterface::optimize(bool enable_registration) {
 
   // Publish debug visuals
   if (pose_graph_pub_.getNumSubscribers() > 0) {
-    pose_graph_vis_.publishPoseGraph(pose_graph_, visualization_mission_frame_,
+    LOG(INFO) << "publish pose graph: " << pose_graph_.getSubmapPoses().size();
+    pose_graph_vis_.publishPoseGraph(pose_graph_, visualization_odom_frame_,
                                      "optimized", pose_graph_pub_);
   }
 }
@@ -29,12 +52,13 @@ void PoseGraphInterface::updateSubmapRPConstraints() {
   resetSubmapRelativePoseConstrains();
   for (int cid = 0; cid < cox_submap_collection_ptr_->getClientNumber();
        cid++) {
-    std::vector<SerSmId>* cli_ser_sm_ids =
-        cox_submap_collection_ptr_->getSerSmIdsByCliId(cid);
-    for (int i = 0; i < cli_ser_sm_ids->size() - 1; i++) {
+    std::vector<SerSmId> cli_ser_sm_ids;
+    if (!cox_submap_collection_ptr_->getSerSmIdsByCliId(cid, &cli_ser_sm_ids))
+      continue;
+    for (int i = 0; i < cli_ser_sm_ids.size() - 1; i++) {
       int j = i + 1;
-      SerSmId sid_i = cli_ser_sm_ids->at(i);
-      SerSmId sid_j = cli_ser_sm_ids->at(j);
+      SerSmId sid_i = cli_ser_sm_ids.at(i);
+      SerSmId sid_j = cli_ser_sm_ids.at(j);
 
       Transformation T_M_SMi =
           cox_submap_collection_ptr_->getSubmapPtr(sid_i)->getPose();
@@ -58,19 +82,6 @@ void PoseGraphInterface::addSubmapRelativePoseConstraint(
   // Add the constraint to the pose graph
   // TODO(mikexyl): since these should be called every time submap pose updated,
   // don't log it
-  if (verbose_) {
-    std::cout << "Adding submap relative pose constraint\n"
-              << "From: " << submap_rp_config.origin_submap_id << "\n"
-              << "To: " << submap_rp_config.destination_submap_id << "\n"
-              << "Submap currently being built in submap collection: "
-              << submap_collection_ptr_->getActiveSubmapID() << "\n"
-              << "t_s1_s2:\n"
-              << submap_rp_config.T_origin_destination.getPosition() << "\n"
-              << "yaw_s1_s2: " << submap_rp_config.T_origin_destination.log()[5]
-              << "\n"
-              << "Information matrix\n"
-              << submap_rp_config.information_matrix << std::endl;
-  }
   pose_graph_.addSubmapRelativePoseConstraint(submap_rp_config);
 }
 

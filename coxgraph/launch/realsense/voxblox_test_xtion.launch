@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<launch>
+        <arg name="id" default="0" />
+        <arg name="tsdf_voxel_size" default="0.05" />
+        <arg name="truncation_distance" default="0.15" />
+        <arg name="tw_voxblox_config_file" default="$(find coxgraph)/config/tsdf_server_rs.yaml" />
+
+        <node pkg="nodelet" type="nodelet" args="manager" name="record_player_manager_$(arg id)" output="screen" />
+        <node pkg="nodelet" type="nodelet" name="cloudify_$(arg id)" args="load depth_image_proc/point_cloud_xyzrgb record_player_manager_$(arg id) --no-bond">
+                <remap from="depth_registered/image_rect" to="/cam_$(arg id)/depth_registered/sw_registered/image_rect" />
+                <remap from="depth_registered/points" to="/pointcloud_$(arg id)" />
+                <remap from="rgb/image_rect_color" to="/cam_$(arg id)/rgb/image_rect_color" />
+                <remap from="rgb/camera_info" to="/cam_$(arg id)/rgb/camera_info" />
+        </node>
+
+        <include file="$(find coxgraph)/launch/firefly/coxgraph_client.launch">
+                <arg name="id" value="$(arg id)" />
+                <arg name="pointcloud_topic" value="/pointcloud_$(arg id)" />
+                <arg name="world_frame_suffix" value="odom" />
+                <arg name="debug_tsdf" value="false" />
+                <arg name="recover_mode" value="false" />
+                <arg name="tsdf_voxel_size" default="$(arg tsdf_voxel_size)" />
+                <arg name="truncation_distance" default="$(arg truncation_distance)" />
+                <arg name="tw_voxblox_config_file" default="$(arg tw_voxblox_config_file)" />
+        </include>
+
+</launch>

@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<launch>
+        <include file="$(find coxgraph_sim)/launch/utils/vins_sim.launch">
+                <arg name="mav_name" default="firefly" />
+                <arg name="id" value="0" />
+                <arg name="start_initializer" value="false" />
+                <arg name="config_path" value="$(find coxgraph)/config/realsense/rs_config_$(arg id).yaml" />
+        </include>
+
+        <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+                <arg name="enable_pointcloud" value="true" />
+                <arg name="unite_imu_method" default="linear_interpolation" />
+                <arg name="enable_gyro" default="true" />
+                <arg name="enable_accel" default="true" />
+        </include>
+</launch>

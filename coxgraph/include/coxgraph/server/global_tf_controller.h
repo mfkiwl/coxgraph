@@ -11,6 +11,7 @@
 
 #include "coxgraph/common.h"
 #include "coxgraph/server/client_tf_optimizer.h"
+#include "coxgraph/server/distribution/distribution_controller.h"
 #include "coxgraph/server/pose_graph_interface.h"
 
 namespace coxgraph {
@@ -19,16 +20,14 @@ namespace server {
 class GlobalTfController {
  public:
   struct Config {
-    Config() : init_cli_map_dist(10), map_frame_prefix("map") {}
+    Config() : init_cli_map_dist(10) {}
     int32_t init_cli_map_dist;
-    std::string map_frame_prefix;
 
     friend inline std::ostream& operator<<(std::ostream& s, const Config& v) {
       s << std::endl
         << "Global Tf Controller using Config" << std::endl
         << "  Initial Client Mission Frame Distance: " << v.init_cli_map_dist
         << std::endl
-        << "  Mission Frames Prefix: " << v.map_frame_prefix << std::endl
         << "-------------------------------------------" << std::endl;
       return (s);
     }
@@ -41,19 +40,25 @@ class GlobalTfController {
 
   GlobalTfController(const ros::NodeHandle& nh,
                      const ros::NodeHandle& nh_private, int8_t client_number,
-                     bool verbose)
-      : GlobalTfController(nh, nh_private, client_number,
-                           getConfigFromRosParam(nh_private), verbose) {}
+                     std::string map_fram_prefix,
+                     DistributionController::Ptr distrib_ctl_ptr, bool verbose)
+      : GlobalTfController(nh, nh_private, client_number, map_fram_prefix,
+                           distrib_ctl_ptr, getConfigFromRosParam(nh_private),
+                           verbose) {}
 
   GlobalTfController(const ros::NodeHandle& nh,
                      const ros::NodeHandle& nh_private, int8_t client_number,
+                     std::string map_frame_prefix,
+                     DistributionController::Ptr distrib_ctl_ptr,
                      const Config& config, bool verbose)
       : verbose_(verbose),
         nh_(nh),
         nh_private_(nh_private),
         client_number_(client_number),
+        map_frame_prefix_(map_frame_prefix),
+        distrib_ctl_ptr_(distrib_ctl_ptr),
         config_(config),
-        global_mission_frame_(config.map_frame_prefix + "_g"),
+        global_mission_frame_(map_frame_prefix + "_g"),
         client_tf_optimizer_(nh_private, verbose),
         pose_updated_(false) {
     LOG(INFO) << config;
@@ -77,13 +82,18 @@ class GlobalTfController {
 
   std::mutex* getPoseUpdateMutex() { return &pose_update_mutex; }
 
+  bool inControl() const { return distrib_ctl_ptr_->inControl(); }
+
+  const tf::StampedTransform& getTGCliOpt(const CliId& cid) const {
+    return T_G_CLI_opt_[cid];
+  }
+
+  bool ifClientFused(CliId cid) const { return cli_tf_fused_[cid]; }
+
  private:
   void initCliMapPose();
-
   void pubCliTfCallback(const ros::TimerEvent& event);
-
   void updateCliMapPose();
-
   void computeOptCliMapPose();
 
   bool verbose_;
@@ -92,6 +102,7 @@ class GlobalTfController {
   ros::NodeHandle nh_private_;
 
   Config config_;
+  std::string map_frame_prefix_;
 
   const int8_t client_number_;
   const std::string global_mission_frame_;
@@ -104,8 +115,9 @@ class GlobalTfController {
 
   ClientTfOptimizer client_tf_optimizer_;
   bool pose_updated_;
-
   std::mutex pose_update_mutex;
+
+  DistributionController::Ptr distrib_ctl_ptr_;
 
   constexpr static float kTfPubFreq = 100;
 };

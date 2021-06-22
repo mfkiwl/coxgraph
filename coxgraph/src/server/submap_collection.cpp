@@ -10,10 +10,9 @@ namespace server {
 Transformation SubmapCollection::addSubmap(const CliSm::Ptr& submap_ptr,
                                            const CliId& cid,
                                            const CliSmId& cli_sm_id) {
-  LOG(INFO) << "debug: adding submap (sid, cid, csmid) " << submap_ptr->getID()
-            << " " << static_cast<int>(cid) << " " << cli_sm_id;
+  CHECK(submap_ptr != nullptr);
   voxgraph::VoxgraphSubmapCollection::addSubmap(submap_ptr);
-  sm_cli_id_map_.emplace(submap_ptr->getID(), CliIdSmIdPair(cid, cli_sm_id));
+  sm_cli_id_map_.emplace(submap_ptr->getID(), CIdCSIdPair(cid, cli_sm_id));
   if (!cli_ser_sm_id_map_.count(submap_ptr->getID())) {
     cli_ser_sm_id_map_.emplace(cid, std::vector<SerSmId>());
   }

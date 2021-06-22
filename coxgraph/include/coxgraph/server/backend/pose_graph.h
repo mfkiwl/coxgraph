@@ -68,7 +68,7 @@ class PoseGraph {
     ceres::Solve(ceres_options, problem_ptr_.get(), &summary);
 
     // Display and store the solver summary
-    std::cout << summary.FullReport() << std::endl;
+    std::cout << summary.BriefReport() << std::endl;
     solver_summaries_.emplace_back(summary);
   }
 

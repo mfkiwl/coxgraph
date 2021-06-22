@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<launch>
+        <arg name="id" default="0" />
+        <arg name="bag_file" default="/home/lxy/Datasets/euroc/MH_01_easy.bag" />
+        <arg name="play_speed" default="1" />
+        <arg name="skip_seconds" default="0" />
+
+        <include file="$(find coxgraph_sim)/launch/utils/vins_sim.launch">
+                <arg name="mav_name" default="firefly" />
+                <arg name="id" value="$(arg id)" />
+                <arg name="start_initializer" value="false" />
+                <arg name="config_path" value="$(find coxgraph)/config/asl_flights/asl_config_$(arg id).yaml" />
+        </include>
+
+        <node pkg="tf" type="static_transform_publisher" name="depth_tf_broadcaster" args="-0.0737 0.0232 0.0460 0.0122 0.0045 0.0041 0.9999 cam_0 depth 100" />
+</launch>

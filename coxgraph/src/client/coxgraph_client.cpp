@@ -2,17 +2,30 @@
 
 #include <coxgraph_msgs/MapPoseUpdates.h>
 #include <coxgraph_msgs/TimeLine.h>
+#include <voxblox_msgs/MultiMesh.h>
+#include <voxgraph/tools/tf_helper.h>
 
 #include <chrono>
+#include <string>
 
 #include "coxgraph/common.h"
 
 namespace coxgraph {
 
-void CoxgraphClient::subscribeClientTopics() {
-  submap_subscriber_.shutdown();
-  submap_subscriber_ = nh_.subscribe(submap_topic_, submap_topic_queue_length_,
-                                     &CoxgraphClient::submapCallback, this);
+void CoxgraphClient::subscribeToClientTopics() {
+  if (recover_mode_) {
+    submap_subscriber_.shutdown();
+    submap_sync_sub_ =
+        new message_filters::Subscriber<voxblox_msgs::LayerWithTrajectory>(
+            nh_private_, submap_topic_, 1);
+    mesh_pointcloud_sync_sub_ =
+        new message_filters::Subscriber<sensor_msgs::PointCloud2>(
+            nh_private_, "mesh_pointcloud", 1);
+    synchronizer_ = new message_filters::Synchronizer<sync_pol>(
+        sync_pol(10), *submap_sync_sub_, *mesh_pointcloud_sync_sub_);
+    synchronizer_->registerCallback(
+        boost::bind(&CoxgraphClient::submapMeshCallback, this, _1, _2));
+  }
 }
 
 void CoxgraphClient::advertiseClientTopics() {
@@ -27,21 +40,15 @@ void CoxgraphClient::advertiseClientServices() {
       "get_client_submap", &CoxgraphClient::getClientSubmapCallback, this);
   get_all_client_submaps_srv_ = nh_private_.advertiseService(
       "get_all_submaps", &CoxgraphClient::getAllClientSubmapsCallback, this);
+  get_pose_history_srv_ = nh_private_.advertiseService(
+      "get_pose_history", &CoxgraphClient::getPoseHistory, this);
 }
 
 // TODO(mikexyl): add locks here, if optimizing is running, wait
+// TODO(mikexyl): move these to map server
 bool CoxgraphClient::getClientSubmapCallback(
     coxgraph_msgs::ClientSubmapSrv::Request& request,
     coxgraph_msgs::ClientSubmapSrv::Response& response) {
-  // if (optimization_async_handle_.valid() &&
-  //     optimization_async_handle_.wait_for(std::chrono::milliseconds(100)) !=
-  //         std::future_status::ready) {
-  //   ROS_WARN(
-  //       "Previous pose graph optimization still not complete. Client submap "
-  //       "request ignored");
-  //   return false;
-  // }
-
   CliSmId submap_id;
   if (submap_collection_ptr_->lookupActiveSubmapByTime(request.timestamp,
                                                        &submap_id)) {
@@ -52,14 +59,12 @@ bool CoxgraphClient::getClientSubmapCallback(
       tf::transformKindrToMsg(T_submap_t.cast<double>(), &response.transform);
       if (!ser_sm_id_pose_map_.count(submap_id)) {
         response.submap =
-            utils::msgFromCliSubmap(submap, frame_names_.output_mission_frame);
+            utils::msgFromCliSubmap(submap, frame_names_.output_odom_frame);
         ser_sm_id_pose_map_.emplace(submap_id, submap.getPose());
         LOG(INFO) << log_prefix_ << " Submap " << submap_id
                   << " is successfully sent to server";
-      } else {
-        LOG(INFO) << log_prefix_ << " Submap " << submap_id
-                  << " has already been sent to server";
       }
+      response.pub_time = ros::Time::now();
       return true;
     } else {
       LOG(WARNING) << "Client " << client_id_ << ": Requested time "
@@ -76,8 +81,8 @@ bool CoxgraphClient::getClientSubmapCallback(
 }
 
 bool CoxgraphClient::getAllClientSubmapsCallback(
-    coxgraph_msgs::SubmapsSrv::Request& request,  /////////
-    coxgraph_msgs::SubmapsSrv::Response& response) {
+    coxgraph_msgs::SubmapsSrv::Request& request,      // NOLINT
+    coxgraph_msgs::SubmapsSrv::Response& response) {  // NOLINT
   LOG(INFO) << log_prefix_
             << "Server is requesting all submaps! pausing submap process";
   uint8_t trials_ = 0;
@@ -91,8 +96,8 @@ bool CoxgraphClient::getAllClientSubmapsCallback(
 
   for (auto const& submap_ptr : submap_collection_ptr_->getSubmapPtrs()) {
     if (ser_sm_id_pose_map_.count(submap_ptr->getID())) continue;
-    response.submaps.emplace_back(utils::msgFromCliSubmap(
-        *submap_ptr, frame_names_.output_mission_frame));
+    response.submaps.emplace_back(
+        utils::msgFromCliSubmap(*submap_ptr, frame_names_.output_odom_frame));
   }
 
   submap_proc_mutex_.unlock();
@@ -100,14 +105,16 @@ bool CoxgraphClient::getAllClientSubmapsCallback(
   return true;
 }
 
-void CoxgraphClient::submapCallback(
-    const voxblox_msgs::LayerWithTrajectory& submap_msg) {
+bool CoxgraphClient::submapCallback(
+    const voxblox_msgs::LayerWithTrajectory& submap_msg, bool transform_layer) {
   std::lock_guard<std::timed_mutex> submap_proc_lock(submap_proc_mutex_);
-  VoxgraphMapper::submapCallback(submap_msg);
+  if (!VoxgraphMapper::submapCallback(submap_msg, transform_layer))
+    return false;
   if (submap_collection_ptr_->size()) {
     publishTimeLine();
     publishMapPoseUpdates();
   }
+  return true;
 }
 
 void CoxgraphClient::publishTimeLine() {
@@ -143,6 +150,63 @@ void CoxgraphClient::publishMapPoseUpdates() {
   }
   if (map_pose_updates_msg.submap_id.size())
     map_pose_pub_.publish(map_pose_updates_msg);
+}
+
+void CoxgraphClient::publishSubmapPoseTFs() {
+  // Publish the submap poses as TFs
+  const ros::Time current_timestamp = ros::Time::now();
+  // NOTE: The rest of the voxgraph is purely driven by the sensor message
+  //       timestamps, but the submap pose TFs are published at the current ROS
+  //       time (e.g. computer time or /clock topic if use_time_time:=true).
+  //       This is necessary because TF lookups only interpolate (i.e. no
+  //       extrapolation), and TFs subscribers typically have a limited buffer
+  //       time length (e.g. Rviz). The TFs therefore have to be published at a
+  //       frequency that exceeds the rate at which new submaps come in (e.g.
+  //       once every 10s). In case you intend to use the TFs for more than
+  //       visualization, it would be important that the message timestamps and
+  //       ros::Time::now() are well synchronized.
+
+  //! override to add client id suffix to tf frames
+  for (auto const& submap_ptr : submap_collection_ptr_->getSubmapConstPtrs()) {
+    TfHelper::publishTransform(submap_ptr->getPose(),
+                               frame_names_.output_odom_frame,
+                               "submap_" + std::to_string(submap_ptr->getID()) +
+                                   "_" + std::to_string(client_id_),
+                               false, current_timestamp);
+  }
+  if (!submap_collection_ptr_->empty()) {
+    auto const first_submap_id = submap_collection_ptr_->getFirstSubmapId();
+    auto const& first_submap =
+        submap_collection_ptr_->getSubmap(first_submap_id);
+    if (!first_submap.getPoseHistory().empty()) {
+      const Transformation T_odom__initial_pose =
+          first_submap.getPose() *
+          first_submap.getPoseHistory().begin()->second;
+      TfHelper::publishTransform(T_odom__initial_pose,
+                                 frame_names_.output_odom_frame,
+                                 "initial_pose_" + std::to_string(client_id_),
+                                 false, current_timestamp);
+    }
+  }
+}
+
+void CoxgraphClient::savePoseHistory(std::string file_path) {
+  std::ofstream f;
+  f.open(file_path);
+  if (!f.is_open()) LOG(ERROR) << "Failed to open file " << file_path;
+  f << std::fixed;
+
+  for (auto const& pose : submap_collection_ptr_->getPoseHistory()) {
+    f << std::setprecision(6) << pose.header.stamp.toSec()
+      << std::setprecision(7) << " " << pose.pose.position.x << " "
+      << pose.pose.position.y << " " << pose.pose.position.z << " "
+      << pose.pose.orientation.x << " " << pose.pose.orientation.y << " "
+      << pose.pose.orientation.z << " " << pose.pose.orientation.w << std::endl;
+  }
+
+  f.close();
+  std::string ok_str = "Pose history saved to " + file_path;
+  LOG(INFO) << log_prefix_ << ok_str;
 }
 
 }  // namespace coxgraph

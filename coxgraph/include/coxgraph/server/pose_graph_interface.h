@@ -1,6 +1,7 @@
 #ifndef COXGRAPH_SERVER_POSE_GRAPH_INTERFACE_H_
 #define COXGRAPH_SERVER_POSE_GRAPH_INTERFACE_H_
 
+#include <visualization_msgs/Marker.h>
 #include <voxgraph/backend/constraint/relative_pose_constraint.h>
 #include <voxgraph/frontend/pose_graph_interface/pose_graph_interface.h>
 #include <voxgraph/frontend/submap_collection/voxgraph_submap_collection.h>
@@ -24,19 +25,27 @@ class PoseGraphInterface : public voxgraph::PoseGraphInterface {
   using RegistrationConstraint = voxgraph::RegistrationConstraint;
   using PoseMap = voxgraph::PoseGraph::PoseMap;
 
-  PoseGraphInterface(const ros::NodeHandle& nh_private,
+  PoseGraphInterface(ros::NodeHandle nh_private,
                      const SubmapCollection::Ptr& submap_collection_ptr,
                      const MeshIntegratorConfig& mesh_config,
                      const std::string& visualizations_mission_frame,
-                     bool verbose = false)
+                     bool robocentric, bool verbose = false,
+                     std::string pose_graph_topic = "")
       : voxgraph::PoseGraphInterface(
             nh_private,
             static_cast<VoxgraphSubmapCollection::Ptr>(submap_collection_ptr),
             mesh_config, visualizations_mission_frame, verbose),
-        cox_submap_collection_ptr_(submap_collection_ptr) {
+        cox_submap_collection_ptr_(submap_collection_ptr),
+        robocentric_(robocentric) {
     utils::setInformationMatrixFromRosParams(
         ros::NodeHandle(nh_private, "submap_relative_pose/information_matrix"),
         &sm_rp_info_matrix_);
+
+    if (pose_graph_topic.size()) {
+      pose_graph_pub_.shutdown();
+      pose_graph_pub_ = nh_private.advertise<visualization_msgs::Marker>(
+          "pose_graph_global", 100, true);
+    }
   }
 
   // Copy constructor
@@ -53,6 +62,8 @@ class PoseGraphInterface : public voxgraph::PoseGraphInterface {
   }
 
   ~PoseGraphInterface() = default;
+
+  void addSubmap(SerSmId submap_id);
 
   void optimize(bool enable_registration);
 
@@ -79,6 +90,8 @@ class PoseGraphInterface : public voxgraph::PoseGraphInterface {
   }
 
  private:
+  bool robocentric_;
+
   SubmapCollection::Ptr cox_submap_collection_ptr_;
   InformationMatrix sm_rp_info_matrix_;
 };

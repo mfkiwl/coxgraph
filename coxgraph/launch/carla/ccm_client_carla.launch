@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<launch>
+        <arg name="id" default="0" />
+        <arg name="play_speed" default="1.0" />
+        <arg name="skip_seconds" default="20" />
+        <arg name="vehicle_no" default="hero3" />
+        <arg name="bag_file" default="/home/lxy/Datasets_ssd/carla/$(arg vehicle_no).bag" />
+
+        <include file="$(find ccmslam)/launch/CVG/Client_carla.launch">
+                <arg name="vehicle_no" value="$(arg vehicle_no)" />
+                <arg name="id" value="$(arg id)" />
+        </include>
+
+        <node name="player_$(arg id)" pkg="rosbag" type="play" output="screen" args="$(arg bag_file) -s $(arg skip_seconds) -r $(arg play_speed) -q /pointcloud:=/pointcloud_$(arg id)" />
+</launch>

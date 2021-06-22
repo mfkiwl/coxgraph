@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<launch>
+        <param name="use_sim_time" value="false" />
+
+        <arg name="tw_voxblox_config_file" default="$(find coxgraph)/config/tsdf_server_rs.yaml" />
+        <arg name="tsdf_voxel_size" default="0.05" />
+        <arg name="truncation_distance" default="0.15" />
+        <arg name="recover_mode" default="true" />
+        <arg name="evaluate" default="true" />
+        <arg name="bag_file0" default="/home/lxy/Datasets_ssd/rs/cam_0.bag" />
+        <arg name="bag_file1" default="/home/lxy/Datasets_ssd/rs/cam_1.bag" />
+        <arg name="bag_file2" default="/home/lxy/Datasets_ssd/rs/cam_2.bag" />
+
+        <include file="$(find coxgraph)/launch/realsense/voxblox_test_rs.launch">
+                <arg name="id" default="0" />
+                <arg name="camera_id" default="0" />
+                <arg name="tsdf_voxel_size" value="$(arg tsdf_voxel_size)" />
+                <arg name="truncation_distance" value="$(arg truncation_distance)" />
+        </include>
+
+        <include file="$(find coxgraph)/launch/realsense/voxblox_test_rs.launch">
+                <arg name="id" default="1" />
+                <arg name="camera_id" default="1" />
+                <arg name="tsdf_voxel_size" value="$(arg tsdf_voxel_size)" />
+                <arg name="truncation_distance" value="$(arg truncation_distance)" />
+        </include>
+
+        <include file="$(find coxgraph)/launch/realsense/voxblox_test_rs.launch">
+                <arg name="id" default="2" />
+                <arg name="camera_id" default="2" />
+                <arg name="tsdf_voxel_size" value="$(arg tsdf_voxel_size)" />
+                <arg name="truncation_distance" value="$(arg truncation_distance)" />
+        </include>
+
+        <include file="$(find coxgraph_sim)/launch/utils/pose_graph_backend.launch">
+                <arg name="num_agents" default="3" />
+                <arg name="sensor" default="rs" />
+        </include>
+
+        <include file="$(find coxgraph)/launch/coxgraph_server.launch">
+                <arg name="tsdf_voxel_size" value="$(arg tsdf_voxel_size)" />
+                <arg name="truncation_distance" value="$(arg truncation_distance)" />
+                <arg name="map_frame_prefix" default="odom" />
+                <arg name="debug" default="false" />
+        </include>
+
+        <include if="$(arg evaluate)" file="$(find node_evaluator)/launch/evaluate.launch">
+                <arg name="config_file" default="$(find coxgraph)/config/evaluation_config.yaml" />
+                <arg name="debug" default="false" />
+        </include>
+
+        <node name="player_0" pkg="rosbag" type="play" output="screen" args="-r 0.5 -u 300 -d 10 $(arg bag_file0)" />
+        <node name="player_1" pkg="rosbag" type="play" output="screen" args="-r 0.5 -u 290 -d 10 $(arg bag_file1)" />
+        <node name="player_2" pkg="rosbag" type="play" output="screen" args="-s 130 -u 210 -r 0.5 -d 10 $(arg bag_file2)" />
+
+        <!--       <node name="player_0" pkg="rosbag" type="play" output="screen" args="-r 0.5 -d 10 $(arg bag_file0)" />
+        <node name="player_1" pkg="rosbag" type="play" output="screen" args="-r 0.5 -d 10 $(arg bag_file1)" />
+        <node name="player_2" pkg="rosbag" type="play" output="screen" args="-r 0.5 -d 10 $(arg bag_file2)" /> -->
+        <node name="result_recorder" pkg="rosbag" type="record" output="screen" args="-o /workspaces/voxgraph_melodic_ws/eval/tf_record /coxgraph/tsdf_client_0/mesh /coxgraph/tsdf_client_0/mesh_with_history /coxgraph/tsdf_client_0/tsdf_map_out /firefly_0/pose_graph_0/vins_keyframe /tf" />
+</launch>

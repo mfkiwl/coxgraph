@@ -15,7 +15,7 @@ void ClientTfOptimizer::addClient(const CliId& cid,
     config.set_constant = true;
   else
     config.set_constant = false;
-  config.T_mission_node_initial = pose;
+  config.T_I_node_initial = pose;
 
   pose_graph_.addClientNode(config);
 }

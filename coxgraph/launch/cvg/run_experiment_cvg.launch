@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<launch>
+  <param name="use_sim_time" value="true" />
+
+  <include file="$(find coxgraph)/launch/cvg/coxgraph_client0_cvg.launch" />
+  <include file="$(find coxgraph)/launch/cvg/coxgraph_client1_cvg.launch" />
+  <include file="$(find coxgraph)/launch/coxgraph_server.launch" />
+</launch>
